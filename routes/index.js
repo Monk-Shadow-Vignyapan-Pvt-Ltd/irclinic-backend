@@ -6,6 +6,7 @@ import stateRoute from "./state.route.js"
 import cityRoute from "./city.route.js"
 import centerRoute from "./center.route.js"
 import patientRoute from "./patient.route.js"
+import inventoryRoute from "./inventory.route.js"
 
 const routes = {
   doctorRoute,
@@ -15,7 +16,8 @@ const routes = {
   stateRoute,
   cityRoute,
   centerRoute,
-  patientRoute
+  patientRoute,
+  inventoryRoute
 };
 
 export default routes;

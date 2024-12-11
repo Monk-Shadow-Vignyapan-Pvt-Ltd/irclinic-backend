@@ -3,22 +3,25 @@ import { Vendor } from '../models/vendor.model.js'; // Update the path as per yo
 // Add a new vendor
 export const addVendor = async (req, res) => {
     try {
-        const { vendorName, phoneNo, email, company, address, state, city, userId } = req.body;
+        const { vendorName, salesPhoneNo,accountPhoneNo, email, company, address, state, city,isInstrumentVendor,isMedicineVendor, userId } = req.body;
 
         // Validate required fields
-        if (!vendorName || !phoneNo || !email || !address || !state || !city) {
+        if (!vendorName || !salesPhoneNo || !accountPhoneNo || !email || !address || !state || !city) {
             return res.status(400).json({ message: 'All required fields must be filled', success: false });
         }
 
         // Create a new vendor
         const vendor = new Vendor({
             vendorName,
-            phoneNo,
+            salesPhoneNo,
+            accountPhoneNo,
             email,
             company,
             address,
             state,
             city,
+            isInstrumentVendor,
+            isMedicineVendor,
             userId
         });
 
@@ -63,17 +66,20 @@ export const getVendorById = async (req, res) => {
 export const updateVendor = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorName, phoneNo, email, company, address, state, city, userId } = req.body;
+        const { vendorName, salesPhoneNo,accountPhoneNo, email, company, address, state, city,isInstrumentVendor,isMedicineVendor, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(vendorName && { vendorName }),
-            ...(phoneNo && { phoneNo }),
+            ...(salesPhoneNo && { salesPhoneNo }),
+            ...(accountPhoneNo && { accountPhoneNo }),
             ...(email && { email }),
             ...(company && { company }),
             ...(address && { address }),
             ...(state && { state }),
             ...(city && { city }),
+            isInstrumentVendor ,
+            isMedicineVendor ,
             ...(userId && { userId }),
         };
 

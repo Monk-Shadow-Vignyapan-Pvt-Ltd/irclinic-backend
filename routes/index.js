@@ -7,6 +7,7 @@ import cityRoute from "./city.route.js"
 import centerRoute from "./center.route.js"
 import patientRoute from "./patient.route.js"
 import inventoryRoute from "./inventory.route.js"
+import appointmentRoute from "./appointment.route.js"
 
 const routes = {
   doctorRoute,
@@ -17,7 +18,8 @@ const routes = {
   cityRoute,
   centerRoute,
   patientRoute,
-  inventoryRoute
+  inventoryRoute,
+  appointmentRoute
 };
 
 export default routes;

@@ -3,23 +3,17 @@ import { Appointment } from '../models/appointment.model.js'; // Adjust the path
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId,title,appointmentType,notes, doctorId, centerId, start, end, userId } = req.body;
+        const { patientId,title, doctorId, centerId, start, end, userId } = req.body;
 
-        // Validate required fields
-        if (appointmentType != "quick") {if (!patientId || !title || !start || !end) {
+        if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
-        }}
+        }
 
-        if (appointmentType != "Regular" ){if( !notes || !title ) {
-            return res.status(400).json({ message: 'Notes & Patient Name are required', success: false });
-        }}
 
         // Create a new appointment
         const appointment = new Appointment({
             patientId,
             title,
-            appointmentType,
-            notes,
             doctorId,
             centerId: centerId || null,
             start,
@@ -83,14 +77,12 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId,title,appointmentType,notes, doctorId, centerId, start, end,  userId } = req.body;
+        const { patientId,title, doctorId, centerId, start, end,  userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(patientId && { patientId }),
             ...(title && { title }),
-            ...(appointmentType && { appointmentType }),
-            ...(notes && { notes }),
             ...(doctorId && { doctorId }),
             centerId: centerId || null,
             ...(start && { start }),

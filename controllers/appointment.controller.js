@@ -3,7 +3,7 @@ import { Appointment } from '../models/appointment.model.js'; // Adjust the path
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId,title, doctorId, centerId, start, end, userId } = req.body;
+        const { patientId,title, doctorId, centerId, start, end,reason,description,impression,advice, userId } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -18,6 +18,8 @@ export const addAppointment = async (req, res) => {
             centerId: centerId || null,
             start,
             end,
+            reason,
+            description,impression,advice,
             userId: userId || null
         });
 
@@ -77,7 +79,7 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId,title, doctorId, centerId, start, end,  userId } = req.body;
+        const { patientId,title, doctorId, centerId, start, end,reason,description,impression,advice,  userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -87,6 +89,8 @@ export const updateAppointment = async (req, res) => {
             centerId: centerId || null,
             ...(start && { start }),
             ...(end && { end }),
+            ...(reason && { reason }),
+            description,impression,advice,
             userId: userId || null
         };
 

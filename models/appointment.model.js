@@ -33,6 +33,7 @@ const appointmentSchema = new mongoose.Schema(
     description: { type: String, required: false },
     impression: { type: String, required: false },
     advice: { type: String, required: false },
+    procedurePlan: { type: mongoose.Schema.Types.Mixed, required: false },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

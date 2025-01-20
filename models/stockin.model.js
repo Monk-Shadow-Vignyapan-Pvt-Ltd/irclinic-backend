@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const stockinSchema = new mongoose.Schema({
     inventoryId: { type: mongoose.Schema.Types.ObjectId, required: true },
     totalStock: { type: Number, required: true },
+    others: { type: mongoose.Schema.Types.Mixed, required: false },
     centerId:{
         type:mongoose.Schema.Types.ObjectId,
         required:true

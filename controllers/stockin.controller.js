@@ -3,7 +3,7 @@ import { Stockin } from '../models/stockin.model.js'; // Update the path as per 
 // Add a new stockin
 export const addStockin = async (req, res) => {
     try {
-        const { inventoryId, totalStock, centerId, userId } = req.body;
+        const { inventoryId, totalStock,others, centerId, userId } = req.body;
 
         // Validate required fields
         if (!inventoryId || !totalStock || !centerId) {
@@ -14,7 +14,7 @@ export const addStockin = async (req, res) => {
         }
 
         // Create a new stockin
-        const stockin = new Stockin({ inventoryId, totalStock, centerId, userId });
+        const stockin = new Stockin({ inventoryId, totalStock,others, centerId, userId });
 
         await stockin.save();
         res.status(201).json({ stockin, success: true });
@@ -57,12 +57,13 @@ export const getStockinById = async (req, res) => {
 export const updateStockin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { inventoryId, totalStock, centerId, userId } = req.body;
+        const { inventoryId, totalStock,others, centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(inventoryId && { inventoryId }),
             ...(totalStock && { totalStock }),
+            ...(others && { others }),
             ...(centerId && { centerId }),
             ...(userId && { userId }),
         };

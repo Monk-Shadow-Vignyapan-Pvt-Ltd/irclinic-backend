@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const stockinSchema = new mongoose.Schema({
+    vendorId: { type: mongoose.Schema.Types.ObjectId, required: true },
     inventoryId: { type: mongoose.Schema.Types.ObjectId, required: true },
     totalStock: { type: Number, required: true },
     others: { type: mongoose.Schema.Types.Mixed, required: false },

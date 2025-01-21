@@ -3,18 +3,18 @@ import { Stockin } from '../models/stockin.model.js'; // Update the path as per 
 // Add a new stockin
 export const addStockin = async (req, res) => {
     try {
-        const { inventoryId, totalStock,others, centerId, userId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
 
         // Validate required fields
-        if (!inventoryId || !totalStock || !centerId) {
+        if (!vendorId || !inventoryId || !totalStock || !centerId) {
             return res.status(400).json({ 
-                message: 'Inventory ID, Total Stock, and Center ID are required', 
+                message: 'Vendor Id,Inventory ID, Total Stock, and Center ID are required', 
                 success: false 
             });
         }
 
         // Create a new stockin
-        const stockin = new Stockin({ inventoryId, totalStock,others, centerId, userId });
+        const stockin = new Stockin({vendorId, inventoryId, totalStock,others, centerId, userId });
 
         await stockin.save();
         res.status(201).json({ stockin, success: true });
@@ -57,10 +57,11 @@ export const getStockinById = async (req, res) => {
 export const updateStockin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { inventoryId, totalStock,others, centerId, userId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
+            ...(vendorId && { vendorId }),
             ...(inventoryId && { inventoryId }),
             ...(totalStock && { totalStock }),
             ...(others && { others }),

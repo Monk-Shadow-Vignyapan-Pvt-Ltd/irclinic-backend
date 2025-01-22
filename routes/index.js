@@ -12,6 +12,7 @@ import quicknoteRoute from "./quicknote.route.js"
 import stockinRoute from "./stockin.route.js"
 import reportRoute from "./report.route.js"
 import procedureRoute from "./procedure.route.js";
+import invoiceRoute from "./invoice.route.js";
 
 const routes = {
   doctorRoute,
@@ -27,7 +28,8 @@ const routes = {
   quicknoteRoute,
   stockinRoute,
   reportRoute,
-  procedureRoute
+  procedureRoute,
+  invoiceRoute
 };
 
 export default routes;

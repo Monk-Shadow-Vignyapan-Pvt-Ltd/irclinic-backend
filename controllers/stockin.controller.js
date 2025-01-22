@@ -53,6 +53,21 @@ export const getStockinById = async (req, res) => {
     }
 };
 
+// Get stockins by Inventory ID
+export const getStockinsByInventoryId = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const stockins = await Stockin.find({ inventoryId: id });
+        if (!stockins) {
+            return res.status(404).json({ message: 'Stockins not found', success: false });
+        }
+        res.status(200).json({ stockins, success: true });
+    } catch (error) {
+        console.error('Error fetching stockins:', error);
+        res.status(500).json({ message: 'Failed to fetch stockins', success: false });
+    }
+};
+
 // Update stockin by ID
 export const updateStockin = async (req, res) => {
     try {

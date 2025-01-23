@@ -30,9 +30,7 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
-    description: { type: String, required: false },
-    impression: { type: String, required: false },
-    advice: { type: String, required: false },
+    reports: { type: mongoose.Schema.Types.Mixed, required: false },
     procedurePlan: { type: mongoose.Schema.Types.Mixed, required: false },
     invoiceId: {
       type: mongoose.Schema.Types.ObjectId,

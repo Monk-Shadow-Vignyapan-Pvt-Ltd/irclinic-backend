@@ -78,8 +78,8 @@ export const updateStockin = async (req, res) => {
         const updatedData = {
             ...(vendorId && { vendorId }),
             ...(inventoryId && { inventoryId }),
-            ...(totalStock && { totalStock }),
-            ...(others && { others }),
+             totalStock,
+             others ,
             ...(centerId && { centerId }),
             ...(userId && { userId }),
         };

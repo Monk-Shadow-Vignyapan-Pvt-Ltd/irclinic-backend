@@ -1,4 +1,5 @@
 import { Appointment } from '../models/appointment.model.js'; // Adjust the path according to your project structure
+import { Invoice } from '../models/invoice.model.js';
 
 // Add a new appointment
 export const addAppointment = async (req, res) => {
@@ -49,16 +50,33 @@ export const getAppointments = async (req, res) => {
 export const getAppointmentsByPatientId = async (req, res) => {
     try {
         const { id } = req.params;
+
+        // Fetch all appointments for the given patient ID
         const appointments = await Appointment.find({ patientId: id });
-        if (!appointments) {
+
+        if (!appointments || appointments.length === 0) {
             return res.status(404).json({ message: 'No appointments found for this patient', success: false });
         }
-        res.status(200).json({ appointments, success: true });
+
+        // Enhance appointments with corresponding invoicePlan if invoiceId exists
+        const enhancedAppointments = await Promise.all(
+            appointments.map(async (appointment) => {
+                if (appointment.invoiceId) {
+                    const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
+                    const invoicePlan = invoice.invoicePlan ;
+                    return { ...appointment.toObject(), invoicePlan }; // Convert Mongoose document to plain object
+                }
+                return appointment.toObject(); // If no invoiceId, return appointment as-is
+            })
+        );
+
+        res.status(200).json({ appointments: enhancedAppointments, success: true });
     } catch (error) {
         console.error('Error fetching appointments:', error);
         res.status(500).json({ message: 'Failed to fetch appointments', success: false });
     }
 };
+
 
 // Get appointment by ID
 export const getAppointmentById = async (req, res) => {

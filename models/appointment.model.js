@@ -6,6 +6,10 @@ const appointmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
     },
+    appointmentType: {
+      type: String,
+      required: true,
+    },
     title: {
       type: String,
       required: true,
@@ -34,6 +38,22 @@ const appointmentSchema = new mongoose.Schema(
     procedurePlan: { type: mongoose.Schema.Types.Mixed, required: false },
     invoiceId: {
       type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
+    isCancelled:{
+      type: Boolean,
+      required: false,
+    },
+    cancelby:{
+      type: String,
+      required: false,
+    },
+    cancelReason:{
+      type: String,
+      required: false,
+    },
+    followupNotes:{
+      type: String,
       required: false,
     },
     userId: {

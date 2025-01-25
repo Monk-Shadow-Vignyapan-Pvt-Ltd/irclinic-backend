@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const quicknoteSchema = new mongoose.Schema({
     notes: { type: String, required: true,  },
+    quicknoteType: { type: String, required: true,  },
     isAppointment: { type: Boolean, required: true,  },
     centerId: {
           type: mongoose.Schema.Types.ObjectId,

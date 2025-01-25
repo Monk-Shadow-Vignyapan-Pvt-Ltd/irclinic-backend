@@ -4,7 +4,7 @@ import { Invoice } from '../models/invoice.model.js';
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId,title, doctorId, centerId, start, end,reason,reports,procedurePlan,invoiceId, userId } = req.body;
+        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,invoiceId,isCancelled,cancelby,cancelReason,followupNotes, userId } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -14,6 +14,7 @@ export const addAppointment = async (req, res) => {
         // Create a new appointment
         const appointment = new Appointment({
             patientId,
+            appointmentType,
             title,
             doctorId,
             centerId: centerId || null,
@@ -21,6 +22,7 @@ export const addAppointment = async (req, res) => {
             end,
             reason,
             reports,procedurePlan,invoiceId,
+            isCancelled,cancelby,cancelReason,followupNotes,
             userId: userId || null
         });
 
@@ -97,11 +99,12 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId,title, doctorId, centerId, start, end,reason,reports,procedurePlan,invoiceId,  userId } = req.body;
+        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,invoiceId,isCancelled, cancelby,cancelReason,followupNotes, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(patientId && { patientId }),
+            ...(appointmentType && { appointmentType }),
             ...(title && { title }),
             ...(doctorId && { doctorId }),
             centerId: centerId || null,
@@ -109,6 +112,7 @@ export const updateAppointment = async (req, res) => {
             ...(end && { end }),
             ...(reason && { reason }),
             reports,procedurePlan,invoiceId,
+            isCancelled,cancelby,cancelReason,followupNotes,
             userId: userId || null
         };
 

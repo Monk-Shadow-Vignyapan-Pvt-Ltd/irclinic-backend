@@ -3,15 +3,15 @@ import { Quicknote } from '../models/quicknote.model.js'; // Update the path as 
 // Add a new quicknote
 export const addQuicknote = async (req, res) => {
     try {
-        const { notes,isAppointment,centerId, userId } = req.body;
+        const { notes,quicknoteType,isAppointment,centerId, userId } = req.body;
 
         // Validate required fields
-        if (!notes) {
+        if (!notes || !quicknoteType) {
             return res.status(400).json({ message: 'Notes field is required', success: false });
         }
 
         // Create a new quicknote
-        const quicknote = new Quicknote({ notes,isAppointment,centerId, userId });
+        const quicknote = new Quicknote({ notes,quicknoteType,isAppointment,centerId, userId });
 
         await quicknote.save();
         res.status(201).json({ quicknote, success: true });
@@ -54,11 +54,12 @@ export const getQuicknoteById = async (req, res) => {
 export const updateQuicknote = async (req, res) => {
     try {
         const { id } = req.params;
-        const { notes,isAppointment,centerId, userId } = req.body;
+        const { notes,quicknoteType,isAppointment,centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(notes && { notes }),
+            quicknoteType,
             ...(isAppointment && { isAppointment }),
             centerId,
             ...(userId && { userId }),

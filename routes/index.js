@@ -13,6 +13,8 @@ import stockinRoute from "./stockin.route.js"
 import reportRoute from "./report.route.js"
 import procedureRoute from "./procedure.route.js";
 import invoiceRoute from "./invoice.route.js";
+import activityRoute from "./activity.route.js";
+import activityTypeRoute from "./activityType.route.js";
 
 const routes = {
   doctorRoute,
@@ -29,7 +31,9 @@ const routes = {
   stockinRoute,
   reportRoute,
   procedureRoute,
-  invoiceRoute
+  invoiceRoute,
+  activityRoute,
+  activityTypeRoute
 };
 
 export default routes;

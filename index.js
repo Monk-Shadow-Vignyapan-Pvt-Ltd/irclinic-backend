@@ -45,6 +45,8 @@ app.use("/api/v1/stockins",routes.stockinRoute);
 app.use("/api/v1/reports",routes.reportRoute);
 app.use("/api/v1/procedures",routes.procedureRoute);
 app.use("/api/v1/invoices",routes.invoiceRoute);
+app.use("/api/v1/activities",routes.activityRoute);
+app.use("/api/v1/activityTypes",routes.activityTypeRoute);
 
 app.listen(PORT, () => {
     console.log(`server running at port ${PORT}`);

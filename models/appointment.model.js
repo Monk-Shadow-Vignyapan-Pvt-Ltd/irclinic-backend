@@ -52,14 +52,15 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
-    followupNotes:{
-      type: String,
-      required: false,
-    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,
     },
+    status:{
+      type: String,
+      required: true,
+      default:"Scheduled"
+    }
   },
   { timestamps: true }
 );

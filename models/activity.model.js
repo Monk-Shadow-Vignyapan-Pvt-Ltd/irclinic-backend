@@ -19,7 +19,7 @@ const activitySchema = new mongoose.Schema(
         required: true,
       },
       comments:{
-        type: String,
+        type: mongoose.Schema.Types.Mixed,
         required: false,
       },
     centerId: {

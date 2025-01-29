@@ -6,7 +6,7 @@ import sharp from 'sharp';
 // Signup Controller
 export const addUser = async (req, res) => {
   try {
-    const { email, password, username, avatar ,role,centerId} = req.body;
+    const { email, password, username, avatar ,role,roles,centerId} = req.body;
     if (!email || !password || !username || !role) {
       return res.status(400).json({ msg: "Please enter all the fields" });
     }
@@ -43,7 +43,7 @@ export const addUser = async (req, res) => {
        compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
     }
       
-    const newUser = new User({ email, password: hashedPassword, username, avatar:avatar ? compressedBase64 : avatar,role,centerId: (centerId === '') ? null : centerId });
+    const newUser = new User({ email, password: hashedPassword, username, avatar:avatar ? compressedBase64 : avatar,role,roles,centerId: (centerId === '') ? null : centerId });
 
     const savedUser = await newUser.save();
     res.json(savedUser);
@@ -136,7 +136,7 @@ export const getUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { email, password, username, avatar ,role,centerId} = req.body;
+        const { email, password, username, avatar ,role,roles,centerId} = req.body;
 
         // Validate base64 image data if provided
         if (!email || !password || !username || !role) {
@@ -167,7 +167,7 @@ export const updateUser = async (req, res) => {
             // Convert back to Base64 for storage (optional)
             const compressedBase64 = avatar ? `data:image/jpeg;base64,${compressedBuffer.toString('base64')}` : null;  
 
-        const updatedData = { email, password: hashedPassword, username, avatar:compressedBase64,role,centerId: (centerId === '') ? null : centerId  };
+        const updatedData = { email, password: hashedPassword, username, avatar:compressedBase64,role,roles,centerId: (centerId === '') ? null : centerId  };
 
         const user = await User.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
         if (!user) return res.status(404).json({ message: "User not found!", success: false });

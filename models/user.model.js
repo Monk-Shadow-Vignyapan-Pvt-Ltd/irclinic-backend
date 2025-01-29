@@ -25,6 +25,10 @@ const userSchema = new mongoose.Schema({
     type: String,  // Use Mixed for flexible structure (JSON-like object)
     required: true
   },
+  roles:{
+    type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
+    required: false
+  },
   centerId:{
     type:mongoose.Schema.Types.ObjectId,
     required:false

@@ -115,6 +115,7 @@ export const getUser = async (req, res) => {
       id: user._id,
       avatar: user.avatar,
       role:user.role,
+      roles:user.roles,
       users:filteredUsers
     });
   } catch (err) {

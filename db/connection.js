@@ -30,7 +30,19 @@ const connectDB = async () => {
                 email: defaultAdminEmail,
                 password: hashedPassword, // Store hashed password
                 username: "admin",
-                role:"Super Admin"
+                role:"Super Admin",
+                roles: [
+                    { name: "Users", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Banner", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Category", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Service", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Testimonial", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "FAQs", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Blogs", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Contact", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Survey", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Seo", actions: { view: true, create: true, edit: true, delete: true } },
+                ],
             });
 
             await defaultUser.save();

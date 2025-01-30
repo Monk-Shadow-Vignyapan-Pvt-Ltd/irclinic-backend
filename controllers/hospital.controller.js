@@ -37,7 +37,26 @@ export const getHospitals = async (req, res) => {
         if (!hospitals ) {
             return res.status(404).json({ message: "No hospitals found", success: false });
         }
-        return res.status(200).json({ hospitals, success: true });
+        const reversedHospitals = hospitals.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedHospitals = reversedHospitals.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            hospitals:paginatedHospitals, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(hospitals.length / limit),
+            totalHospitals: hospitals.length,
+        },});
     } catch (error) {
         console.error('Error fetching hospitals:', error);
         res.status(500).json({ message: 'Failed to fetch hospitals', success: false });
@@ -100,5 +119,45 @@ export const deleteHospital = async (req, res) => {
     } catch (error) {
         console.error('Error deleting hospital:', error);
         res.status(500).json({ message: 'Failed to delete hospital', success: false });
+    }
+};
+
+export const searchHospitals = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const hospitals = await Hospital.find({
+            $or: [
+                { hospitalName: regex },
+                { hospitalEmail: regex },
+                { hospitalAddress: regex },
+                { adminPhoneNo: regex },
+                { accountPhoneNo: regex },
+                { city: regex },
+                { state: regex }
+            ]
+        });
+
+        if (!hospitals) {
+            return res.status(404).json({ message: 'No hospitals found', success: false });
+        }
+
+        return res.status(200).json({
+            hospitals: hospitals,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(hospitals.length / 12),
+                totalHospitals: hospitals.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching hospitals:', error);
+        res.status(500).json({ message: 'Failed to search hospitals', success: false });
     }
 };

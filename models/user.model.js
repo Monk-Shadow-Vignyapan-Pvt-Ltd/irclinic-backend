@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema({
   centerId:{
     type:mongoose.Schema.Types.ObjectId,
     required:false
+  },
+  userId:{
+    type:mongoose.Schema.Types.ObjectId,
+    required:false
   }
 }, { timestamps: true });
 

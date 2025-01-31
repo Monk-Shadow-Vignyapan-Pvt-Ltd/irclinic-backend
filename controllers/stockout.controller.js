@@ -6,7 +6,7 @@ export const addStockout = async (req, res) => {
         const { vendorId,inventoryId, totalStock,others, centerId } = req.body;
 
         // Validate required fields
-        if (!vendorId || !inventoryId || !totalStock || !centerId) {
+        if (!vendorId || !inventoryId  || !centerId) {
             return res.status(400).json({ 
                 message: 'Vendor Id,Inventory ID, Total Stock, and Center ID are required', 
                 success: false 
@@ -35,5 +35,44 @@ export const getStockouts = async (req, res) => {
     } catch (error) {
         console.error('Error fetching stockouts:', error);
         res.status(500).json({ message: 'Failed to fetch stockouts', success: false });
+    }
+};
+
+export const getStockoutById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const stockout = await Stockout.findById(id);
+        if (!stockout) {
+            return res.status(404).json({ message: 'stockout not found', success: false });
+        }
+        res.status(200).json({ stockout, success: true });
+    } catch (error) {
+        console.error('Error fetching stockout:', error);
+        res.status(500).json({ message: 'Failed to fetch stockout', success: false });
+    }
+};
+
+export const updateStockout = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { vendorId,inventoryId, totalStock,others, centerId } = req.body;
+
+        // Build updated data
+        const updatedData = {
+            ...(vendorId && { vendorId }),
+            ...(inventoryId && { inventoryId }),
+             totalStock,
+             others ,
+            ...(centerId && { centerId }),
+        };
+
+        const stockout = await Stockout.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+        if (!stockout) {
+            return res.status(404).json({ message: 'stockout not found', success: false });
+        }
+        res.status(200).json({ stockout, success: true });
+    } catch (error) {
+        console.error('Error updating stockout:', error);
+        res.status(400).json({ message: 'Failed to update stockout', success: false });
     }
 };

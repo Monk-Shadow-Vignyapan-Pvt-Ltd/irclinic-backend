@@ -117,3 +117,21 @@ export const deleteReport = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete report', success: false });
     }
 };
+
+export const dashboardReports = async (req, res) => {
+    try {
+        const totalReports = await Report.countDocuments(); // Get total count
+
+        const lastFiveReports = await Report.find({}, { reportTitle: 1, _id: 1 }) // Select only reportTitle
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 Reports
+
+        return res.status(200).json({ 
+            totalReports, 
+            reports: lastFiveReports 
+        });
+    } catch (error) {
+        console.error('Error fetching Reports:', error);
+        res.status(500).json({ message: 'Failed to fetch Reports', success: false });
+    }
+};

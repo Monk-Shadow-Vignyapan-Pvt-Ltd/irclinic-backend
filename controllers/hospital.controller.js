@@ -161,3 +161,22 @@ export const searchHospitals = async (req, res) => {
         res.status(500).json({ message: 'Failed to search hospitals', success: false });
     }
 };
+
+export const dashboardHospitals = async (req, res) => {
+    try {
+        const totalHospitals = await Hospital.countDocuments(); // Get total count
+
+        const lastFiveHospitals = await Hospital.find({}, { hospitalName: 1, _id: 1 }) // Select only hospitalName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 hospitals
+
+        return res.status(200).json({ 
+            totalHospitals, 
+            hospitals: lastFiveHospitals 
+        });
+    } catch (error) {
+        console.error('Error fetching hospitals:', error);
+        res.status(500).json({ message: 'Failed to fetch hospitals', success: false });
+    }
+};
+

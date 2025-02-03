@@ -119,3 +119,22 @@ export const deleteInventory = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete inventory item', success: false });
     }
 };
+
+
+export const dashboardInventories = async (req, res) => {
+    try {
+        const totalInventories = await Inventory.countDocuments(); // Get total count
+
+        const lastFiveInventories = await Inventory.find({}, { inventoryName: 1, _id: 1 }) // Select only inventoryName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 Inventories
+
+        return res.status(200).json({ 
+            totalInventories, 
+            inventories: lastFiveInventories 
+        });
+    } catch (error) {
+        console.error('Error fetching Inventories:', error);
+        res.status(500).json({ message: 'Failed to fetch Inventories', success: false });
+    }
+};

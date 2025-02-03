@@ -36,7 +36,11 @@ const userSchema = new mongoose.Schema({
   userId:{
     type:mongoose.Schema.Types.ObjectId,
     required:false
-  }
+  },
+  selectedRoles:{
+    type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
+    required: false
+  },
 }, { timestamps: true });
 
 export const User = mongoose.model("User", userSchema);

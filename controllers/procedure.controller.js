@@ -117,3 +117,21 @@ export const deleteProcedure = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete procedure', success: false });
     }
 };
+
+export const dashboardProcedures = async (req, res) => {
+    try {
+        const totalProcedures = await Procedure.countDocuments(); // Get total count
+
+        const lastFiveProcedures = await Procedure.find({}, { procedureName: 1, _id: 1 }) // Select only ProcedureName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 Procedures
+
+        return res.status(200).json({ 
+            totalProcedures, 
+            procedures: lastFiveProcedures 
+        });
+    } catch (error) {
+        console.error('Error fetching Procedures:', error);
+        res.status(500).json({ message: 'Failed to fetch Procedures', success: false });
+    }
+};

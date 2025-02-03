@@ -117,3 +117,21 @@ export const deleteCity = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete city', success: false });
     }
 };
+
+export const dashboardCities = async (req, res) => {
+    try {
+        const totalCities = await City.countDocuments(); // Get total count
+
+        const lastFiveCities = await City.find({}, { cityName: 1, _id: 1 }) // Select only cityName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 cities
+
+        return res.status(200).json({ 
+            totalCities, 
+            cities: lastFiveCities 
+        });
+    } catch (error) {
+        console.error('Error fetching cities:', error);
+        res.status(500).json({ message: 'Failed to fetch cities', success: false });
+    }
+};

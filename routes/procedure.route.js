@@ -1,5 +1,5 @@
 import express from "express";
-import { addProcedure, getProcedures, getProcedureById, deleteProcedure, updateProcedure} from "../controllers/procedure.controller.js";
+import { addProcedure, getProcedures, getProcedureById, deleteProcedure, updateProcedure,dashboardProcedures} from "../controllers/procedure.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -10,5 +10,6 @@ router.route("/getProcedures").get( getProcedures);
 router.route("/getProcedureById/:id").put( getProcedureById);
 router.route("/updateProcedure/:id").post( updateProcedure);
 router.route("/deleteProcedure/:id").delete(deleteProcedure);
+router.route("/dashboardProcedures").get( dashboardProcedures);
 
 export default router;

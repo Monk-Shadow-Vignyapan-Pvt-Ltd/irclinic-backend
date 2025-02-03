@@ -143,3 +143,21 @@ export const deleteAppointment = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete appointment', success: false });
     }
 };
+
+export const dashboardAppointments = async (req, res) => {
+    try {
+        const totalAppointments = await Appointment.countDocuments(); // Get total count
+
+        const lastFiveAppointments = await Appointment.find({}, { title: 1, _id: 1 }) // Select only title
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 appointments
+
+        return res.status(200).json({ 
+            totalAppointments, 
+            appointments: lastFiveAppointments 
+        });
+    } catch (error) {
+        console.error('Error fetching appointments:', error);
+        res.status(500).json({ message: 'Failed to fetch appointments', success: false });
+    }
+};

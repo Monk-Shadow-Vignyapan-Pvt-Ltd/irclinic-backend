@@ -126,3 +126,21 @@ export const deleteCenter = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete center', success: false });
     }
 };
+
+export const dashboardCenters = async (req, res) => {
+    try {
+        const totalCenters = await Center.countDocuments(); // Get total count
+
+        const lastFiveCenters = await Center.find({}, { centerName: 1, _id: 1 }) // Select only centerName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 centers
+
+        return res.status(200).json({ 
+            totalCenters, 
+            centers: lastFiveCenters 
+        });
+    } catch (error) {
+        console.error('Error fetching centers:', error);
+        res.status(500).json({ message: 'Failed to fetch centers', success: false });
+    }
+};

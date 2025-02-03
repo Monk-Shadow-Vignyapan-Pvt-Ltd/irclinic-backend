@@ -121,3 +121,21 @@ export const deleteActivity = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete activity', success: false });
     }
 };
+
+export const dashboardActivities = async (req, res) => {
+    try {
+        const totalActivities = await Activity.countDocuments(); // Get total count
+
+        const lastFiveActivities = await Activity.find({}, { activityTitle: 1, _id: 1 }) // Select only activityTitle
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 activities
+
+        return res.status(200).json({ 
+            totalActivities, 
+            activities: lastFiveActivities 
+        });
+    } catch (error) {
+        console.error('Error fetching activities:', error);
+        res.status(500).json({ message: 'Failed to fetch activities', success: false });
+    }
+};

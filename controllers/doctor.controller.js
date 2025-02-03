@@ -129,3 +129,21 @@ export const deleteDoctor = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete doctor', success: false });
     }
 };
+
+export const dashboardDoctors = async (req, res) => {
+    try {
+        const totalDoctors = await Doctor.countDocuments(); // Get total count
+
+        const lastFiveDoctors = await Doctor.find({}, { firstName: 1,lastName:1, _id: 1 }) // Select only doctorName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 doctors
+
+        return res.status(200).json({ 
+            totalDoctors, 
+            doctors: lastFiveDoctors 
+        });
+    } catch (error) {
+        console.error('Error fetching doctors:', error);
+        res.status(500).json({ message: 'Failed to fetch doctors', success: false });
+    }
+};

@@ -111,3 +111,21 @@ export const deleteState = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete state', success: false });
     }
 };
+
+export const dashboardStates = async (req, res) => {
+    try {
+        const totalStates = await State.countDocuments(); // Get total count
+
+        const lastFiveStates = await State.find({}, { stateName: 1, _id: 1 }) // Select only stateName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 States
+
+        return res.status(200).json({ 
+            totalStates, 
+            states: lastFiveStates 
+        });
+    } catch (error) {
+        console.error('Error fetching States:', error);
+        res.status(500).json({ message: 'Failed to fetch States', success: false });
+    }
+};

@@ -109,3 +109,21 @@ export const deleteInvoice = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete invoice', success: false });
     }
 };
+
+export const dashboardInvoices = async (req, res) => {
+    try {
+        const totalInvoices = await Invoice.countDocuments(); // Get total count
+
+        const lastFiveInvoices = await Invoice.find({}, {  _id: 1 }) 
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 Invoices
+
+        return res.status(200).json({ 
+            totalInvoices, 
+            invoices: lastFiveInvoices
+        });
+    } catch (error) {
+        console.error('Error fetching Invoices:', error);
+        res.status(500).json({ message: 'Failed to fetch Invoices', success: false });
+    }
+};

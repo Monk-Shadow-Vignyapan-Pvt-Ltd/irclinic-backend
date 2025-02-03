@@ -1,4 +1,6 @@
 import { Stockin } from '../models/stockin.model.js'; // Update the path as per your project structure
+import { Inventory } from '../models/inventory.model.js';
+import mongoose from "mongoose";
 
 // Add a new stockin
 export const addStockin = async (req, res) => {
@@ -126,5 +128,48 @@ export const deleteStockin = async (req, res) => {
     } catch (error) {
         console.error('Error deleting stockin:', error);
         res.status(500).json({ message: 'Failed to delete stockin', success: false });
+    }
+};
+
+
+export const dashboardStockins = async (req, res) => {
+    try {
+        const totalStockins = await Stockin.countDocuments(); // Get total count
+
+        const lastFiveStockins = await Stockin.find({}, { inventoryId: 1,totalStock:1, _id: 1 }) // Select only StockinName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 Stockins
+            let inventoryIds = lastFiveStockins.map(stockin => stockin.inventoryId);
+
+        // Convert inventoryIds to ObjectId (only if needed)
+        inventoryIds = inventoryIds.map(id => new mongoose.Types.ObjectId(id));
+
+        // Fetch inventory details where inventoryId matches
+        const inventories = await Inventory.find(
+            { _id: { $in: inventoryIds } }, // Using `_id` instead of `inventoryId`
+            { inventoryName: 1 }
+        );
+    
+            // Create a map of inventoryId to inventoryName
+            const inventoryMap = inventories.reduce((map, inv) => {
+                map[inv._id] = inv.inventoryName;
+                return map;
+            }, {});
+    
+            // Map stockins to include inventoryName
+            const stockinsWithNames = lastFiveStockins.map(stockin => ({
+                _id: stockin._id,
+                inventoryId: stockin.inventoryId,
+                inventoryName: inventoryMap[stockin.inventoryId] || "Unknown", // Fallback if not found
+                totalStock: stockin.totalStock
+            }));
+
+        return res.status(200).json({ 
+            totalStockins, 
+            stockins: stockinsWithNames 
+        });
+    } catch (error) {
+        console.error('Error fetching Stockins:', error);
+        res.status(500).json({ message: 'Failed to fetch Stockins', success: false });
     }
 };

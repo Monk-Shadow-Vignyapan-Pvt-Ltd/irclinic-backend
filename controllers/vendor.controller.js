@@ -127,3 +127,21 @@ export const deleteVendor = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete vendor', success: false });
     }
 };
+
+export const dashboardVendors = async (req, res) => {
+    try {
+        const totalVendors = await Vendor.countDocuments(); // Get total count
+
+        const lastFiveVendors = await Vendor.find({}, { vendorName: 1, _id: 1 }) // Select only vendorName
+            .sort({ createdAt: -1 }) // Sort by creation date (descending)
+            .limit(5); // Get last 5 Vendors
+
+        return res.status(200).json({ 
+            totalVendors, 
+            vendors: lastFiveVendors 
+        });
+    } catch (error) {
+        console.error('Error fetching Vendors:', error);
+        res.status(500).json({ message: 'Failed to fetch Vendors', success: false });
+    }
+};

@@ -1,5 +1,5 @@
 import express from "express";
-import { addHospital, getHospitals, getHospitalById, deleteHospital, updateHospital,searchHospitals} from "../controllers/hospital.controller.js";
+import { addHospital, getHospitals, getHospitalById, deleteHospital, updateHospital,searchHospitals, dashboardHospitals} from "../controllers/hospital.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -11,5 +11,6 @@ router.route("/getHospitalById/:id").put( getHospitalById);
 router.route("/updateHospital/:id").post( updateHospital);
 router.route("/deleteHospital/:id").delete(deleteHospital);
 router.route("/searchHospitals").post( searchHospitals);
+router.route("/dashboardHospitals").get( dashboardHospitals);
 
 export default router;

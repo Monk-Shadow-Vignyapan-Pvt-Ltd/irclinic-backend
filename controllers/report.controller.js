@@ -35,7 +35,26 @@ export const getReports = async (req, res) => {
         if (!reports) {
             return res.status(404).json({ message: "No reports found", success: false });
         }
-        return res.status(200).json({ reports, success: true });
+        const reversedreports = reports.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedreports = reversedreports.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            reports:paginatedreports, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(reports.length / limit),
+            totalreports: reports.length,
+        },});
     } catch (error) {
         console.error('Error fetching reports:', error);
         res.status(500).json({ message: 'Failed to fetch reports', success: false });

@@ -41,7 +41,26 @@ export const getDoctors = async (req, res) => {
         if (!doctors ) {
             return res.status(404).json({ message: "No doctors found", success: false });
         }
-        return res.status(200).json({ doctors, success: true });
+        const reverseddoctors = doctors.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginateddoctors = reverseddoctors.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            doctors:paginateddoctors, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(doctors.length / limit),
+            totaldoctors: doctors.length,
+        },});
     } catch (error) {
         console.error('Error fetching doctors:', error);
         res.status(500).json({ message: 'Failed to fetch doctors', success: false });

@@ -36,7 +36,26 @@ export const getInventories = async (req, res) => {
         if (!inventories) {
             return res.status(404).json({ message: 'No inventory items found', success: false });
         }
-        res.status(200).json({ inventories, success: true });
+        const reversedinventories = inventories.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedinventories = reversedinventories.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            inventories:paginatedinventories, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(inventories.length / limit),
+            totalinventories: inventories.length,
+        },});
     } catch (error) {
         console.error('Error fetching inventory items:', error);
         res.status(500).json({ message: 'Failed to fetch inventory items', success: false });

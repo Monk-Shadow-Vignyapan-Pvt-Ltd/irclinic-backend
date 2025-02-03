@@ -35,7 +35,26 @@ export const getCities = async (req, res) => {
         if (!cities) {
             return res.status(404).json({ message: 'No cities found', success: false });
         }
-        res.status(200).json({ cities, success: true });
+        const reversedcities = cities.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedcities = reversedcities.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            cities:paginatedcities, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(cities.length / limit),
+            totalcities: cities.length,
+        },});
     } catch (error) {
         console.error('Error fetching cities:', error);
         res.status(500).json({ message: 'Failed to fetch cities', success: false });

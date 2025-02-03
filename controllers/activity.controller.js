@@ -38,7 +38,24 @@ export const getActivities = async (req, res) => {
         if (!activities) {
             return res.status(404).json({ message: 'No activities found', success: false });
         }
-        res.status(200).json({ activities, success: true });
+        const reversedactivities = activities.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedactivities = reversedactivities.slice(startIndex, endIndex);
+        res.status(200).json({ activities:paginatedactivities, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(activities.length / limit),
+            totalActivities: activities.length,} });
     } catch (error) {
         console.error('Error fetching activities:', error);
         res.status(500).json({ message: 'Failed to fetch activities', success: false });

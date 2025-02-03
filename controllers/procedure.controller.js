@@ -35,7 +35,26 @@ export const getProcedures = async (req, res) => {
         if (!procedures ) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
-        return res.status(200).json({ procedures, success: true });
+        const reversedprocedures = procedures.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedprocedures = reversedprocedures.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            procedures:paginatedprocedures, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(procedures.length / limit),
+            totalprocedures: procedures.length,
+        },});
     } catch (error) {
         console.error('Error fetching procedures:', error);
         res.status(500).json({ message: 'Failed to fetch procedures', success: false });

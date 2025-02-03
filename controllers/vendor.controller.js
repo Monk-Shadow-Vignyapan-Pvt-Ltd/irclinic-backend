@@ -40,7 +40,26 @@ export const getVendors = async (req, res) => {
         if (!vendors ) {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
-        res.status(200).json({ vendors, success: true });
+        const reversedvendors = vendors.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedvendors = reversedvendors.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            vendors:paginatedvendors, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(vendors.length / limit),
+            totalvendors: vendors.length,
+        },});
     } catch (error) {
         console.error('Error fetching vendors:', error);
         res.status(500).json({ message: 'Failed to fetch vendors', success: false });

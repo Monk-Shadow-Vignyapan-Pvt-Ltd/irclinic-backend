@@ -31,7 +31,26 @@ export const getInvoices = async (req, res) => {
         if (!invoices ) {
             return res.status(404).json({ message: 'No invoices found', success: false });
         }
-        res.status(200).json({ invoices, success: true });
+        const reversedinvoices = invoices.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedinvoices = reversedinvoices.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            invoices:paginatedinvoices, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(invoices.length / limit),
+            totalinvoices: invoices.length,
+        },});
     } catch (error) {
         console.error('Error fetching invoices:', error);
         res.status(500).json({ message: 'Failed to fetch invoices', success: false });

@@ -126,13 +126,45 @@ export const getUser = async (req, res) => {
   }
 };
 
+// export const getUsers = async (req, res) => {
+//     try {
+//         const users = await User.find();
+//         if (!users) return res.status(404).json({ message: "Users not found", success: false });
+//         return res.status(200).json({ users });
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ message: 'Failed to fetch users', success: false });
+//     }
+// };
+
 export const getUsers = async (req, res) => {
     try {
         const users = await User.find();
-        if (!users) return res.status(404).json({ message: "Users not found", success: false });
-        return res.status(200).json({ users });
+        if (!users ) {
+            return res.status(404).json({ message: "No Users found", success: false });
+        }
+        const reversedusers = users.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedusers = reversedusers.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            users:paginatedusers, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(users.length / limit),
+            totalusers: users.length,
+        },});
     } catch (error) {
-        console.log(error);
+        console.error('Error fetching users:', error);
         res.status(500).json({ message: 'Failed to fetch users', success: false });
     }
 };
@@ -219,5 +251,45 @@ export const updateDashboard = async (req, res) => {
       console.log(error);
       res.status(400).json({ message: error.message, success: false });
   }
+};
+
+export const searchUsers = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const users = await User.find({
+            $or: [
+                { email: regex },
+                { username: regex },
+                // { hospitalAddress: regex },
+                // { adminPhoneNo: regex },
+                // { accountPhoneNo: regex },
+                // { city: regex },
+                // { state: regex }
+            ]
+        });
+
+        if (!users) {
+            return res.status(404).json({ message: 'No users found', success: false });
+        }
+
+        return res.status(200).json({
+            users: users,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(users.length / 12),
+                totalusers: users.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching users:', error);
+        res.status(500).json({ message: 'Failed to search users', success: false });
+    }
 };
 

@@ -139,3 +139,41 @@ export const dashboardActivities = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch activities', success: false });
     }
 };
+
+
+export const searchActivities = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const activities = await Activity.find({
+            $or: [
+                { activityType: regex },
+                { activityTitle: regex },
+                { notes: regex },
+                { dueDate: regex },
+            ]
+        });
+
+        if (!activities) {
+            return res.status(404).json({ message: 'No activities found', success: false });
+        }
+
+        return res.status(200).json({
+            activities: activities,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(activities.length / 12),
+                totalActivities: activities.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching activities:', error);
+        res.status(500).json({ message: 'Failed to search activities', success: false });
+    }
+};

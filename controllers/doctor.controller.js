@@ -147,3 +147,45 @@ export const dashboardDoctors = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch doctors', success: false });
     }
 };
+
+export const searchDoctors = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const doctors = await Doctor.find({
+            $or: [
+                { firstName: regex },
+                { lastName: regex },
+                { email: regex },
+                { phoneNo: regex },
+                { company: regex },
+                { gender: regex },
+                { state: regex },
+                {speciality : regex},
+                { city: regex },
+            ]
+        });
+
+        if (!doctors) {
+            return res.status(404).json({ message: 'No Doctors found', success: false });
+        }
+
+        return res.status(200).json({
+            doctors: doctors,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(doctors.length / 12),
+                totalDoctors: doctors.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching Doctors:', error);
+        res.status(500).json({ message: 'Failed to search Doctors', success: false });
+    }
+};

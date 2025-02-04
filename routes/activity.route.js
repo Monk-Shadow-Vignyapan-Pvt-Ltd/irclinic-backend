@@ -1,5 +1,5 @@
 import express from "express";
-import { addActivity, getActivities, getActivityById, deleteActivity, updateActivity , dashboardActivities} from "../controllers/activity.controller.js";
+import { addActivity, getActivities, getActivityById, deleteActivity, updateActivity , dashboardActivities,searchActivities} from "../controllers/activity.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -11,5 +11,6 @@ router.route("/getActivityById/:id").put( getActivityById);
 router.route("/updateActivity/:id").put( updateActivity);
 router.route("/deleteActivity/:id").delete(deleteActivity);
 router.route("/dashboardActivities").get( dashboardActivities);
+router.route("/searchActivities").post( searchActivities);
 
 export default router;

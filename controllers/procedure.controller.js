@@ -135,3 +135,40 @@ export const dashboardProcedures = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch Procedures', success: false });
     }
 };
+
+export const searchProcedures = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const procedures = await Procedure.find({
+            $or: [
+                { procedureName: regex },
+                { cost: regex },
+                { gst: regex },
+                { notes: regex },
+            ]
+        });
+
+        if (!procedures) {
+            return res.status(404).json({ message: 'No procedures found', success: false });
+        }
+
+        return res.status(200).json({
+            procedures: procedures,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(procedures.length / 12),
+                totalProcedures: procedures.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching procedures:', error);
+        res.status(500).json({ message: 'Failed to search procedures', success: false });
+    }
+};

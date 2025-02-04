@@ -129,3 +129,37 @@ export const updateStockout = async (req, res) => {
         res.status(400).json({ message: 'Failed to update stockout', success: false });
     }
 };
+
+export const searchStockouts = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const stockouts = await Stockout.find({
+            $or: [
+                { totalStock: regex },
+            ]
+        });
+
+        if (!stockouts) {
+            return res.status(404).json({ message: 'No stockouts found', success: false });
+        }
+
+        return res.status(200).json({
+            stockouts: stockouts,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(stockouts.length / 12),
+                totalStockouts: stockouts.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching stockouts:', error);
+        res.status(500).json({ message: 'Failed to search stockouts', success: false });
+    }
+};

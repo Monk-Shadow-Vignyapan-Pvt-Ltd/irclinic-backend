@@ -145,3 +145,43 @@ export const dashboardVendors = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch Vendors', success: false });
     }
 };
+
+export const searchVendors = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const vendors = await Vendor.find({
+            $or: [
+                { vendorName: regex },
+                { email: regex },
+                { address: regex },
+                { salesPhoneNo: regex },
+                { accountPhoneNo: regex },
+                { city: regex },
+                { state: regex }
+            ]
+        });
+
+        if (!vendors) {
+            return res.status(404).json({ message: 'No vendors found', success: false });
+        }
+
+        return res.status(200).json({
+            vendors: vendors,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(vendors.length / 12),
+                totalVendors: vendors.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching vendors:', error);
+        res.status(500).json({ message: 'Failed to search vendors', success: false });
+    }
+};

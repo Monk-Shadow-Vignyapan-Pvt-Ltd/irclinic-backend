@@ -1,5 +1,5 @@
 import express from "express";
-import { addStockin, getStockins, getStockinById,getStockinsByInventoryId, deleteStockin,updateStockin,dashboardStockins} from "../controllers/stockin.controller.js";
+import { addStockin, getStockins, getStockinById,getStockinsByInventoryId, deleteStockin,updateStockin,dashboardStockins, searchStockins} from "../controllers/stockin.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -12,5 +12,6 @@ router.route("/getStockinsByInventoryId/:id").put( getStockinsByInventoryId);
 router.route("/updateStockin/:id").post( updateStockin);
 router.route("/deleteStockin/:id").delete(deleteStockin);
 router.route("/dashboardStockins").get( dashboardStockins);
+router.route("/searchStockins").post( searchStockins);
 
 export default router;

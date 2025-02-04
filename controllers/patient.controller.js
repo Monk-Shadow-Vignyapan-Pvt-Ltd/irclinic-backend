@@ -161,3 +161,45 @@ export const dashboardPatients = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch Patients', success: false });
     }
 };
+
+export const searchPatients = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const patients = await Patient.find({
+            $or: [
+                { patientName: regex },
+                { patientType: regex },
+                { gender: regex },
+                { phoneNo: regex },
+                { age: regex },
+                { city: regex },
+                { state: regex },
+                { address: regex },
+                { reference: regex },
+            ]
+        });
+
+        if (!patients) {
+            return res.status(404).json({ message: 'No patients found', success: false });
+        }
+
+        return res.status(200).json({
+            patients: patients,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(patients.length / 12),
+                totalPatients: patients.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching patients:', error);
+        res.status(500).json({ message: 'Failed to search patients', success: false });
+    }
+};

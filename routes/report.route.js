@@ -1,5 +1,5 @@
 import express from "express";
-import { addReport, getReports, getReportById, deleteReport, updateReport, dashboardReports} from "../controllers/report.controller.js";
+import { addReport, getReports, getReportById, deleteReport, updateReport, dashboardReports, searchReports} from "../controllers/report.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -11,5 +11,6 @@ router.route("/getReportById/:id").put( getReportById);
 router.route("/updateReport/:id").post( updateReport);
 router.route("/deleteReport/:id").delete(deleteReport);
 router.route("/dashboardReports").get( dashboardReports);
+router.route("/searchReports").post( searchReports);
 
 export default router;

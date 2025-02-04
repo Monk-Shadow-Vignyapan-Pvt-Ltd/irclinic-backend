@@ -135,3 +135,38 @@ export const dashboardCities = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch cities', success: false });
     }
 };
+
+export const searchCities = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const cities = await City.find({
+            $or: [
+                { cityName: regex },
+                { cityCode: regex },
+            ]
+        });
+
+        if (!cities) {
+            return res.status(404).json({ message: 'No cities found', success: false });
+        }
+
+        return res.status(200).json({
+            cities: cities,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(cities.length / 12),
+                totalCities: cities.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching cities:', error);
+        res.status(500).json({ message: 'Failed to search cities', success: false });
+    }
+};

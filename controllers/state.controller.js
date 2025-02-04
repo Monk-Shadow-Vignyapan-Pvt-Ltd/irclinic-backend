@@ -129,3 +129,38 @@ export const dashboardStates = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch States', success: false });
     }
 };
+
+export const searchStates = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const states = await State.find({
+            $or: [
+                { stateName: regex },
+                { stateCode: regex }
+            ]
+        });
+
+        if (!states) {
+            return res.status(404).json({ message: 'No states found', success: false });
+        }
+
+        return res.status(200).json({
+            states: states,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(states.length / 12),
+                totalStates: states.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching states:', error);
+        res.status(500).json({ message: 'Failed to search states', success: false });
+    }
+};

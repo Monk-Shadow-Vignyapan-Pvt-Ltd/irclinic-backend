@@ -135,3 +135,41 @@ export const dashboardReports = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch Reports', success: false });
     }
 };
+
+export const searchReports = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const reports = await Report.find({
+            $or: [
+                { reportTitle: regex },
+                { documentname: regex },
+                { description: regex },
+                { impression: regex },
+                { advice: regex },
+            ]
+        });
+
+        if (!reports) {
+            return res.status(404).json({ message: 'No reports found', success: false });
+        }
+
+        return res.status(200).json({
+            reports: reports,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(reports.length / 12),
+                totalReports: reports.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching reports:', error);
+        res.status(500).json({ message: 'Failed to search reports', success: false });
+    }
+};

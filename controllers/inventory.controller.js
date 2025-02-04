@@ -138,3 +138,42 @@ export const dashboardInventories = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch Inventories', success: false });
     }
 };
+
+export const searchInventories = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const inventories = await Inventory.find({
+            $or: [
+                { inventoryType: regex },
+                { inventoryName: regex },
+                { brandName: regex },
+                { stockLevel: regex },
+                { unit: regex },
+                
+            ]
+        });
+
+        if (!inventories) {
+            return res.status(404).json({ message: 'No inventories found', success: false });
+        }
+
+        return res.status(200).json({
+            inventories: inventories,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(inventories.length / 12),
+                totalInventories: inventories.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching inventories:', error);
+        res.status(500).json({ message: 'Failed to search inventories', success: false });
+    }
+};

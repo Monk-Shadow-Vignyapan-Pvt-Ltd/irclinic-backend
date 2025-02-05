@@ -36,6 +36,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     reports: { type: mongoose.Schema.Types.Mixed, required: false },
     procedurePlan: { type: mongoose.Schema.Types.Mixed, required: false },
+    investigationReports : { type: mongoose.Schema.Types.Mixed, required: false },
     invoiceId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

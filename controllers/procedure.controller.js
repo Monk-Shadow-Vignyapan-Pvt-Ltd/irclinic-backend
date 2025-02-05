@@ -3,7 +3,7 @@ import { Procedure } from '../models/procedure.model.js'; // Update the path as 
 // Add a new procedure
 export const addProcedure = async (req, res) => {
     try {
-        const { procedureName, cost, gst, notes, instructions, userId } = req.body;
+        const { procedureName, cost, gst, notes, instructions,isProcedure, userId } = req.body;
 
         // Validate required fields
         if (!procedureName || cost === undefined || gst === undefined) {
@@ -17,6 +17,7 @@ export const addProcedure = async (req, res) => {
             gst,
             notes,
             instructions,
+            isProcedure,
             userId
         });
 
@@ -80,7 +81,7 @@ export const getProcedureById = async (req, res) => {
 export const updateProcedure = async (req, res) => {
     try {
         const { id } = req.params;
-        const { procedureName, cost, gst, notes, instructions, userId } = req.body;
+        const { procedureName, cost, gst, notes, instructions,isProcedure, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -89,6 +90,7 @@ export const updateProcedure = async (req, res) => {
             ...(gst !== undefined && { gst }),
             ...(notes && { notes }),
             ...(instructions && { instructions }),
+            isProcedure ,
             ...(userId && { userId })
         };
 

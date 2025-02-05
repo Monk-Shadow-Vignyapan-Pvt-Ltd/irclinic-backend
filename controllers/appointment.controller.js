@@ -4,7 +4,7 @@ import { Invoice } from '../models/invoice.model.js';
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,invoiceId,isCancelled,cancelby,cancelReason, userId,status } = req.body;
+        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,investigationReports,invoiceId,isCancelled,cancelby,cancelReason, userId,status } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -21,7 +21,7 @@ export const addAppointment = async (req, res) => {
             start,
             end,
             reason,
-            reports,procedurePlan,invoiceId,
+            reports,procedurePlan,investigationReports,invoiceId,
             isCancelled,cancelby,cancelReason,
             userId: userId || null,
             status: status || "Scheduled"
@@ -100,7 +100,7 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,invoiceId,isCancelled, cancelby,cancelReason, userId ,status} = req.body;
+        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,investigationReports,invoiceId,isCancelled, cancelby,cancelReason, userId ,status} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -112,7 +112,7 @@ export const updateAppointment = async (req, res) => {
             ...(start && { start }),
             ...(end && { end }),
             ...(reason && { reason }),
-            reports,procedurePlan,invoiceId,
+            reports,procedurePlan,investigationReports,invoiceId,
             isCancelled,cancelby,cancelReason,
             userId: userId || null,
             ...(status && { status }),

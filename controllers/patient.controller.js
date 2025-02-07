@@ -41,6 +41,7 @@ export const getPatients = async (req, res) => {
         if (!patients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
+        const outsidePatients = patients.filter(patient => patient.patientType === "Outside")
         const reversedpatients = patients.reverse();
         const page = parseInt(req.query.page) || 1;
 
@@ -55,6 +56,7 @@ export const getPatients = async (req, res) => {
         const paginatedpatients = reversedpatients.slice(startIndex, endIndex);
         return res.status(200).json({ 
             patients:paginatedpatients, 
+            outsidePatients:outsidePatients,
             success: true ,
             pagination: {
             currentPage: page,

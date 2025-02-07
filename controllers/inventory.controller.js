@@ -3,7 +3,7 @@ import { Inventory } from '../models/inventory.model.js';
 // Add a new inventory item
 export const addInventory = async (req, res) => {
     try {
-        const { inventoryType, inventoryName, brandName, stockLevel,unit,centerId, userId } = req.body;
+        const { inventoryType, inventoryName,instrumentType, brandName, stockLevel,unit,centerId, userId } = req.body;
 
         // Validate required fields
         if (!inventoryType || !inventoryName || !stockLevel || !centerId) {
@@ -14,6 +14,7 @@ export const addInventory = async (req, res) => {
         const inventory = new Inventory({
             inventoryType,
             inventoryName,
+            instrumentType,
             brandName,
             stockLevel,
             unit,
@@ -36,7 +37,10 @@ export const getInventories = async (req, res) => {
         if (!inventories) {
             return res.status(404).json({ message: 'No inventory items found', success: false });
         }
-        const reversedinventories = inventories.reverse();
+        const medicines = inventories.filter(inventory => inventory.inventoryType === "Medicine");
+        const instruments = inventories.filter(inventory => inventory.inventoryType === "Instrument")
+        const reversedinventories = medicines.reverse();
+        const reversedinstruments = instruments.reverse();
         const page = parseInt(req.query.page) || 1;
 
         // Define the number of items per page
@@ -48,13 +52,17 @@ export const getInventories = async (req, res) => {
 
         // Paginate the reversed movies array
         const paginatedinventories = reversedinventories.slice(startIndex, endIndex);
+        const paginatedinstruments = reversedinstruments.slice(startIndex, endIndex);
         return res.status(200).json({ 
-            inventories:paginatedinventories, 
+            medicines:paginatedinventories, 
+            instruments:paginatedinstruments,
             success: true ,
             pagination: {
             currentPage: page,
-            totalPages: Math.ceil(inventories.length / limit),
-            totalinventories: inventories.length,
+            totalMedicinePages: Math.ceil(medicines.length / limit),
+            totalInstrumentPages: Math.ceil(instruments.length / limit),
+            totalmedicines: medicines.length,
+            totalinstruments:instruments.length
         },});
     } catch (error) {
         console.error('Error fetching inventory items:', error);
@@ -81,12 +89,13 @@ export const getInventoryById = async (req, res) => {
 export const updateInventory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { inventoryType, inventoryName, brandName, stockLevel,unit,centerId, userId } = req.body;
+        const { inventoryType, inventoryName,instrumentType, brandName, stockLevel,unit,centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(inventoryType && { inventoryType }),
             ...(inventoryName && { inventoryName }),
+            instrumentType,
             ...(brandName && { brandName }),
             stockLevel,
             unit,

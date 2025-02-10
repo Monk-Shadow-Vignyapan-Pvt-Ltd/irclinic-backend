@@ -3,10 +3,10 @@ import { Inventory } from '../models/inventory.model.js';
 // Add a new inventory item
 export const addInventory = async (req, res) => {
     try {
-        const { inventoryType, inventoryName,instrumentType, brandName, stockLevel,unit,centerId, userId } = req.body;
+        const { inventoryType, inventoryName,instrumentType, brandName,ignoreStockLevel, stockLevel,unit,centerId, userId } = req.body;
 
         // Validate required fields
-        if (!inventoryType || !inventoryName || !stockLevel || !centerId) {
+        if (!inventoryType || !inventoryName  || !centerId) {
             return res.status(400).json({ message: 'All required fields must be filled', success: false });
         }
 
@@ -16,6 +16,7 @@ export const addInventory = async (req, res) => {
             inventoryName,
             instrumentType,
             brandName,
+            ignoreStockLevel,
             stockLevel,
             unit,
             centerId,
@@ -70,6 +71,22 @@ export const getInventories = async (req, res) => {
     }
 };
 
+export const getAllInventories = async (req, res) => {
+    try {
+        const inventories = await Inventory.find();
+        if (!inventories) {
+            return res.status(404).json({ message: 'No inventory items found', success: false });
+        }
+        return res.status(200).json({ 
+            inventories,
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching inventory items:', error);
+        res.status(500).json({ message: 'Failed to fetch inventory items', success: false });
+    }
+};
+
 // Get inventory item by ID
 export const getInventoryById = async (req, res) => {
     try {
@@ -89,7 +106,7 @@ export const getInventoryById = async (req, res) => {
 export const updateInventory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { inventoryType, inventoryName,instrumentType, brandName, stockLevel,unit,centerId, userId } = req.body;
+        const { inventoryType, inventoryName,instrumentType, brandName,ignoreStockLevel, stockLevel,unit,centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -97,6 +114,7 @@ export const updateInventory = async (req, res) => {
             ...(inventoryName && { inventoryName }),
             instrumentType,
             ...(brandName && { brandName }),
+            ignoreStockLevel,
             stockLevel,
             unit,
             centerId,

@@ -3,7 +3,7 @@ import { Stockout } from '../models/stockout.model.js'; // Update the path as pe
 // Add a new stockin
 export const addStockout = async (req, res) => {
     try {
-        const { vendorId,inventoryId, totalStock,others, centerId } = req.body;
+        const { vendorId,inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId } = req.body;
 
         // Validate required fields
         if (!vendorId || !inventoryId  || !centerId) {
@@ -14,7 +14,7 @@ export const addStockout = async (req, res) => {
         }
 
         // Create a new stockin
-        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId });
+        const stockout = new Stockout({vendorId, inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId });
 
         await stockout.save();
         res.status(201).json({ stockout, success: true });
@@ -108,13 +108,13 @@ export const getStockoutsByVendorId = async (req, res) => {
 export const updateStockout = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others, centerId } = req.body;
+        const { vendorId,inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(vendorId && { vendorId }),
             ...(inventoryId && { inventoryId }),
-             totalStock,
+             totalStock,stockinType,lotNo,expiryDate,
              others ,
             ...(centerId && { centerId }),
         };

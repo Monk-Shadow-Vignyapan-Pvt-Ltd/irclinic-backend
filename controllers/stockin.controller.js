@@ -5,18 +5,18 @@ import mongoose from "mongoose";
 // Add a new stockin
 export const addStockin = async (req, res) => {
     try {
-        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
+        const { vendorId,inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId, userId } = req.body;
 
         // Validate required fields
-        if (!vendorId || !inventoryId || !totalStock || !centerId) {
+        if (!vendorId || !inventoryId || !totalStock || !centerId || !lotNo) {
             return res.status(400).json({ 
-                message: 'Vendor Id,Inventory ID, Total Stock, and Center ID are required', 
+                message: 'Vendor Id,Inventory ID, Total Stock, Lot No. and Center ID are required', 
                 success: false 
             });
         }
 
         // Create a new stockin
-        const stockin = new Stockin({vendorId, inventoryId, totalStock,others, centerId, userId });
+        const stockin = new Stockin({vendorId, inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId, userId });
 
         await stockin.save();
         res.status(201).json({ stockin, success: true });
@@ -29,12 +29,42 @@ export const addStockin = async (req, res) => {
 // Get all stockins
 export const getStockins = async (req, res) => {
     try {
+        // Fetch stockins and inventories
         const stockins = await Stockin.find();
         if (!stockins) {
             return res.status(404).json({ message: 'No stockins found', success: false });
         }
-        const reversedstockins = stockins.reverse();
-        const page = parseInt(req.query.page) || 1;
+
+        const inventories = await Inventory.find();
+        if (!inventories) {
+            return res.status(404).json({ message: 'No inventory items found', success: false });
+        }
+
+            // Create a Map for fast inventory lookups
+            const inventoryMap = new Map(inventories.map(inv => [inv._id.toString(), inv]));
+
+            // Categorize stockins based on inventory type
+            const medicines = [];
+            const instruments = [];
+    
+            stockins.forEach(stockin => {
+                const inventory = inventoryMap.get(stockin.inventoryId.toString()) || null;
+                const stockinWithInventory = {
+                    ...stockin.toObject(),
+                    inventory
+                };
+    
+                if (inventory?.inventoryType === "Medicine") {
+                    medicines.push(stockinWithInventory);
+                } else if (inventory?.inventoryType === "Instrument") {
+                    instruments.push(stockinWithInventory);
+                }
+            });
+    
+            // Reverse for latest first
+            const reversedinventories = [...medicines].reverse();
+            const reversedinstruments = [...instruments].reverse();
+            const page = parseInt(req.query.page) || 1;
 
         // Define the number of items per page
         const limit = 12;
@@ -44,20 +74,45 @@ export const getStockins = async (req, res) => {
         const endIndex = page * limit;
 
         // Paginate the reversed movies array
-        const paginatedstockins = reversedstockins.slice(startIndex, endIndex);
+        const paginatedinventories = reversedinventories.slice(startIndex, endIndex);
+        const paginatedinstruments = reversedinstruments.slice(startIndex, endIndex);
         return res.status(200).json({ 
-            stockins:paginatedstockins, 
+            medicines:paginatedinventories, 
+            instruments:paginatedinstruments,
             success: true ,
             pagination: {
             currentPage: page,
-            totalPages: Math.ceil(stockins.length / limit),
-            totalstockins: stockins.length,
+            totalMedicinePages: Math.ceil(medicines.length / limit),
+            totalInstrumentPages: Math.ceil(instruments.length / limit),
+            totalmedicines: medicines.length,
+            totalinstruments:instruments.length
         },});
+
     } catch (error) {
         console.error('Error fetching stockins:', error);
         res.status(500).json({ message: 'Failed to fetch stockins', success: false });
     }
 };
+
+export const getAllStockins = async (req, res) => {
+    try {
+        // Fetch stockins and inventories
+        const stockins = await Stockin.find();
+        if (!stockins) {
+            return res.status(404).json({ message: 'No stockins found', success: false });
+        }
+
+        
+        return res.status(200).json({ 
+            stockins:stockins, 
+            success: true ,});
+
+    } catch (error) {
+        console.error('Error fetching stockins:', error);
+        res.status(500).json({ message: 'Failed to fetch stockins', success: false });
+    }
+};
+
 
 // Get stockin by ID
 export const getStockinById = async (req, res) => {
@@ -93,14 +148,14 @@ export const getStockinsByInventoryId = async (req, res) => {
 export const updateStockin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
+        const { vendorId,inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(vendorId && { vendorId }),
             ...(inventoryId && { inventoryId }),
              totalStock,
-             others ,
+             others ,stockinType,lotNo,expiryDate,
             ...(centerId && { centerId }),
             ...(userId && { userId }),
         };
@@ -183,18 +238,41 @@ export const searchStockins = async (req, res) => {
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
-        const stockins = await Stockin.find({
-            $or: [
-                { totalStock: regex },
-            ]
-        });
-
+        const stockins = await Stockin.find();
         if (!stockins) {
             return res.status(404).json({ message: 'No stockins found', success: false });
         }
 
+
+        const inventories = await Inventory.find(
+            {
+            $or: [
+                { inventoryType: regex },
+                { inventoryName: regex },
+                { brandName: regex },
+                { stockLevel: regex },
+                { unit: regex },
+                { instrumentType: regex },
+                
+            ]
+        }
+    );
+
+        if (!inventories) {
+            return res.status(404).json({ message: 'No inventories found', success: false });
+        }
+
+        // Create a Map for fast inventory lookups
+        const inventoryMap = new Map(inventories.map(inv => [inv._id.toString(), inv]));
+
+        // Attach inventory details to stockins
+        const stockinsWithInventory = stockins.map(stockin => ({
+            ...stockin.toObject(),
+            inventory: inventoryMap.get(stockin.inventoryId.toString()) || null
+        }));
+
         return res.status(200).json({
-            stockins: stockins,
+            stockins: stockinsWithInventory.filter(inventory => inventory.inventory),
             success: true,
             pagination: {
                 currentPage: 1,

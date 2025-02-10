@@ -66,6 +66,22 @@ export const getVendors = async (req, res) => {
     }
 };
 
+export const getAllVendors = async (req, res) => {
+    try {
+        const vendors = await Vendor.find();
+        if (!vendors ) {
+            return res.status(404).json({ message: 'No vendors found', success: false });
+        }
+        const reversedvendors = vendors.reverse();
+        return res.status(200).json({ 
+            vendors, 
+            success: true ,});
+    } catch (error) {
+        console.error('Error fetching vendors:', error);
+        res.status(500).json({ message: 'Failed to fetch vendors', success: false });
+    }
+};
+
 // Get vendor by ID
 export const getVendorById = async (req, res) => {
     try {

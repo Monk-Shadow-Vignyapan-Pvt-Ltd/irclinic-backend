@@ -48,6 +48,7 @@ app.use("/api/v1/invoices",routes.invoiceRoute);
 app.use("/api/v1/activities",routes.activityRoute);
 app.use("/api/v1/activityTypes",routes.activityTypeRoute);
 app.use("/api/v1/stockouts",routes.stockoutRoute);
+app.use("/api/v1/progressNotes",routes.progressNoteRoute);
 
 app.listen(PORT, () => {
     console.log(`server running at port ${PORT}`);

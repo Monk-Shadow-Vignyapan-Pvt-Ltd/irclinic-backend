@@ -31,12 +31,13 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
     },
     reason:{
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       required: false,
     },
     reports: { type: mongoose.Schema.Types.Mixed, required: false },
     procedurePlan: { type: mongoose.Schema.Types.Mixed, required: false },
     investigationReports : { type: mongoose.Schema.Types.Mixed, required: false },
+    progressNotes : { type: mongoose.Schema.Types.Mixed, required: false },
     invoiceId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

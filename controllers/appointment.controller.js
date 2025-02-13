@@ -38,16 +38,24 @@ export const addAppointment = async (req, res) => {
 // Get all appointments
 export const getAppointments = async (req, res) => {
     try {
-        const appointments = await Appointment.find();
-        if (!appointments) {
-            return res.status(404).json({ message: 'No appointments found', success: false });
+        const { start, end } = req.query;
+
+        if (!start || !end) {
+            return res.status(400).json({ message: "Start and end dates are required", success: false });
         }
+
+        const appointments = await Appointment.find({
+            start: { $gte: new Date(start) },
+            end: { $lte: new Date(end) },
+        });
+
         res.status(200).json({ appointments, success: true });
     } catch (error) {
-        console.error('Error fetching appointments:', error);
-        res.status(500).json({ message: 'Failed to fetch appointments', success: false });
+        console.error("Error fetching appointments:", error);
+        res.status(500).json({ message: "Failed to fetch appointments", success: false });
     }
 };
+
 
 // Get appointments by patient ID
 export const getAppointmentsByPatientId = async (req, res) => {

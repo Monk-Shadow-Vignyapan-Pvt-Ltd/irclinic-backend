@@ -61,6 +61,22 @@ export const getReports = async (req, res) => {
     }
 };
 
+export const getAllReports = async (req, res) => {
+    try {
+        const reports = await Report.find();
+        if (!reports) {
+            return res.status(404).json({ message: "No reports found", success: false });
+        }
+        return res.status(200).json({ 
+            reports, 
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching reports:', error);
+        res.status(500).json({ message: 'Failed to fetch reports', success: false });
+    }
+};
+
 // Get report by ID
 export const getReportById = async (req, res) => {
     try {

@@ -62,6 +62,22 @@ export const getProcedures = async (req, res) => {
     }
 };
 
+export const getAllProcedures = async (req, res) => {
+    try {
+        const procedures = await Procedure.find();
+        if (!procedures ) {
+            return res.status(404).json({ message: "No procedures found", success: false });
+        }
+        return res.status(200).json({ 
+            procedures, 
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching procedures:', error);
+        res.status(500).json({ message: 'Failed to fetch procedures', success: false });
+    }
+};
+
 // Get procedure by ID
 export const getProcedureById = async (req, res) => {
     try {

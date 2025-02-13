@@ -1,10 +1,11 @@
 import { Appointment } from '../models/appointment.model.js'; // Adjust the path according to your project structure
 import { Invoice } from '../models/invoice.model.js';
+import { Estimate } from '../models/estimate.model.js';
 
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,investigationReports,progressNotes,invoiceId,isCancelled,cancelby,cancelReason, userId,status } = req.body;
+        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,investigationReports,progressNotes,invoiceId,estimateId,isCancelled,cancelby,cancelReason, userId,status } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -21,7 +22,7 @@ export const addAppointment = async (req, res) => {
             start,
             end,
             reason,
-            reports,procedurePlan,investigationReports,progressNotes,invoiceId,
+            reports,procedurePlan,investigationReports,progressNotes,invoiceId,estimateId,
             isCancelled,cancelby,cancelReason,
             userId: userId || null,
             status: status || "Scheduled"
@@ -76,6 +77,10 @@ export const getAppointmentsByPatientId = async (req, res) => {
                     const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
                     const invoicePlan = invoice.invoicePlan ;
                     return { ...appointment.toObject(), invoicePlan }; // Convert Mongoose document to plain object
+                }else if(appointment.estimateId){
+                    const estimate = await Estimate.findOne({ _id: appointment.estimateId });
+                    const estimatePlan = estimate.estimatePlan ;
+                    return { ...appointment.toObject(), estimatePlan }; // Convert Mongoose document to plain object
                 }
                 return appointment.toObject(); // If no invoiceId, return appointment as-is
             })
@@ -108,7 +113,7 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,investigationReports,progressNotes,invoiceId,isCancelled, cancelby,cancelReason, userId ,status} = req.body;
+        const { patientId,appointmentType,title, doctorId, centerId, start, end,reason,reports,procedurePlan,investigationReports,progressNotes,invoiceId,estimateId,isCancelled, cancelby,cancelReason, userId ,status} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -120,7 +125,7 @@ export const updateAppointment = async (req, res) => {
             ...(start && { start }),
             ...(end && { end }),
             ...(reason && { reason }),
-            reports,procedurePlan,investigationReports,progressNotes,invoiceId,
+            reports,procedurePlan,investigationReports,progressNotes,invoiceId,estimateId,
             isCancelled,cancelby,cancelReason,
             userId: userId || null,
             ...(status && { status }),

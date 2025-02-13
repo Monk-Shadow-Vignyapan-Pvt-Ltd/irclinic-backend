@@ -63,6 +63,22 @@ export const getHospitals = async (req, res) => {
     }
 };
 
+export const getAllHospitals = async (req, res) => {
+    try {
+        const hospitals = await Hospital.find();
+        if (!hospitals ) {
+            return res.status(404).json({ message: "No hospitals found", success: false });
+        }
+        return res.status(200).json({ 
+            hospitals, 
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching hospitals:', error);
+        res.status(500).json({ message: 'Failed to fetch hospitals', success: false });
+    }
+};
+
 // Get hospital by ID
 export const getHospitalById = async (req, res) => {
     try {

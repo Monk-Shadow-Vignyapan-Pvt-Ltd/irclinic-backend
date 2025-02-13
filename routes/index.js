@@ -17,6 +17,7 @@ import activityRoute from "./activity.route.js";
 import activityTypeRoute from "./activityType.route.js";
 import stockoutRoute from "./stockout.route.js";
 import progressNoteRoute from "./progressNote.route.js";
+import estimateRoute from "./estimate.route.js";
 
 const routes = {
   doctorRoute,
@@ -37,7 +38,8 @@ const routes = {
   activityRoute,
   activityTypeRoute,
   stockoutRoute,
-  progressNoteRoute
+  progressNoteRoute,
+  estimateRoute
 };
 
 export default routes;

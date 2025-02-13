@@ -5,10 +5,10 @@ import mongoose from "mongoose";
 // Add a new stockin
 export const addStockin = async (req, res) => {
     try {
-        const { vendorId,inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId, userId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
 
         // Validate required fields
-        if (!vendorId || !inventoryId || !totalStock || !centerId || !lotNo) {
+        if (!vendorId || !inventoryId || !totalStock || !centerId ) {
             return res.status(400).json({ 
                 message: 'Vendor Id,Inventory ID, Total Stock, Lot No. and Center ID are required', 
                 success: false 
@@ -16,7 +16,7 @@ export const addStockin = async (req, res) => {
         }
 
         // Create a new stockin
-        const stockin = new Stockin({vendorId, inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId, userId });
+        const stockin = new Stockin({vendorId, inventoryId, totalStock,others, centerId, userId });
 
         await stockin.save();
         res.status(201).json({ stockin, success: true });
@@ -148,14 +148,14 @@ export const getStockinsByInventoryId = async (req, res) => {
 export const updateStockin = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,stockinType,lotNo,expiryDate,others, centerId, userId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(vendorId && { vendorId }),
             ...(inventoryId && { inventoryId }),
              totalStock,
-             others ,stockinType,lotNo,expiryDate,
+             others ,
             ...(centerId && { centerId }),
             ...(userId && { userId }),
         };

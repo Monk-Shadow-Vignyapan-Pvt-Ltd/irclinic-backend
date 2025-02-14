@@ -67,6 +67,22 @@ export const getDoctors = async (req, res) => {
     }
 };
 
+export const getAllDoctors = async (req, res) => {
+    try {
+        const doctors = await Doctor.find();
+        if (!doctors ) {
+            return res.status(404).json({ message: "No doctors found", success: false });
+        }
+        return res.status(200).json({ 
+            doctors, 
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching doctors:', error);
+        res.status(500).json({ message: 'Failed to fetch doctors', success: false });
+    }
+};
+
 // Get doctor by ID
 export const getDoctorById = async (req, res) => {
     try {

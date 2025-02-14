@@ -1,13 +1,59 @@
 import { Estimate } from '../models/estimate.model.js'; // Update the path as per your project structure
+import sharp from 'sharp';
 
 // Add a new estimate
 export const addEstimate = async (req, res) => {
     try {
-        const { estimatePlan, userId, centerId } = req.body;
+        let { estimatePlan, userId, centerId } = req.body;
 
         if (!estimatePlan) {
             return res.status(400).json({ message: 'Estimate plan is required', success: false });
         }
+
+        const compressImage = async (base64Image) => {
+            const base64Data = base64Image.split(';base64,').pop();
+            const buffer = Buffer.from(base64Data, 'base64');
+            const compressedBuffer = await sharp(buffer)
+                .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
+                .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+                .toBuffer();
+            return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+        };
+        
+        const compressAllImages = async (images) => {
+            if (!Array.isArray(images)) return []; // Ensure it's an array
+        
+            return await Promise.all(
+                images.map(async (image) => {
+                    try {
+                        if (typeof image !== "string" || !image.startsWith('data:image')) {
+                            return null;
+                        }
+                        return await compressImage(image);
+                    } catch (err) {
+                        console.error("Error compressing image:", err);
+                        return null; // Return null if compression fails
+                    }
+                })
+            ).then(compressedImages => compressedImages.filter(img => img !== null)); // Remove null values
+        };
+        
+        const compressAllImagesInEstimatePlan = async (estimatePlan) => {
+            if (!Array.isArray(estimatePlan)) return []; // Ensure it's an array
+        
+            return await Promise.all(
+                estimatePlan.map(async (plan) => {
+                    if (!Array.isArray(plan.images)) return plan; // Skip if images is not an array
+                    
+                    const compressedImages = await compressAllImages(plan.images);
+                    return { ...plan, images: compressedImages };
+                })
+            );
+        };
+        
+        // Process and compress images
+        estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
+        
 
         const estimate = new Estimate({ estimatePlan, userId, centerId });
         await estimate.save();
@@ -65,9 +111,54 @@ export const getEstimateById = async (req, res) => {
 export const updateEstimate = async (req, res) => {
     try {
         const { id } = req.params;
-        const { estimatePlan, userId, centerId } = req.body;
+        let { estimatePlan, userId, centerId } = req.body;
 
-        const updatedData = { ...estimatePlan && { estimatePlan }, ...userId && { userId }, ...centerId && { centerId } };
+        const compressImage = async (base64Image) => {
+            const base64Data = base64Image.split(';base64,').pop();
+            const buffer = Buffer.from(base64Data, 'base64');
+            const compressedBuffer = await sharp(buffer)
+                .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
+                .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+                .toBuffer();
+            return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+        };
+        
+        const compressAllImages = async (images) => {
+            if (!Array.isArray(images)) return []; // Ensure it's an array
+        
+            return await Promise.all(
+                images.map(async (image) => {
+                    try {
+                        if (typeof image !== "string" || !image.startsWith('data:image')) {
+                            return null;
+                        }
+                        return await compressImage(image);
+                    } catch (err) {
+                        console.error("Error compressing image:", err);
+                        return null; // Return null if compression fails
+                    }
+                })
+            ).then(compressedImages => compressedImages.filter(img => img !== null)); // Remove null values
+        };
+        
+        const compressAllImagesInEstimatePlan = async (estimatePlan) => {
+            if (!Array.isArray(estimatePlan)) return []; // Ensure it's an array
+        
+            return await Promise.all(
+                estimatePlan.map(async (plan) => {
+                    if (!Array.isArray(plan.images)) return plan; // Skip if images is not an array
+                    
+                    const compressedImages = await compressAllImages(plan.images);
+                    return { ...plan, images: compressedImages };
+                })
+            );
+        };
+        
+        // Process and compress images
+        estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
+        
+ 
+        const updatedData = { estimatePlan , ...userId && { userId }, ...centerId && { centerId } };
         const estimate = await Estimate.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
 
         if (!estimate) {

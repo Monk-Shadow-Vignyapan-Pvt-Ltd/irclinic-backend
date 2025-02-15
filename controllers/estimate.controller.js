@@ -1,10 +1,11 @@
 import { Estimate } from '../models/estimate.model.js'; // Update the path as per your project structure
+import {Appointment} from '../models/appointment.model.js' ;
 import sharp from 'sharp';
 
 // Add a new estimate
 export const addEstimate = async (req, res) => {
     try {
-        let { estimatePlan, userId, centerId } = req.body;
+        let { estimatePlan,appointmentId, userId, centerId } = req.body;
 
         if (!estimatePlan) {
             return res.status(400).json({ message: 'Estimate plan is required', success: false });
@@ -55,7 +56,7 @@ export const addEstimate = async (req, res) => {
         estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
         
 
-        const estimate = new Estimate({ estimatePlan, userId, centerId });
+        const estimate = new Estimate({ estimatePlan,appointmentId, userId, centerId });
         await estimate.save();
 
         res.status(201).json({ estimate, success: true });
@@ -72,20 +73,35 @@ export const getEstimates = async (req, res) => {
         if (!estimates ) {
             return res.status(404).json({ message: 'No estimates found', success: false });
         }
-        const page = parseInt(req.query.page) || 1;
-        const limit = 12;
-        const startIndex = (page - 1) * limit;
-        const paginatedEstimates = estimates.slice(startIndex, startIndex + limit);
-
-        res.status(200).json({ 
-            estimates: paginatedEstimates, 
-            success: true,
-            pagination: {
-                currentPage: page,
-                totalPages: Math.ceil(estimates.length / limit),
-                totalEstimates: estimates.length,
-            },
-        });
+        const enhancedEstimates = await Promise.all(
+                            estimates.map(async (estimate) => {
+                                if (estimate.appointmentId) {
+                                    const appointment = await Appointment.findOne({ _id: estimate.appointmentId });
+                                    return { ...estimate.toObject(), appointment }; // Convert Mongoose document to plain object
+                                }
+                                return estimate.toObject(); 
+                            })
+                        );
+                        const reversedestimates = enhancedEstimates.reverse();
+                        const page = parseInt(req.query.page) || 1;
+                
+                        // Define the number of items per page
+                        const limit = 12;
+                
+                        // Calculate the start and end indices for pagination
+                        const startIndex = (page - 1) * limit;
+                        const endIndex = page * limit;
+                
+                        // Paginate the reversed movies array
+                        const paginatedestimates = reversedestimates.slice(startIndex, endIndex);
+                        return res.status(200).json({ 
+                            estimates:paginatedestimates, 
+                            success: true ,
+                            pagination: {
+                            currentPage: page,
+                            totalPages: Math.ceil(estimates.length / limit),
+                            totalestimates: estimates.length,
+                        },});
     } catch (error) {
         console.error('Error fetching estimates:', error);
         res.status(500).json({ message: 'Failed to fetch estimates', success: false });
@@ -111,7 +127,7 @@ export const getEstimateById = async (req, res) => {
 export const updateEstimate = async (req, res) => {
     try {
         const { id } = req.params;
-        let { estimatePlan, userId, centerId } = req.body;
+        let { estimatePlan,appointmentId, userId, centerId } = req.body;
 
         const compressImage = async (base64Image) => {
             const base64Data = base64Image.split(';base64,').pop();
@@ -158,7 +174,7 @@ export const updateEstimate = async (req, res) => {
         estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
         
  
-        const updatedData = { estimatePlan , ...userId && { userId }, ...centerId && { centerId } };
+        const updatedData = { estimatePlan ,appointmentId, ...userId && { userId }, ...centerId && { centerId } };
         const estimate = await Estimate.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
 
         if (!estimate) {

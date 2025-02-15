@@ -1,9 +1,10 @@
 import { Invoice } from '../models/invoice.model.js'; // Update the path as per your project structure
+import {Appointment} from '../models/appointment.model.js' ;
 
 // Add a new invoice
 export const addInvoice = async (req, res) => {
     try {
-        const { invoicePlan, userId } = req.body;
+        const { invoicePlan, appointmentId,userId } = req.body;
 
         // Validate required fields
         if (!invoicePlan) {
@@ -13,6 +14,7 @@ export const addInvoice = async (req, res) => {
         // Create a new invoice
         const invoice = new Invoice({
             invoicePlan,
+            appointmentId,
             userId
         });
 
@@ -31,7 +33,16 @@ export const getInvoices = async (req, res) => {
         if (!invoices ) {
             return res.status(404).json({ message: 'No invoices found', success: false });
         }
-        const reversedinvoices = invoices.reverse();
+        const enhancedInvoices = await Promise.all(
+                    invoices.map(async (invoice) => {
+                        if (invoice.appointmentId) {
+                            const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
+                            return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
+                        }
+                        return invoice.toObject(); // If no invoiceId, return appointment as-is
+                    })
+                );
+        const reversedinvoices = enhancedInvoices.reverse();
         const page = parseInt(req.query.page) || 1;
 
         // Define the number of items per page
@@ -76,11 +87,12 @@ export const getInvoiceById = async (req, res) => {
 export const updateInvoice = async (req, res) => {
     try {
         const { id } = req.params;
-        const { invoicePlan, userId } = req.body;
+        const { invoicePlan,appointmentId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(invoicePlan && { invoicePlan }),
+            appointmentId,
             ...(userId && { userId })
         };
 

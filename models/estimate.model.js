@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 const estimateSchema = new mongoose.Schema(
   {
     estimatePlan: { type: mongoose.Schema.Types.Mixed, required: true },
+    appointmentId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: false,
+        },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

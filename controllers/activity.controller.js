@@ -149,13 +149,14 @@ export const searchActivities = async (req, res) => {
         }
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
+        const searchDate = !isNaN(Date.parse(search)) ? new Date(search) : null; 
 
         const activities = await Activity.find({
             $or: [
                 { activityType: regex },
                 { activityTitle: regex },
                 { notes: regex },
-                { dueDate: regex },
+                ...(searchDate !== null ? [{ dueDate: { $gte: searchDate, $lt: new Date(searchDate.getTime() + 86400000) } }] : [])
             ]
         });
 

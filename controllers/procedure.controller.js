@@ -162,13 +162,13 @@ export const searchProcedures = async (req, res) => {
         }
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
+        const searchNumber = !isNaN(search) ? Number(search) : null; 
 
         const procedures = await Procedure.find({
             $or: [
                 { procedureName: regex },
-                { cost: regex },
-                { gst: regex },
                 { notes: regex },
+                ...(searchNumber !== null ? [{ cost: searchNumber }, { gst: searchNumber }] : [])
             ]
         });
 

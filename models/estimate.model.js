@@ -15,6 +15,7 @@ const estimateSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         required: false,
       },
+    followups: { type: mongoose.Schema.Types.Mixed, required: false },
   },
   { timestamps: true }
 );

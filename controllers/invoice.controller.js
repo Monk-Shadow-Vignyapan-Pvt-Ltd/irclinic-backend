@@ -126,13 +126,23 @@ export const dashboardInvoices = async (req, res) => {
     try {
         const totalInvoices = await Invoice.countDocuments(); // Get total count
 
-        const lastFiveInvoices = await Invoice.find({}, {  _id: 1 }) 
+        const lastFiveInvoices = await Invoice.find({}, {  _id: 1 ,appointmentId:1,invoicePlan:1}) 
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Invoices
 
+        const enhancedInvoices = await Promise.all(
+            lastFiveInvoices.map(async (invoice) => {
+                    if (invoice.appointmentId) {
+                        const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
+                        return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
+                    }
+                    return invoice.toObject(); // If no invoiceId, return appointment as-is
+                })
+            );
+
         return res.status(200).json({ 
             totalInvoices, 
-            invoices: lastFiveInvoices
+            invoices: enhancedInvoices
         });
     } catch (error) {
         console.error('Error fetching Invoices:', error);

@@ -5,7 +5,7 @@ import sharp from 'sharp';
 // Add a new estimate
 export const addEstimate = async (req, res) => {
     try {
-        let { estimatePlan,appointmentId, userId, centerId } = req.body;
+        let { estimatePlan,appointmentId, userId, centerId ,followups} = req.body;
 
         if (!estimatePlan) {
             return res.status(400).json({ message: 'Estimate plan is required', success: false });
@@ -56,7 +56,7 @@ export const addEstimate = async (req, res) => {
         estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
         
 
-        const estimate = new Estimate({ estimatePlan,appointmentId, userId, centerId });
+        const estimate = new Estimate({ estimatePlan,appointmentId, userId, centerId,followups });
         await estimate.save();
 
         res.status(201).json({ estimate, success: true });
@@ -127,7 +127,7 @@ export const getEstimateById = async (req, res) => {
 export const updateEstimate = async (req, res) => {
     try {
         const { id } = req.params;
-        let { estimatePlan,appointmentId, userId, centerId } = req.body;
+        let { estimatePlan,appointmentId, userId, centerId ,followups} = req.body;
 
         const compressImage = async (base64Image) => {
             const base64Data = base64Image.split(';base64,').pop();
@@ -174,7 +174,7 @@ export const updateEstimate = async (req, res) => {
         estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
         
  
-        const updatedData = { estimatePlan ,appointmentId, ...userId && { userId }, ...centerId && { centerId } };
+        const updatedData = { estimatePlan ,appointmentId, ...userId && { userId }, ...centerId && { centerId },followups };
         const estimate = await Estimate.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
 
         if (!estimate) {
@@ -206,11 +206,21 @@ export const deleteEstimate = async (req, res) => {
 export const dashboardEstimates = async (req, res) => {
     try {
         const totalEstimates = await Estimate.countDocuments();
-        const lastFiveEstimates = await Estimate.find({}, { _id: 1 })
+        const lastFiveEstimates = await Estimate.find({}, { _id: 1 ,appointmentId:1,estimatePlan:1})
             .sort({ createdAt: -1 })
             .limit(5);
 
-        res.status(200).json({ totalEstimates, estimates: lastFiveEstimates });
+        const enhancedEstimates = await Promise.all(
+            lastFiveEstimates.map(async (estimate) => {
+                    if (estimate.appointmentId) {
+                        const appointment = await Appointment.findOne({ _id: estimate.appointmentId });
+                        return { ...estimate.toObject(), appointment }; // Convert Mongoose document to plain object
+                    }
+                    return estimate.toObject(); 
+                })
+            );
+
+        res.status(200).json({ totalEstimates, estimates: enhancedEstimates });
     } catch (error) {
         console.error('Error fetching estimates:', error);
         res.status(500).json({ message: 'Failed to fetch estimates', success: false });

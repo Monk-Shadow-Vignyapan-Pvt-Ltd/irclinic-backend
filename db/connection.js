@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-// import { initializeDefaultStatuses } from "../controllers/status.controller.js";
+import { initializeDefaultStatuses } from "../controllers/status.controller.js";
 import bcrypt from "bcryptjs"; // For hashing passwords
 import { User } from "../models/user.model.js"; // Adjust path as needed
 import fs from 'fs';
@@ -14,7 +14,7 @@ const connectDB = async () => {
         console.log('mongodb connected successfully');
         
         // Initialize default statuses (if required)
-        //await initializeDefaultStatuses();
+        await initializeDefaultStatuses();
 
         const defaultAdminEmail = "admin@gmail.com";
         const defaultAdminPassword = "admin123"; // Plaintext password (for example)

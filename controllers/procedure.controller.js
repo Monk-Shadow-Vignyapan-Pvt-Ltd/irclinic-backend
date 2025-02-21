@@ -3,18 +3,17 @@ import { Procedure } from '../models/procedure.model.js'; // Update the path as 
 // Add a new procedure
 export const addProcedure = async (req, res) => {
     try {
-        const { procedureName, cost, gst, notes, instructions,isProcedure, userId } = req.body;
+        const { procedureName, cost, notes, instructions,isProcedure, userId } = req.body;
 
         // Validate required fields
-        if (!procedureName || cost === undefined || gst === undefined) {
-            return res.status(400).json({ message: 'Procedure name, cost, and GST are required', success: false });
+        if (!procedureName || cost === undefined ) {
+            return res.status(400).json({ message: 'Procedure name and cost are required', success: false });
         }
 
         // Create a new procedure
         const procedure = new Procedure({
             procedureName,
             cost,
-            gst,
             notes,
             instructions,
             isProcedure,
@@ -97,13 +96,12 @@ export const getProcedureById = async (req, res) => {
 export const updateProcedure = async (req, res) => {
     try {
         const { id } = req.params;
-        const { procedureName, cost, gst, notes, instructions,isProcedure, userId } = req.body;
+        const { procedureName, cost, notes, instructions,isProcedure, userId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(procedureName && { procedureName }),
             ...(cost !== undefined && { cost }),
-            ...(gst !== undefined && { gst }),
             ...(notes && { notes }),
             ...(instructions && { instructions }),
             isProcedure ,
@@ -168,7 +166,7 @@ export const searchProcedures = async (req, res) => {
             $or: [
                 { procedureName: regex },
                 { notes: regex },
-                ...(searchNumber !== null ? [{ cost: searchNumber }, { gst: searchNumber }] : [])
+                ...(searchNumber !== null ? [{ cost: searchNumber }] : [])
             ]
         });
 

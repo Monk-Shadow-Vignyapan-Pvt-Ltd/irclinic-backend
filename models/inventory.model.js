@@ -8,16 +8,8 @@ const inventorySchema = new mongoose.Schema(
     instrumentType: { type: String, required: false },
     ignoreStockLevel: { type: Boolean, required: false, default: false },
     stockLevel: {
-      type: String,
-      validate: {
-        validator: function (value) {
-          // If ignoreStockLevel is true, stockLevel is not required
-          if (this.ignoreStockLevel) return true;
-          // Otherwise, stockLevel is required
-          return value != null && value !== "";
-        },
-        message: "Stock level is required unless ignoreStockLevel is true.",
-      },
+      type: Number,
+      required: function() { return !this.ignoreStockLevel; } // Ensure stockLevel is required only when ignoreStockLevel is false
     },
     unit: { type: String, required: false },
     centerId: {

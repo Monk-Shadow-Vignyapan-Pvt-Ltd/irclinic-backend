@@ -51,6 +51,7 @@ app.use("/api/v1/stockouts",routes.stockoutRoute);
 app.use("/api/v1/progressNotes",routes.progressNoteRoute);
 app.use("/api/v1/estimates",routes.estimateRoute);
 app.use("/api/v1/statuses", routes.statusRoute);
+app.use("/api/v1/consents", routes.consentRoute);
 
 app.listen(PORT, () => {
     console.log(`server running at port ${PORT}`);

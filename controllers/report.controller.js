@@ -3,7 +3,7 @@ import { Report } from '../models/report.model.js'; // Update the path as per yo
 // Add a new report
 export const addReport = async (req, res) => {
     try {
-        const { reportTitle, documentname, description, impression, advice, userId } = req.body;
+        const { reportTitle, documentname, description, impression, advice, userId ,centerId} = req.body;
 
         // Validate required fields
         if (!reportTitle || !documentname || !description || !impression || !advice) {
@@ -17,7 +17,8 @@ export const addReport = async (req, res) => {
             description,
             impression,
             advice,
-            userId
+            userId,
+            centerId
         });
 
         await report.save();
@@ -96,7 +97,7 @@ export const getReportById = async (req, res) => {
 export const updateReport = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reportTitle, documentname, description, impression, advice, userId } = req.body;
+        const { reportTitle, documentname, description, impression, advice, userId ,centerId} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -105,7 +106,8 @@ export const updateReport = async (req, res) => {
             ...(description && { description }),
             ...(impression && { impression }),
             ...(advice && { advice }),
-            ...(userId && { userId })
+            ...(userId && { userId }),
+            centerId
         };
 
         const report = await Report.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

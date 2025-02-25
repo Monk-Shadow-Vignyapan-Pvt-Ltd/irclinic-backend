@@ -3,7 +3,7 @@ import { City } from '../models/city.model.js'; // Update the path as per your p
 // Add a new city
 export const addCity = async (req, res) => {
     try {
-        const { cityName,cityCode, stateId, userId } = req.body;
+        const { cityName,cityCode, stateId, userId,centerId } = req.body;
 
         // Validate required fields
         if (!cityName || !stateId || !cityCode) {
@@ -18,6 +18,7 @@ export const addCity = async (req, res) => {
             cityCode:upperCaseCityCode,
             stateId,
             userId,
+            centerId
         });
 
         await city.save();
@@ -80,7 +81,7 @@ export const getCityById = async (req, res) => {
 export const updateCity = async (req, res) => {
     try {
         const { id } = req.params;
-        const { cityName,cityCode, stateId, userId } = req.body;
+        const { cityName,cityCode, stateId, userId ,centerId} = req.body;
 
         const upperCaseCityCode = cityCode.toUpperCase();
 
@@ -90,6 +91,7 @@ export const updateCity = async (req, res) => {
             ...(upperCaseCityCode && { cityCode:upperCaseCityCode }),
             ...(stateId && { stateId }),
             ...(userId && { userId }),
+            centerId
         };
 
         const city = await City.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

@@ -11,6 +11,10 @@ const invoiceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: false,
     },
+    centerId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: false,
+        },
   },
   { timestamps: true }
 );

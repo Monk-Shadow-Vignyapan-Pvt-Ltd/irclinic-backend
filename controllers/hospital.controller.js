@@ -3,7 +3,7 @@ import { Hospital } from '../models/hospital.model.js'; // Update the path as pe
 // Add a new hospital
 export const addHospital = async (req, res) => {
     try {
-        const { hospitalName, adminPhoneNo, accountPhoneNo, hospitalEmail, hospitalAddress, state, city, userId } = req.body;
+        const { hospitalName, adminPhoneNo, accountPhoneNo, hospitalEmail, hospitalAddress, state, city, userId,centerId } = req.body;
 
         // Validate required fields
         if (!hospitalName || !adminPhoneNo || !accountPhoneNo || !hospitalEmail || !hospitalAddress || !state || !city) {
@@ -19,7 +19,8 @@ export const addHospital = async (req, res) => {
             hospitalAddress,
             state,
             city,
-            userId
+            userId,
+            centerId
         });
 
         await hospital.save();
@@ -98,7 +99,7 @@ export const getHospitalById = async (req, res) => {
 export const updateHospital = async (req, res) => {
     try {
         const { id } = req.params;
-        const { hospitalName, adminPhoneNo, accountPhoneNo, hospitalEmail, hospitalAddress, state, city, userId } = req.body;
+        const { hospitalName, adminPhoneNo, accountPhoneNo, hospitalEmail, hospitalAddress, state, city, userId,centerId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -109,7 +110,8 @@ export const updateHospital = async (req, res) => {
             ...(hospitalAddress && { hospitalAddress }),
             ...(state && { state }),
             ...(city && { city }),
-            ...(userId && { userId })
+            ...(userId && { userId }),
+            centerId
         };
 
         const hospital = await Hospital.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

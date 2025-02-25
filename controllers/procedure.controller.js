@@ -3,7 +3,7 @@ import { Procedure } from '../models/procedure.model.js'; // Update the path as 
 // Add a new procedure
 export const addProcedure = async (req, res) => {
     try {
-        const { procedureName, cost, notes, instructions,isProcedure, userId } = req.body;
+        const { procedureName, cost, notes, instructions,isProcedure, userId,centerId } = req.body;
 
         // Validate required fields
         if (!procedureName || cost === undefined ) {
@@ -17,7 +17,8 @@ export const addProcedure = async (req, res) => {
             notes,
             instructions,
             isProcedure,
-            userId
+            userId,
+            centerId
         });
 
         await procedure.save();
@@ -96,7 +97,7 @@ export const getProcedureById = async (req, res) => {
 export const updateProcedure = async (req, res) => {
     try {
         const { id } = req.params;
-        const { procedureName, cost, notes, instructions,isProcedure, userId } = req.body;
+        const { procedureName, cost, notes, instructions,isProcedure, userId,centerId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -105,7 +106,8 @@ export const updateProcedure = async (req, res) => {
             ...(notes && { notes }),
             ...(instructions && { instructions }),
             isProcedure ,
-            ...(userId && { userId })
+            ...(userId && { userId }),
+            centerId
         };
 
         const procedure = await Procedure.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

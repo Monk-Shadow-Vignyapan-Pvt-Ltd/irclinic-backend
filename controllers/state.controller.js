@@ -3,7 +3,7 @@ import { State } from '../models/state.model.js'; // Update the path as per your
 // Add a new state
 export const addState = async (req, res) => {
     try {
-        const { stateName,stateCode, userId } = req.body;
+        const { stateName,stateCode, userId,centerId } = req.body;
 
         // Validate required fields
         if (!stateName || !stateCode) {
@@ -13,7 +13,7 @@ export const addState = async (req, res) => {
         const upperCaseStateCode = stateCode.toUpperCase();
 
         // Create a new state
-        const state = new State({ stateName,stateCode:upperCaseStateCode, userId });
+        const state = new State({ stateName,stateCode:upperCaseStateCode, userId,centerId });
 
         await state.save();
         res.status(201).json({ state, success: true });
@@ -75,7 +75,7 @@ export const getStateById = async (req, res) => {
 export const updateState = async (req, res) => {
     try {
         const { id } = req.params;
-        const { stateName,stateCode, userId } = req.body;
+        const { stateName,stateCode, userId,centerId } = req.body;
 
         // Build updated data
 
@@ -84,6 +84,7 @@ export const updateState = async (req, res) => {
             ...(stateName && { stateName }),
             ...(upperCaseStateCode && { stateCode:upperCaseStateCode }),
             ...(userId && { userId }),
+            centerId
         };
 
         const state = await State.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

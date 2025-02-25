@@ -3,7 +3,7 @@ import { Vendor } from '../models/vendor.model.js'; // Update the path as per yo
 // Add a new vendor
 export const addVendor = async (req, res) => {
     try {
-        const { vendorName, salesPhoneNo,accountPhoneNo, email, company, address, state, city,isInstrumentVendor,isMedicineVendor, userId } = req.body;
+        const { vendorName, salesPhoneNo,accountPhoneNo, email, company, address, state, city,isInstrumentVendor,isMedicineVendor, userId,centerId } = req.body;
 
         // Validate required fields
         if (!vendorName || !salesPhoneNo || !accountPhoneNo || !email || !address || !state || !city) {
@@ -22,7 +22,8 @@ export const addVendor = async (req, res) => {
             city,
             isInstrumentVendor,
             isMedicineVendor,
-            userId
+            userId,
+            centerId
         });
 
         await vendor.save();
@@ -101,7 +102,7 @@ export const getVendorById = async (req, res) => {
 export const updateVendor = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorName, salesPhoneNo,accountPhoneNo, email, company, address, state, city,isInstrumentVendor,isMedicineVendor, userId } = req.body;
+        const { vendorName, salesPhoneNo,accountPhoneNo, email, company, address, state, city,isInstrumentVendor,isMedicineVendor, userId,centerId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -116,6 +117,7 @@ export const updateVendor = async (req, res) => {
             isInstrumentVendor ,
             isMedicineVendor ,
             ...(userId && { userId }),
+            centerId
         };
 
         const vendor = await Vendor.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

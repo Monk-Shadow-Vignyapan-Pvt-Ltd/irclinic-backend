@@ -5,12 +5,21 @@ import sharp from 'sharp';
 // Add a new estimate
 export const addEstimate = async (req, res) => {
     try {
-        let { estimatePlan,appointmentId, userId, centerId ,followups} = req.body;
+        let { estimatePlan, appointmentId, userId, centerId, followups } = req.body;
 
         if (!estimatePlan) {
             return res.status(400).json({ message: 'Estimate plan is required', success: false });
         }
 
+        // Function to process audio (convert Base64 to Buffer)
+        const processAudio = (base64Audio) => {
+            
+            if (!base64Audio || typeof base64Audio !== "string") return null;
+            const base64Data = base64Audio.split(';base64,').pop();
+            return Buffer.from(base64Data, 'base64'); // Convert Base64 to Buffer
+        };
+
+        // Function to compress images
         const compressImage = async (base64Image) => {
             const base64Data = base64Image.split(';base64,').pop();
             const buffer = Buffer.from(base64Data, 'base64');
@@ -20,43 +29,49 @@ export const addEstimate = async (req, res) => {
                 .toBuffer();
             return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
         };
-        
+
+        // Function to process images
         const compressAllImages = async (images) => {
-            if (!Array.isArray(images)) return []; // Ensure it's an array
-        
+            if (!Array.isArray(images)) return [];
             return await Promise.all(
                 images.map(async (image) => {
                     try {
-                        if (typeof image !== "string" || !image.startsWith('data:image')) {
-                            return null;
-                        }
+                        if (typeof image !== "string" || !image.startsWith('data:image')) return null;
                         return await compressImage(image);
                     } catch (err) {
                         console.error("Error compressing image:", err);
-                        return null; // Return null if compression fails
+                        return null;
                     }
                 })
             ).then(compressedImages => compressedImages.filter(img => img !== null)); // Remove null values
         };
-        
-        const compressAllImagesInEstimatePlan = async (estimatePlan) => {
-            if (!Array.isArray(estimatePlan)) return []; // Ensure it's an array
-        
+
+        // Process both images & audio inside estimatePlan
+        const processEstimatePlan = async (estimatePlan) => {
+            if (!Array.isArray(estimatePlan)) return [];
+
             return await Promise.all(
                 estimatePlan.map(async (plan) => {
-                    if (!Array.isArray(plan.images)) return plan; // Skip if images is not an array
-                    
-                    const compressedImages = await compressAllImages(plan.images);
-                    return { ...plan, images: compressedImages };
+                    // Process images
+                    const compressedImages = Array.isArray(plan.images) ? await compressAllImages(plan.images) : [];
+
+                    // Process audio
+                    const processedAudio = plan.audio ? processAudio(plan.audio) : null;
+
+                    return { 
+                        ...plan, 
+                        images: compressedImages, 
+                        audio: processedAudio 
+                    };
                 })
             );
         };
-        
-        // Process and compress images
-        estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
-        
 
-        const estimate = new Estimate({ estimatePlan,appointmentId, userId, centerId,followups });
+        // Process estimatePlan
+        estimatePlan = await processEstimatePlan(estimatePlan);
+
+        // Save to MongoDB
+        const estimate = new Estimate({ estimatePlan, appointmentId, userId, centerId, followups });
         await estimate.save();
 
         res.status(201).json({ estimate, success: true });
@@ -65,6 +80,7 @@ export const addEstimate = async (req, res) => {
         res.status(500).json({ message: 'Failed to add estimate', success: false });
     }
 };
+
 
 // Get all estimates with pagination
 export const getEstimates = async (req, res) => {
@@ -129,6 +145,14 @@ export const updateEstimate = async (req, res) => {
         const { id } = req.params;
         let { estimatePlan,appointmentId, userId, centerId ,followups} = req.body;
 
+        // Function to process audio (convert Base64 to Buffer)
+        const processAudio = (base64Audio) => {
+            if (!base64Audio || typeof base64Audio !== "string") return null;
+            const base64Data = base64Audio.split(';base64,').pop();
+            return Buffer.from(base64Data, 'base64'); // Convert Base64 to Buffer
+        };
+
+        // Function to compress images
         const compressImage = async (base64Image) => {
             const base64Data = base64Image.split(';base64,').pop();
             const buffer = Buffer.from(base64Data, 'base64');
@@ -138,40 +162,46 @@ export const updateEstimate = async (req, res) => {
                 .toBuffer();
             return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
         };
-        
+
+        // Function to process images
         const compressAllImages = async (images) => {
-            if (!Array.isArray(images)) return []; // Ensure it's an array
-        
+            if (!Array.isArray(images)) return [];
             return await Promise.all(
                 images.map(async (image) => {
                     try {
-                        if (typeof image !== "string" || !image.startsWith('data:image')) {
-                            return null;
-                        }
+                        if (typeof image !== "string" || !image.startsWith('data:image')) return null;
                         return await compressImage(image);
                     } catch (err) {
                         console.error("Error compressing image:", err);
-                        return null; // Return null if compression fails
+                        return null;
                     }
                 })
             ).then(compressedImages => compressedImages.filter(img => img !== null)); // Remove null values
         };
-        
-        const compressAllImagesInEstimatePlan = async (estimatePlan) => {
-            if (!Array.isArray(estimatePlan)) return []; // Ensure it's an array
-        
+
+        // Process both images & audio inside estimatePlan
+        const processEstimatePlan = async (estimatePlan) => {
+            if (!Array.isArray(estimatePlan)) return [];
+
             return await Promise.all(
                 estimatePlan.map(async (plan) => {
-                    if (!Array.isArray(plan.images)) return plan; // Skip if images is not an array
-                    
-                    const compressedImages = await compressAllImages(plan.images);
-                    return { ...plan, images: compressedImages };
+                    // Process images
+                    const compressedImages = Array.isArray(plan.images) ? await compressAllImages(plan.images) : [];
+
+                    // Process audio
+                    const processedAudio = plan.audio ? processAudio(plan.audio) : null;
+
+                    return { 
+                        ...plan, 
+                        images: compressedImages, 
+                        audio: processedAudio 
+                    };
                 })
             );
         };
-        
-        // Process and compress images
-        estimatePlan = await compressAllImagesInEstimatePlan(estimatePlan);
+
+        // Process estimatePlan
+        estimatePlan = await processEstimatePlan(estimatePlan);
         
  
         const updatedData = { estimatePlan ,appointmentId, ...userId && { userId }, ...centerId && { centerId },followups };

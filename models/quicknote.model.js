@@ -4,6 +4,8 @@ const quicknoteSchema = new mongoose.Schema({
     notes: { type: String, required: true,  },
     quicknoteType: { type: String, required: true,  },
     isAppointment: { type: Boolean, required: true,  },
+    audio: { type: Buffer, required: false }, // Stores the binary audio data
+    audioType: { type: String, required: false }, // Stores MIME type (e.g., "audio/mpeg")
     centerId: {
           type: mongoose.Schema.Types.ObjectId,
           required: false,

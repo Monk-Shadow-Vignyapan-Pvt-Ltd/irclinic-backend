@@ -14,7 +14,11 @@ const citySchema = new mongoose.Schema({
     userId:{
         type: mongoose.Schema.Types.ObjectId, 
           required:false
-      }
+      },
+    centerId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: false,
+        },
 }, { timestamps: true });
 
 export const City = mongoose.model("City", citySchema);

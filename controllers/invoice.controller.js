@@ -4,7 +4,7 @@ import {Appointment} from '../models/appointment.model.js' ;
 // Add a new invoice
 export const addInvoice = async (req, res) => {
     try {
-        const { invoicePlan, appointmentId,userId } = req.body;
+        const { invoicePlan, appointmentId,userId,centerId } = req.body;
 
         // Validate required fields
         if (!invoicePlan) {
@@ -15,7 +15,8 @@ export const addInvoice = async (req, res) => {
         const invoice = new Invoice({
             invoicePlan,
             appointmentId,
-            userId
+            userId,
+            centerId
         });
 
         await invoice.save();
@@ -87,13 +88,14 @@ export const getInvoiceById = async (req, res) => {
 export const updateInvoice = async (req, res) => {
     try {
         const { id } = req.params;
-        const { invoicePlan,appointmentId, userId } = req.body;
+        const { invoicePlan,appointmentId, userId,centerId } = req.body;
 
         // Build updated data
         const updatedData = {
             ...(invoicePlan && { invoicePlan }),
             appointmentId,
-            ...(userId && { userId })
+            ...(userId && { userId }),
+            centerId
         };
 
         const invoice = await Invoice.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

@@ -20,14 +20,18 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(urlencoded({extended:true}));
 app.use(cookieParser());
 app.use(cors({
-    origin: "*", // Specify the frontend's origin
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization", "x-auth-token"],
-    credentials: true, // Allow credentials if needed
-  }));
-  
-  // Explicitly handle OPTIONS method for preflight
-  app.options("*", cors()); // Allow preflight requests
+  origin: ["https://irclinic-dashboard.netlify.app","http://localhost:5173","http://localhost:5174"], // Allow both domains
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+    "x-auth-token"
+  ],
+  credentials: true, // Allow cookies and authentication headers
+}));
 
 // api's route
 app.use("/api/v1/auth", routes.authRoute);

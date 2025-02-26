@@ -6,7 +6,7 @@ import { singleUpload } from "../middleware/multer.js";
 const router = express.Router();
 
 router.route("/addActivity").post( addActivity);
-router.route("/getActivities").get( getActivities);
+router.route("/getActivities/:id").get( getActivities);
 router.route("/getActivityById/:id").put( getActivityById);
 router.route("/updateActivity/:id").put( updateActivity);
 router.route("/deleteActivity/:id").delete(deleteActivity);

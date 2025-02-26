@@ -40,12 +40,14 @@ export const addAppointment = async (req, res) => {
 export const getAppointments = async (req, res) => {
     try {
         const { start, end } = req.query;
+        const { id } = req.params; 
 
         if (!start || !end) {
             return res.status(400).json({ message: "Start and end dates are required", success: false });
         }
 
         const appointments = await Appointment.find({
+            centerId: id,
             start: { $gte: new Date(start) },
             end: { $lte: new Date(end) },
         });

@@ -28,7 +28,8 @@ export const addActivityType = async (req, res) => {
 // Get all activity types
 export const getActivityTypes = async (req, res) => {
   try {
-    const activityTypes = await ActivityType.find();
+    const { id } = req.params;
+    const activityTypes = await ActivityType.find({ centerId: id });
     if (!activityTypes) {
       return res.status(404).json({ message: 'No activity types found', success: false });
     }

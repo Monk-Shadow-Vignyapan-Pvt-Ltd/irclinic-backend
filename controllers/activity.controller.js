@@ -34,7 +34,8 @@ export const addActivity = async (req, res) => {
 // Get all activities
 export const getActivities = async (req, res) => {
     try {
-        const activities = await Activity.find();
+        const { id } = req.params; 
+        const activities = await Activity.find({ centerId: id });
         if (!activities) {
             return res.status(404).json({ message: 'No activities found', success: false });
         }

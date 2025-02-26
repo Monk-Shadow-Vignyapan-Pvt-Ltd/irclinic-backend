@@ -10,7 +10,7 @@ router.route("/getActivities/:id").get( getActivities);
 router.route("/getActivityById/:id").put( getActivityById);
 router.route("/updateActivity/:id").put( updateActivity);
 router.route("/deleteActivity/:id").delete(deleteActivity);
-router.route("/dashboardActivities").get( dashboardActivities);
-router.route("/searchActivities").post( searchActivities);
+router.route("/dashboardActivities/:id").get( dashboardActivities);
+router.route("/searchActivities/:id").post( searchActivities);
 
 export default router;

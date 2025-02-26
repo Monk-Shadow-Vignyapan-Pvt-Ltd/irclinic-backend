@@ -37,7 +37,8 @@ export const addDoctor = async (req, res) => {
 // Get all doctors
 export const getDoctors = async (req, res) => {
     try {
-        const doctors = await Doctor.find();
+        const { id } = req.params; 
+        const doctors = await Doctor.find({ centerId: id });
         if (!doctors ) {
             return res.status(404).json({ message: "No doctors found", success: false });
         }
@@ -69,7 +70,8 @@ export const getDoctors = async (req, res) => {
 
 export const getAllDoctors = async (req, res) => {
     try {
-        const doctors = await Doctor.find();
+        const { id } = req.params; 
+        const doctors = await Doctor.find({ centerId: id });
         if (!doctors ) {
             return res.status(404).json({ message: "No doctors found", success: false });
         }
@@ -148,9 +150,10 @@ export const deleteDoctor = async (req, res) => {
 
 export const dashboardDoctors = async (req, res) => {
     try {
-        const totalDoctors = await Doctor.countDocuments(); // Get total count
+        const { id } = req.params; 
+        const totalDoctors = await Doctor.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveDoctors = await Doctor.find({}, { firstName: 1,lastName:1, _id: 1 }) // Select only doctorName
+        const lastFiveDoctors = await Doctor.find({ centerId: id }, { firstName: 1,lastName:1, _id: 1 }) // Select only doctorName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 doctors
 
@@ -166,6 +169,7 @@ export const dashboardDoctors = async (req, res) => {
 
 export const searchDoctors = async (req, res) => {
     try {
+        const { id } = req.params; 
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -174,6 +178,7 @@ export const searchDoctors = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const doctors = await Doctor.find({
+            centerId: id ,
             $or: [
                 { firstName: regex },
                 { lastName: regex },

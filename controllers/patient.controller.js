@@ -37,7 +37,8 @@ export const addPatient = async (req, res) => {
 // Get all patients
 export const getPatients = async (req, res) => {
     try {
-        const patients = await Patient.find();
+        const { id } = req.params;
+        const patients = await Patient.find({ centerId: id });
         if (!patients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
@@ -63,6 +64,24 @@ export const getPatients = async (req, res) => {
             totalPages: Math.ceil(patients.length / limit),
             totalpatients: patients.length,
         },});
+    } catch (error) {
+        console.error('Error fetching patients:', error);
+        res.status(500).json({ message: 'Failed to fetch patients', success: false });
+    }
+};
+
+export const getAllPatients = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const patients = await Patient.find({ centerId: id });
+        if (!patients) {
+            return res.status(404).json({ message: 'No patients found', success: false });
+        }
+        
+        return res.status(200).json({ 
+            patients:patients, 
+            success: true ,
+            });
     } catch (error) {
         console.error('Error fetching patients:', error);
         res.status(500).json({ message: 'Failed to fetch patients', success: false });
@@ -148,9 +167,10 @@ export const deletePatient = async (req, res) => {
 
 export const dashboardPatients = async (req, res) => {
     try {
-        const totalPatients = await Patient.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalPatients = await Patient.countDocuments({ centerId: id }); // Get total count
 
-        const lastFivePatients = await Patient.find({}, { patientName: 1, _id: 1 }) // Select only patientName
+        const lastFivePatients = await Patient.find({ centerId: id }, { patientName: 1, _id: 1 }) // Select only patientName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Patients
 
@@ -166,6 +186,7 @@ export const dashboardPatients = async (req, res) => {
 
 export const searchPatients = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -174,6 +195,7 @@ export const searchPatients = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const patients = await Patient.find({
+            centerId: id,
             $or: [
                 { patientName: regex },
                 { patientType: regex },

@@ -6,12 +6,12 @@ import { singleUpload } from "../middleware/multer.js";
 const router = express.Router();
 
 router.route("/addDoctor").post( addDoctor);
-router.route("/getDoctors").get( getDoctors);
-router.route("/getAllDoctors").get( getAllDoctors);
+router.route("/getDoctors/:id").get( getDoctors);
+router.route("/getAllDoctors/:id").get( getAllDoctors);
 router.route("/getDoctorById/:id").put( getDoctorById);
 router.route("/updateDoctor/:id").put( updateDoctor);
 router.route("/deleteDoctor/:id").delete(deleteDoctor);
-router.route("/dashboardDoctors").get( dashboardDoctors);
-router.route("/searchDoctors").post( searchDoctors);
+router.route("/dashboardDoctors/:id").get( dashboardDoctors);
+router.route("/searchDoctors/:id").post( searchDoctors);
 
 export default router;

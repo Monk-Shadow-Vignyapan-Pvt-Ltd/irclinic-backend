@@ -85,7 +85,8 @@ export const addEstimate = async (req, res) => {
 // Get all estimates with pagination
 export const getEstimates = async (req, res) => {
     try {
-        const estimates = await Estimate.find();
+        const { id } = req.params;
+        const estimates = await Estimate.find({centerId: id ,});
         if (!estimates ) {
             return res.status(404).json({ message: 'No estimates found', success: false });
         }
@@ -235,8 +236,9 @@ export const deleteEstimate = async (req, res) => {
 // Dashboard estimates
 export const dashboardEstimates = async (req, res) => {
     try {
-        const totalEstimates = await Estimate.countDocuments();
-        const lastFiveEstimates = await Estimate.find({}, { _id: 1 ,appointmentId:1,estimatePlan:1})
+        const { id } = req.params;
+        const totalEstimates = await Estimate.countDocuments({ centerId: id });
+        const lastFiveEstimates = await Estimate.find({ centerId: id }, { _id: 1 ,appointmentId:1,estimatePlan:1})
             .sort({ createdAt: -1 })
             .limit(5);
 
@@ -260,13 +262,14 @@ export const dashboardEstimates = async (req, res) => {
 // Search estimates
 export const searchEstimates = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
         }
 
         const regex = new RegExp(search, 'i');
-        const estimates = await Estimate.find(); // Modify search fields if necessary
+        const estimates = await Estimate.find({centerId: id ,}); // Modify search fields if necessary
 
         res.status(200).json({
             estimates,

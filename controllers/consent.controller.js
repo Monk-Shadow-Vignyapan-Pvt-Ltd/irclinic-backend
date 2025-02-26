@@ -29,7 +29,8 @@ export const addConsent = async (req, res) => {
 // Get all consents
 export const getConsents = async (req, res) => {
   try {
-    const consents = await Consent.find();
+    const { id } = req.params; 
+    const consents = await Consent.find({ centerId: id });
     if (!consents) {
       return res.status(404).json({ message: "No consents found", success: false });
     }

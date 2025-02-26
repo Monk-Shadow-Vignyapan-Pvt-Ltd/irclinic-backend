@@ -30,7 +30,8 @@ export const addStockin = async (req, res) => {
 export const getStockins = async (req, res) => {
     try {
         // Fetch stockins and inventories
-        const stockins = await Stockin.find();
+        const { id } = req.params;
+        const stockins = await Stockin.find({ centerId: id });
         if (!stockins) {
             return res.status(404).json({ message: 'No stockins found', success: false });
         }
@@ -97,7 +98,8 @@ export const getStockins = async (req, res) => {
 export const getAllStockins = async (req, res) => {
     try {
         // Fetch stockins and inventories
-        const stockins = await Stockin.find();
+        const { id } = req.params;
+        const stockins = await Stockin.find({ centerId: id });
         if (!stockins) {
             return res.status(404).json({ message: 'No stockins found', success: false });
         }
@@ -189,9 +191,10 @@ export const deleteStockin = async (req, res) => {
 
 export const dashboardStockins = async (req, res) => {
     try {
-        const totalStockins = await Stockin.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalStockins = await Stockin.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveStockins = await Stockin.find({}, { inventoryId: 1,totalStock:1, _id: 1 }) // Select only StockinName
+        const lastFiveStockins = await Stockin.find({ centerId: id }, { inventoryId: 1,totalStock:1, _id: 1 }) // Select only StockinName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Stockins
             let inventoryIds = lastFiveStockins.map(stockin => stockin.inventoryId);
@@ -231,6 +234,7 @@ export const dashboardStockins = async (req, res) => {
 
 export const searchStockins = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -238,7 +242,7 @@ export const searchStockins = async (req, res) => {
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
-        const stockins = await Stockin.find();
+        const stockins = await Stockin.find({centerId: id});
         if (!stockins) {
             return res.status(404).json({ message: 'No stockins found', success: false });
         }

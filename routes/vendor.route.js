@@ -6,12 +6,12 @@ import { singleUpload } from "../middleware/multer.js";
 const router = express.Router();
 
 router.route("/addVendor").post( addVendor);
-router.route("/getVendors").get( getVendors);
-router.route("/getAllVendors").get( getAllVendors);
+router.route("/getVendors/:id").get( getVendors);
+router.route("/getAllVendors/:id").get( getAllVendors);
 router.route("/getVendorById/:id").put( getVendorById);
 router.route("/updateVendor/:id").post( updateVendor);
 router.route("/deleteVendor/:id").delete(deleteVendor);
-router.route("/dashboardVendors").get( dashboardVendors);
-router.route("/searchVendors").post( searchVendors);
+router.route("/dashboardVendors/:id").get( dashboardVendors);
+router.route("/searchVendors/:id").post( searchVendors);
 
 export default router;

@@ -6,10 +6,10 @@ import { singleUpload } from "../middleware/multer.js";
 const router = express.Router();
 
 router.route("/addStockout").post( addStockout);
-router.route("/getStockouts").get( getStockouts);
+router.route("/getStockouts/:id").get( getStockouts);
 router.route("/getStockoutById/:id").put( getStockoutById);
 router.route("/getStockoutsByVendorId/:id").get( getStockoutsByVendorId);
 router.route("/updateStockout/:id").post( updateStockout);
-router.route("/searchStockouts").post( searchStockouts);
+router.route("/searchStockouts/:id").post( searchStockouts);
 
 export default router;

@@ -32,7 +32,8 @@ export const addProcedure = async (req, res) => {
 // Get all procedures
 export const getProcedures = async (req, res) => {
     try {
-        const procedures = await Procedure.find();
+        const { id } = req.params;
+        const procedures = await Procedure.find({ centerId: id });
         if (!procedures ) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
@@ -64,7 +65,8 @@ export const getProcedures = async (req, res) => {
 
 export const getAllProcedures = async (req, res) => {
     try {
-        const procedures = await Procedure.find();
+        const { id } = req.params;
+        const procedures = await Procedure.find({ centerId: id });
         if (!procedures ) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
@@ -138,9 +140,10 @@ export const deleteProcedure = async (req, res) => {
 
 export const dashboardProcedures = async (req, res) => {
     try {
-        const totalProcedures = await Procedure.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalProcedures = await Procedure.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveProcedures = await Procedure.find({}, { procedureName: 1, _id: 1 }) // Select only ProcedureName
+        const lastFiveProcedures = await Procedure.find({ centerId: id }, { procedureName: 1, _id: 1 }) // Select only ProcedureName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Procedures
 
@@ -156,6 +159,7 @@ export const dashboardProcedures = async (req, res) => {
 
 export const searchProcedures = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -165,6 +169,7 @@ export const searchProcedures = async (req, res) => {
         const searchNumber = !isNaN(search) ? Number(search) : null; 
 
         const procedures = await Procedure.find({
+            centerId: id,
             $or: [
                 { procedureName: regex },
                 { notes: regex },

@@ -125,9 +125,10 @@ export const deleteActivity = async (req, res) => {
 
 export const dashboardActivities = async (req, res) => {
     try {
-        const totalActivities = await Activity.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalActivities = await Activity.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveActivities = await Activity.find({}, { activityTitle: 1, _id: 1 }) // Select only activityTitle
+        const lastFiveActivities = await Activity.find({ centerId: id }, { activityTitle: 1, _id: 1 }) // Select only activityTitle
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 activities
 
@@ -144,6 +145,7 @@ export const dashboardActivities = async (req, res) => {
 
 export const searchActivities = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -153,6 +155,7 @@ export const searchActivities = async (req, res) => {
         const searchDate = !isNaN(Date.parse(search)) ? new Date(search) : null; 
 
         const activities = await Activity.find({
+            centerId: id,
             $or: [
                 { activityType: regex },
                 { activityTitle: regex },

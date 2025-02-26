@@ -38,7 +38,8 @@ export const addQuicknote = async (req, res) => {
 // Get all quicknotes
 export const getQuicknotes = async (req, res) => {
     try {
-        const quicknotes = await Quicknote.find()// Exclude audio data in list
+        const { id } = req.params;
+        const quicknotes = await Quicknote.find({ centerId: id })// Exclude audio data in list
         const quicknotesWithAudio = quicknotes.map(qn => ({
             ...qn._doc, // Spread MongoDB document fields
             audio: qn.audio ? qn.audio.toString("base64") : null, // Convert Buffer to Base64

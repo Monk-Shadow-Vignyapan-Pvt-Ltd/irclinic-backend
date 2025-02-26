@@ -16,7 +16,7 @@ const upload = multer({ storage });
 
 // Routes
 router.route("/addQuicknote").post(upload.single("audio"), addQuicknote); // Accepts audio file
-router.route("/getQuicknotes").get(getQuicknotes);
+router.route("/getQuicknotes/:id").get(getQuicknotes);
 router.route("/getQuicknoteById/:id").get(getQuicknoteById);
 router.route("/updateQuicknote/:id").post(upload.single("audio"), updateQuicknote); // Allows updating audio
 router.route("/deleteQuicknote/:id").delete(deleteQuicknote);

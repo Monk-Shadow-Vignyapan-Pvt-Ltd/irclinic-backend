@@ -34,7 +34,8 @@ export const addHospital = async (req, res) => {
 // Get all hospitals
 export const getHospitals = async (req, res) => {
     try {
-        const hospitals = await Hospital.find();
+        const { id } = req.params;
+        const hospitals = await Hospital.find({ centerId: id });
         if (!hospitals ) {
             return res.status(404).json({ message: "No hospitals found", success: false });
         }
@@ -66,7 +67,8 @@ export const getHospitals = async (req, res) => {
 
 export const getAllHospitals = async (req, res) => {
     try {
-        const hospitals = await Hospital.find();
+        const { id } = req.params;
+        const hospitals = await Hospital.find({ centerId: id });
         if (!hospitals ) {
             return res.status(404).json({ message: "No hospitals found", success: false });
         }
@@ -142,6 +144,7 @@ export const deleteHospital = async (req, res) => {
 
 export const searchHospitals = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -150,6 +153,7 @@ export const searchHospitals = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const hospitals = await Hospital.find({
+            centerId: id,
             $or: [
                 { hospitalName: regex },
                 { hospitalEmail: regex },
@@ -182,9 +186,10 @@ export const searchHospitals = async (req, res) => {
 
 export const dashboardHospitals = async (req, res) => {
     try {
-        const totalHospitals = await Hospital.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalHospitals = await Hospital.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveHospitals = await Hospital.find({}, { hospitalName: 1, _id: 1 }) // Select only hospitalName
+        const lastFiveHospitals = await Hospital.find({ centerId: id }, { hospitalName: 1, _id: 1 }) // Select only hospitalName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 hospitals
 

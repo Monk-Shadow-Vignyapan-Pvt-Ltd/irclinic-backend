@@ -37,7 +37,8 @@ export const addVendor = async (req, res) => {
 // Get all vendors
 export const getVendors = async (req, res) => {
     try {
-        const vendors = await Vendor.find();
+        const { id } = req.params;
+        const vendors = await Vendor.find({ centerId: id });
         if (!vendors ) {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
@@ -69,7 +70,8 @@ export const getVendors = async (req, res) => {
 
 export const getAllVendors = async (req, res) => {
     try {
-        const vendors = await Vendor.find();
+        const { id } = req.params;
+        const vendors = await Vendor.find({ centerId: id });
         if (!vendors ) {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
@@ -148,9 +150,10 @@ export const deleteVendor = async (req, res) => {
 
 export const dashboardVendors = async (req, res) => {
     try {
-        const totalVendors = await Vendor.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalVendors = await Vendor.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveVendors = await Vendor.find({}, { vendorName: 1, _id: 1 }) // Select only vendorName
+        const lastFiveVendors = await Vendor.find({ centerId: id }, { vendorName: 1, _id: 1 }) // Select only vendorName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Vendors
 
@@ -166,6 +169,7 @@ export const dashboardVendors = async (req, res) => {
 
 export const searchVendors = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -174,6 +178,7 @@ export const searchVendors = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const vendors = await Vendor.find({
+            centerId: id,
             $or: [
                 { vendorName: regex },
                 { email: regex },

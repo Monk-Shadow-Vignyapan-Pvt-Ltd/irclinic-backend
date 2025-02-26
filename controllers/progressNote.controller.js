@@ -29,7 +29,8 @@ export const addProgressNote = async (req, res) => {
 // Get all progress notes
 export const getProgressNotes = async (req, res) => {
   try {
-    const progressNotes = await ProgressNote.find();
+    const { id } = req.params;
+    const progressNotes = await ProgressNote.find({ centerId: id });
     if (!progressNotes) {
       return res.status(404).json({ message: "No progress notes found", success: false });
     }

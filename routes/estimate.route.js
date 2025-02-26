@@ -6,11 +6,11 @@ import { singleUpload } from "../middleware/multer.js";
 const router = express.Router();
 
 router.route("/addEstimate").post( addEstimate);
-router.route("/getEstimates").get( getEstimates);
+router.route("/getEstimates/:id").get( getEstimates);
 router.route("/getEstimateById/:id").put( getEstimateById);
 router.route("/updateEstimate/:id").post( updateEstimate);
 router.route("/deleteEstimate/:id").delete(deleteEstimate);
-router.route("/dashboardEstimates").get( dashboardEstimates);
-router.route("/searchEstimates").post( searchEstimates);
+router.route("/dashboardEstimates/:id").get( dashboardEstimates);
+router.route("/searchEstimates/:id").post( searchEstimates);
 
 export default router;

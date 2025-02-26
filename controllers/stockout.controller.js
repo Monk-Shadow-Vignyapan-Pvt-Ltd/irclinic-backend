@@ -1,4 +1,5 @@
 import { Stockout } from '../models/stockout.model.js'; // Update the path as per your project structure
+import { Inventory } from '../models/inventory.model.js';
 
 // Add a new stockin
 export const addStockout = async (req, res) => {
@@ -27,7 +28,8 @@ export const addStockout = async (req, res) => {
 // Get all stockins
 export const getStockouts = async (req, res) => {
     try {
-        const stockouts = await Stockout.find();
+        const { id } = req.params;
+        const stockouts = await Stockout.find({ centerId: id });
         if (!stockouts) {
             return res.status(404).json({ message: 'No stockouts found', success: false });
         }
@@ -132,6 +134,7 @@ export const updateStockout = async (req, res) => {
 
 export const searchStockouts = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -139,18 +142,41 @@ export const searchStockouts = async (req, res) => {
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
-        const stockouts = await Stockout.find({
-            $or: [
-                { totalStock: regex },
-            ]
-        });
+        const stockouts = await Stockout.find({centerId: id});
 
         if (!stockouts) {
             return res.status(404).json({ message: 'No stockouts found', success: false });
         }
 
+        const inventories = await Inventory.find(
+            {
+            $or: [
+                { inventoryType: regex },
+                { inventoryName: regex },
+                { brandName: regex },
+                { stockLevel: regex },
+                { unit: regex },
+                { instrumentType: regex },
+                
+            ]
+        }
+    );
+
+        if (!inventories) {
+            return res.status(404).json({ message: 'No inventories found', success: false });
+        }
+
+        // Create a Map for fast inventory lookups
+        const inventoryMap = new Map(inventories.map(inv => [inv._id.toString(), inv]));
+
+        // Attach inventory details to stockins
+        const stockoutsWithInventory = stockouts.map(stockout => ({
+            ...stockout.toObject(),
+            inventory: inventoryMap.get(stockout.inventoryId.toString()) || null
+        }));
+
         return res.status(200).json({
-            stockouts: stockouts,
+            stockouts: stockoutsWithInventory.filter(inventory => inventory.inventory),
             success: true,
             pagination: {
                 currentPage: 1,

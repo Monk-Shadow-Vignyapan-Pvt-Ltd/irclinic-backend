@@ -34,7 +34,8 @@ export const addInventory = async (req, res) => {
 // Get all inventory items
 export const getInventories = async (req, res) => {
     try {
-        const inventories = await Inventory.find();
+        const { id } = req.params;
+        const inventories = await Inventory.find({ centerId: id });
         if (!inventories) {
             return res.status(404).json({ message: 'No inventory items found', success: false });
         }
@@ -73,7 +74,8 @@ export const getInventories = async (req, res) => {
 
 export const getAllInventories = async (req, res) => {
     try {
-        const inventories = await Inventory.find();
+        const { id } = req.params;
+        const inventories = await Inventory.find({ centerId: id });
         if (!inventories) {
             return res.status(404).json({ message: 'No inventory items found', success: false });
         }
@@ -150,9 +152,10 @@ export const deleteInventory = async (req, res) => {
 
 export const dashboardInventories = async (req, res) => {
     try {
-        const totalInventories = await Inventory.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalInventories = await Inventory.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveInventories = await Inventory.find({}, { inventoryName: 1, _id: 1 }) // Select only inventoryName
+        const lastFiveInventories = await Inventory.find({ centerId: id }, { inventoryName: 1, _id: 1 }) // Select only inventoryName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Inventories
 
@@ -168,6 +171,7 @@ export const dashboardInventories = async (req, res) => {
 
 export const searchInventories = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -176,6 +180,7 @@ export const searchInventories = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const inventories = await Inventory.find({
+            centerId: id,
             $or: [
                 { inventoryType: regex },
                 { inventoryName: regex },

@@ -32,7 +32,8 @@ export const addReport = async (req, res) => {
 // Get all reports
 export const getReports = async (req, res) => {
     try {
-        const reports = await Report.find();
+        const { id } = req.params;
+        const reports = await Report.find({ centerId: id });
         if (!reports) {
             return res.status(404).json({ message: "No reports found", success: false });
         }
@@ -64,7 +65,8 @@ export const getReports = async (req, res) => {
 
 export const getAllReports = async (req, res) => {
     try {
-        const reports = await Report.find();
+        const { id } = req.params;
+        const reports = await Report.find({ centerId: id });
         if (!reports) {
             return res.status(404).json({ message: "No reports found", success: false });
         }
@@ -138,9 +140,10 @@ export const deleteReport = async (req, res) => {
 
 export const dashboardReports = async (req, res) => {
     try {
-        const totalReports = await Report.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalReports = await Report.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveReports = await Report.find({}, { reportTitle: 1, _id: 1 }) // Select only reportTitle
+        const lastFiveReports = await Report.find({ centerId: id }, { reportTitle: 1, _id: 1 }) // Select only reportTitle
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Reports
 
@@ -156,6 +159,7 @@ export const dashboardReports = async (req, res) => {
 
 export const searchReports = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -164,6 +168,7 @@ export const searchReports = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const reports = await Report.find({
+            centerId: id,
             $or: [
                 { reportTitle: regex },
                 { documentname: regex },

@@ -30,7 +30,8 @@ export const addInvoice = async (req, res) => {
 // Get all invoices
 export const getInvoices = async (req, res) => {
     try {
-        const invoices = await Invoice.find();
+        const { id } = req.params;
+        const invoices = await Invoice.find({ centerId: id });
         if (!invoices ) {
             return res.status(404).json({ message: 'No invoices found', success: false });
         }
@@ -126,9 +127,10 @@ export const deleteInvoice = async (req, res) => {
 
 export const dashboardInvoices = async (req, res) => {
     try {
-        const totalInvoices = await Invoice.countDocuments(); // Get total count
+        const { id } = req.params;
+        const totalInvoices = await Invoice.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveInvoices = await Invoice.find({}, {  _id: 1 ,appointmentId:1,invoicePlan:1}) 
+        const lastFiveInvoices = await Invoice.find({ centerId: id }, {  _id: 1 ,appointmentId:1,invoicePlan:1}) 
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Invoices
 
@@ -154,6 +156,7 @@ export const dashboardInvoices = async (req, res) => {
 
 export const searchInvoices = async (req, res) => {
     try {
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -162,6 +165,7 @@ export const searchInvoices = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const invoices = await Invoice.find(
+            {centerId: id }
         //     {
         //     $or: [
         //         { invoiceName: regex },

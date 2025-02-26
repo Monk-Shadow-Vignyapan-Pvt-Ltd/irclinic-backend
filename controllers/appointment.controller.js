@@ -161,9 +161,10 @@ export const deleteAppointment = async (req, res) => {
 
 export const dashboardAppointments = async (req, res) => {
     try {
-        const totalAppointments = await Appointment.countDocuments(); // Get total count
+        const { id } = req.params; 
+        const totalAppointments = await Appointment.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveAppointments = await Appointment.find({}, { title: 1, _id: 1 }) // Select only title
+        const lastFiveAppointments = await Appointment.find({centerId: id,}, { title: 1, _id: 1 }) // Select only title
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 appointments
 

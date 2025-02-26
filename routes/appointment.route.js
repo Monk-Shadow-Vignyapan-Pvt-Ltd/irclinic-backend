@@ -11,6 +11,6 @@ router.route("/getAppointmentById/:id").put( getAppointmentById);
 router.route("/getAppointmentsByPatientId/:id").put( getAppointmentsByPatientId);
 router.route("/updateAppointment/:id").post( updateAppointment);
 router.route("/deleteAppointment/:id").delete(deleteAppointment);
-router.route("/dashboardAppointments").get( dashboardAppointments);
+router.route("/dashboardAppointments/:id").get( dashboardAppointments);
 
 export default router;

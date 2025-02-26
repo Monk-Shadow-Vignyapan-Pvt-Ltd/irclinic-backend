@@ -65,6 +65,21 @@ export const getCenters = async (req, res) => {
     }
 };
 
+export const getAllCenters = async (req, res) => {
+    try {
+        const centers = await Center.find();
+        if (!centers ) {
+            return res.status(404).json({ message: "No centers found", success: false });
+        }
+        return res.status(200).json({centers:centers, 
+            success: true ,
+             });
+    } catch (error) {
+        console.error('Error fetching centers:', error);
+        res.status(500).json({ message: 'Failed to fetch centers', success: false });
+    }
+};
+
 // Get center by ID
 export const getCenterById = async (req, res) => {
     try {

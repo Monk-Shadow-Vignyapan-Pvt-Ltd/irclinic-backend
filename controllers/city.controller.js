@@ -62,6 +62,23 @@ export const getCities = async (req, res) => {
     }
 };
 
+export const getAllCities = async (req, res) => {
+    try {
+        const cities = await City.find();
+        if (!cities) {
+            return res.status(404).json({ message: 'No cities found', success: false });
+        }
+        
+        return res.status(200).json({ 
+            cities:cities, 
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching cities:', error);
+        res.status(500).json({ message: 'Failed to fetch cities', success: false });
+    }
+};
+
 // Get city by ID
 export const getCityById = async (req, res) => {
     try {

@@ -56,6 +56,23 @@ export const getStates = async (req, res) => {
     }
 };
 
+export const getAllStates = async (req, res) => {
+    try {
+        const states = await State.find();
+        if (!states ) {
+            return res.status(404).json({ message: 'No states found', success: false });
+        }
+        
+        return res.status(200).json({ 
+            states:states, 
+            success: true ,
+            });
+    } catch (error) {
+        console.error('Error fetching states:', error);
+        res.status(500).json({ message: 'Failed to fetch states', success: false });
+    }
+};
+
 // Get state by ID
 export const getStateById = async (req, res) => {
     try {

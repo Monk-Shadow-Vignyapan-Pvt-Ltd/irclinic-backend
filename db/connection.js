@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { initializeDefaultStatuses } from "../controllers/status.controller.js";
 import bcrypt from "bcryptjs"; // For hashing passwords
 import { User } from "../models/user.model.js"; // Adjust path as needed
+import {Center} from "../models/center.model.js";
 import fs from 'fs';
 // import archiver from 'archiver'; // Import archiver for zip compression
 
@@ -15,6 +16,30 @@ const connectDB = async () => {
         
         // Initialize default statuses (if required)
         await initializeDefaultStatuses();
+
+        const defaultCenterCode = "SRT"
+
+        const existingCenter = await Center.findOne({ centerCode: defaultCenterCode });
+
+        if (!existingCenter) {
+            const defaultCenter = new Center({
+                _id: new mongoose.Types.ObjectId("67b982f1db70dcc4938cf9ce"), // Use the provided ObjectId
+                accountPhoneNo: "919913535351",
+                adminPhoneNo : "919913535351",
+                centerAddress: "405,406 - 4th Floor Zenon Building, Opp Unique Hospital, Ring Rd, Surat, Gujarat-395001",
+                centerCode: defaultCenterCode,
+                centerEmail: "irclinic2018@gmail.com",
+                centerName: "Surat Clinic",
+                cityCode: "SU",
+                stateCode: "GJ"
+            });
+
+            await defaultCenter.save();
+            console.log("Default Center created successfully.");
+        } else {
+            console.log("Default Center already exists.");
+        }
+
 
         const defaultAdminEmail = "admin@gmail.com";
         const defaultAdminPassword = "admin123"; // Plaintext password (for example)

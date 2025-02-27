@@ -56,6 +56,7 @@ const connectDB = async () => {
                 password: hashedPassword, // Store hashed password
                 username: "admin",
                 role:"Super Admin",
+                centerId: new mongoose.Types.ObjectId("67b982f1db70dcc4938cf9ce"),
                 roles: [
                     { name: "Users", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Doctors", actions: { view: true, create: true, edit: true, delete: true } },

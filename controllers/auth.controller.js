@@ -172,20 +172,20 @@ export const getUsers = async (req, res) => {
 export const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { email, password, username, avatar ,role,roles,centerId,userId} = req.body;
+        const { email,password, username, avatar ,role,roles,centerId,userId} = req.body;
 
         // Validate base64 image data if provided
-        if (!email || !password || !username || !role) {
+        if (!email  || !username || !role) {
             return res.status(400).json({ msg: "Please enter all the fields" });
           }
-          if (password.length < 6) {
-            return res
-              .status(400)
-              .json({ msg: "Password should be at least 6 characters" });
-          }
+          // if (password.length < 6) {
+          //   return res
+          //     .status(400)
+          //     .json({ msg: "Password should be at least 6 characters" });
+          // }
     
       
-          const hashedPassword = await bcryptjs.hash(password, 8);
+          // const hashedPassword = await bcryptjs.hash(password, 8);
       
           if (avatar && !avatar.startsWith('data:image')) {
               return res.status(400).json({ message: 'Invalid image data', success: false });
@@ -203,7 +203,7 @@ export const updateUser = async (req, res) => {
             // Convert back to Base64 for storage (optional)
             const compressedBase64 = avatar ? `data:image/jpeg;base64,${compressedBuffer.toString('base64')}` : null;  
 
-        const updatedData = { email, password: hashedPassword, username, avatar:compressedBase64,role,roles,centerId: (centerId === '') ? null : centerId ,userId : (userId === '') ? null : userId};
+        const updatedData = { email, ...(password && { password }), username, avatar:compressedBase64,role,roles,centerId: (centerId === '') ? null : centerId ,userId : (userId === '') ? null : userId};
 
         const user = await User.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
         if (!user) return res.status(404).json({ message: "User not found!", success: false });
@@ -212,6 +212,94 @@ export const updateUser = async (req, res) => {
         console.log(error);
         res.status(400).json({ message: error.message, success: false });
     }
+};
+
+export const updatePassword = async (req, res) => {
+  try {
+      const { id } = req.params;
+      const { email,password, username, avatar ,role,roles,centerId,userId} = req.body;
+
+      // Validate base64 image data if provided
+      if (!email  || !username || !role) {
+          return res.status(400).json({ msg: "Please enter all the fields" });
+        }
+        if (password.length < 6) {
+          return res
+            .status(400)
+            .json({ msg: "Password should be at least 6 characters" });
+        }
+  
+    
+        const hashedPassword = await bcryptjs.hash(password, 8);
+    
+        if (avatar && !avatar.startsWith('data:image')) {
+            return res.status(400).json({ message: 'Invalid image data', success: false });
+          }
+
+          const base64Data = avatar ? avatar.split(';base64,').pop() : null;
+          const buffer = avatar ? Buffer.from(base64Data, 'base64') : null;
+    
+          // Resize and compress the image using sharp
+          const compressedBuffer = avatar ? await sharp(buffer)
+              .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
+              .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+              .toBuffer() : null;
+    
+          // Convert back to Base64 for storage (optional)
+          const compressedBase64 = avatar ? `data:image/jpeg;base64,${compressedBuffer.toString('base64')}` : null;  
+
+      const updatedData = { email,password: hashedPassword, username, avatar:compressedBase64,role,roles,centerId: (centerId === '') ? null : centerId ,userId : (userId === '') ? null : userId};
+
+      const user = await User.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+      if (!user) return res.status(404).json({ message: "User not found!", success: false });
+      return res.status(200).json({ user, success: true });
+  } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: error.message, success: false });
+  }
+};
+
+export const updateUserPassword = async (req, res) => {
+  try {
+      const { id } = req.params;
+      const { email,password,existPassword, username, avatar ,role,roles,centerId,userId} = req.body;
+
+      // Validate base64 image data if provided
+      if (!email || !existPassword  || !username || !role) {
+          return res.status(400).json({ msg: "Please enter all the fields" });
+        }
+
+        const userMatch = await User.findOne({ email });
+        if (!userMatch) {
+          return res
+            .status(400)
+            .send({ msg: "User with this email does not exist" });
+        }
+    
+        const isMatch = await bcryptjs.compare(existPassword, userMatch.password);
+        if (!isMatch) {
+          return res.status(400).send({ msg: "Incorrect Existing password." });
+        }
+        if (password.length < 6) {
+          return res
+            .status(400)
+            .json({ msg: "Password should be at least 6 characters" });
+        }
+  
+    
+        const hashedPassword = await bcryptjs.hash(password, 8);
+    
+       
+
+      const updatedData = { email,password: hashedPassword, username, avatar:avatar,role,roles,centerId: (centerId === '') ? null : centerId ,userId : (userId === '') ? null : userId};
+
+      const user = await User.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+      if (!user) return res.status(404).json({ message: "User not found!", success: false });
+      return res.status(200).json({ user, success: true });
+  } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: error.message, success: false });
+  }
 };
 
 export const deleteUser = async (req, res) => {
@@ -292,4 +380,6 @@ export const searchUsers = async (req, res) => {
         res.status(500).json({ message: 'Failed to search users', success: false });
     }
 };
+
+
 

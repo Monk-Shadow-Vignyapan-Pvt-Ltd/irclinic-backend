@@ -20,6 +20,7 @@ import progressNoteRoute from "./progressNote.route.js";
 import estimateRoute from "./estimate.route.js";
 import statusRoute from "./status.route.js";
 import consentRoute from "./consent.route.js";
+import specialityRoute from "./speciality.route.js";
 
 const routes = {
   doctorRoute,
@@ -43,7 +44,8 @@ const routes = {
   progressNoteRoute,
   estimateRoute,
   statusRoute,
-  consentRoute
+  consentRoute,
+  specialityRoute
 };
 
 export default routes;

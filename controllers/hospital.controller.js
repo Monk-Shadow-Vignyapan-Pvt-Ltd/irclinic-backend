@@ -6,7 +6,7 @@ export const addHospital = async (req, res) => {
         const { hospitalName, adminPhoneNo, accountPhoneNo, hospitalEmail, hospitalAddress, state, city, userId,centerId } = req.body;
 
         // Validate required fields
-        if (!hospitalName || !adminPhoneNo || !accountPhoneNo || !hospitalEmail || !hospitalAddress || !state || !city) {
+        if (!hospitalName || !adminPhoneNo || !accountPhoneNo ) {
             return res.status(400).json({ message: 'All fields are required', success: false });
         }
 

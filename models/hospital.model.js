@@ -5,10 +5,10 @@ const hospitalSchema = new mongoose.Schema({
     hospitalName: { type: String, required: true },
     adminPhoneNo: { type: String, required: true },
     accountPhoneNo: { type: String, required: true },
-    hospitalEmail: { type: String, required: true },
-    hospitalAddress: { type: String, required: true },
-    state: { type: String, required: true },
-    city: { type: String, required: true },
+    hospitalEmail: { type: String, required: false },
+    hospitalAddress: { type: String, required: false },
+    state: { type: String, required: false },
+    city: { type: String, required: false },
     userId:{
         type: mongoose.Schema.Types.ObjectId, 
           required:false

@@ -6,7 +6,7 @@ export const addDoctor = async (req, res) => {
         const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,centerId, userId } = req.body;
 
         // Validate required fields
-        if (!firstName || !lastName || !gender || !phoneNo || !email || !company || !state || !city || !speciality) {
+        if (!firstName || !lastName || !gender || !phoneNo ) {
             return res.status(400).json({ message: 'All fields are required', success: false });
         }
 

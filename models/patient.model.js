@@ -4,9 +4,9 @@ import mongoose from "mongoose";
 const patientSchema = new mongoose.Schema({
     patientName: { type: String, required: true },
     gender: { type: String, enum: ['Male', 'Female', 'Others'], required: true },
-    phoneNo: { type: String, required: true },
-    age: { type: String, required: true },
-    address: { type: String, required: true },
+    phoneNo: { type: String, required: false },
+    age: { type: String, required: false },
+    address: { type: String, required: false },
     patientType: { type: String, required: true },
     reference: { type: String, required: false },
     centerId:{

@@ -3,17 +3,16 @@ import { Report } from '../models/report.model.js'; // Update the path as per yo
 // Add a new report
 export const addReport = async (req, res) => {
     try {
-        const { reportTitle, documentname, description, impression, advice, userId ,centerId} = req.body;
+        const { reportTitle, description, impression, advice, userId ,centerId} = req.body;
 
         // Validate required fields
-        if (!reportTitle || !documentname || !description || !impression || !advice) {
+        if (!reportTitle  ) {
             return res.status(400).json({ message: 'All fields are required', success: false });
         }
 
         // Create a new report
         const report = new Report({
             reportTitle,
-            documentname,
             description,
             impression,
             advice,
@@ -99,12 +98,11 @@ export const getReportById = async (req, res) => {
 export const updateReport = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reportTitle, documentname, description, impression, advice, userId ,centerId} = req.body;
+        const { reportTitle, description, impression, advice, userId ,centerId} = req.body;
 
         // Build updated data
         const updatedData = {
             ...(reportTitle && { reportTitle }),
-            ...(documentname && { documentname }),
             ...(description && { description }),
             ...(impression && { impression }),
             ...(advice && { advice }),

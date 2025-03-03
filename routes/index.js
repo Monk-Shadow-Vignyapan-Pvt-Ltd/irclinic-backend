@@ -21,6 +21,7 @@ import estimateRoute from "./estimate.route.js";
 import statusRoute from "./status.route.js";
 import consentRoute from "./consent.route.js";
 import specialityRoute from "./speciality.route.js";
+import nonStockInventoryRoute from "./nonstockinventory.route.js";
 
 const routes = {
   doctorRoute,
@@ -45,7 +46,8 @@ const routes = {
   estimateRoute,
   statusRoute,
   consentRoute,
-  specialityRoute
+  specialityRoute,
+  nonStockInventoryRoute
 };
 
 export default routes;

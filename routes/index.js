@@ -22,6 +22,7 @@ import statusRoute from "./status.route.js";
 import consentRoute from "./consent.route.js";
 import specialityRoute from "./speciality.route.js";
 import nonStockInventoryRoute from "./nonstockinventory.route.js";
+import firebaseTokenRoute from "./firebaseToken.route.js";
 
 const routes = {
   doctorRoute,
@@ -47,7 +48,8 @@ const routes = {
   statusRoute,
   consentRoute,
   specialityRoute,
-  nonStockInventoryRoute
+  nonStockInventoryRoute,
+  firebaseTokenRoute
 };
 
 export default routes;

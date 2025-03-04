@@ -4,6 +4,14 @@ const stockoutSchema = new mongoose.Schema({
     vendorId: { type: mongoose.Schema.Types.ObjectId, required: true },
     inventoryId: { type: mongoose.Schema.Types.ObjectId, required: true },
     totalStock: { type: Number, required: true },
+    appointmentType: {
+      type: String,
+      required: true,
+    },
+    hospitalId:{
+      type:mongoose.Schema.Types.ObjectId,
+      required:false
+    },
     // stockinType: { type: String, required: true },
     // lotNo:{ type: String, required: true },
     // expiryDate:{ type: Date,  default: null, },

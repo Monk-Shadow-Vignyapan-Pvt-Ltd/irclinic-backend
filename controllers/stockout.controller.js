@@ -4,18 +4,18 @@ import { Inventory } from '../models/inventory.model.js';
 // Add a new stockin
 export const addStockout = async (req, res) => {
     try {
-        const { vendorId,inventoryId, totalStock,others, centerId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId,appointmentType,hospitalId } = req.body;
 
         // Validate required fields
-        if (!vendorId || !inventoryId  || !centerId) {
+        if (!vendorId || !inventoryId  || !centerId || !appointmentType) {
             return res.status(400).json({ 
-                message: 'Vendor Id,Inventory ID, Total Stock, and Center ID are required', 
+                message: 'Vendor Id,Inventory ID, Appointment Type, and Center ID are required', 
                 success: false 
             });
         }
 
         // Create a new stockin
-        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId });
+        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId,appointmentType,hospitalId });
 
         await stockout.save();
         res.status(201).json({ stockout, success: true });
@@ -110,7 +110,7 @@ export const getStockoutsByVendorId = async (req, res) => {
 export const updateStockout = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others, centerId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId ,appointmentType,hospitalId} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -119,6 +119,7 @@ export const updateStockout = async (req, res) => {
              totalStock,
              others ,
             ...(centerId && { centerId }),
+            appointmentType,hospitalId
         };
 
         const stockout = await Stockout.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

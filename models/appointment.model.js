@@ -66,7 +66,11 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       required: true,
       default:"Scheduled"
-    }
+    },
+    isFollowUp:{
+      type: Boolean,
+      required: false,
+    },
   },
   { timestamps: true }
 );

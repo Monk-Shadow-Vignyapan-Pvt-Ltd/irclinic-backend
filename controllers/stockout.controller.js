@@ -80,7 +80,7 @@ export const getStockoutsByVendorId = async (req, res) => {
         if (!stockouts) {
             return res.status(404).json({ message: 'No stockouts found', success: false });
         }
-        const reversedstockouts = stockouts.reverse();
+        const reversedstockouts = stockouts.filter(stockout => stockout.totalStock > 0 ).reverse();
         const page = parseInt(req.query.page) || 1;
 
         // Define the number of items per page
@@ -177,7 +177,7 @@ export const searchStockouts = async (req, res) => {
         }));
 
         return res.status(200).json({
-            stockouts: stockoutsWithInventory.filter(inventory => inventory.inventory),
+            stockouts: stockoutsWithInventory.filter(inventory => inventory.inventory && inventory.totalStock > 0),
             success: true,
             pagination: {
                 currentPage: 1,

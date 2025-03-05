@@ -26,6 +26,10 @@ const activitySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: false,
     },
+    repeat: {
+      type: String,
+      required: false,
+    },
     dueDate: {
       type: Date,
       required: true,

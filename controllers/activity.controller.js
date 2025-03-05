@@ -1,9 +1,10 @@
 import { Activity } from '../models/activity.model.js'; // Update the path as per your project structure
+import moment from 'moment';
 
 // Add a new activity
 export const addActivity = async (req, res) => {
     try {
-        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate, userId, status } = req.body;
+        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat, userId, status } = req.body;
 
         // Validate required fields
         if (!activityType || !activityTitle || !assignedTo || !notes || !dueDate) {
@@ -19,6 +20,7 @@ export const addActivity = async (req, res) => {
             comments,
             centerId,
             dueDate,
+            repeat,
             userId,
             status
         });
@@ -34,12 +36,57 @@ export const addActivity = async (req, res) => {
 // Get all activities
 export const getActivities = async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
+        const { userId } = req.query.userId;
+        
         const activities = await Activity.find({ centerId: id });
         if (!activities) {
             return res.status(404).json({ message: 'No activities found', success: false });
         }
-        const reversedactivities = activities.reverse();
+        const filteredActivities =  activities.filter(activity => 
+            activity.assignedTo.some(assignee => assignee.value === "all"|| assignee.value === req.query.userId)
+          );
+
+          let repeatedActivities = [];
+          filteredActivities.forEach(activity => {
+            const { repeat, createdAt, dueDate } = activity;
+
+            if (["Day", "Week", "Month", "Year"].includes(repeat)) {
+                const startDate = moment(createdAt).startOf('day');
+                const endDate = moment(dueDate).startOf('day'); // Ensure dueDate is compared correctly
+
+                let currentDate = startDate.clone();
+                while (currentDate.isSameOrBefore(endDate, 'day')) {
+                    repeatedActivities.push({
+                        ...activity.toObject(),
+                        _id: `${activity._id}-${currentDate.format("YYYY-MM-DD")}`,
+                        repeatedDate: currentDate.format("YYYY-MM-DD")
+                    });
+
+                    // Increment date based on repeat type
+                    switch (repeat) {
+                        case "Day":
+                            currentDate.add(1, 'day');
+                            break;
+                        case "Week":
+                            currentDate.add(1, 'week');
+                            break;
+                        case "Month":
+                            currentDate.add(1, 'month');
+                            break;
+                        case "Year":
+                            currentDate.add(1, 'year');
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            } else {
+                repeatedActivities.push(activity.toObject());
+            }
+        });
+          
+        const reversedactivities = repeatedActivities.reverse();
         const page = parseInt(req.query.page) || 1;
 
         // Define the number of items per page
@@ -55,8 +102,8 @@ export const getActivities = async (req, res) => {
             success: true ,
             pagination: {
             currentPage: page,
-            totalPages: Math.ceil(activities.length / limit),
-            totalActivities: activities.length,} });
+            totalPages: Math.ceil(repeatedActivities.length / limit),
+            totalActivities: repeatedActivities.length,} });
     } catch (error) {
         console.error('Error fetching activities:', error);
         res.status(500).json({ message: 'Failed to fetch activities', success: false });
@@ -82,7 +129,7 @@ export const getActivityById = async (req, res) => {
 export const updateActivity = async (req, res) => {
     try {
         const { id } = req.params;
-        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate, userId, status } = req.body;
+        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat, userId, status } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -93,6 +140,7 @@ export const updateActivity = async (req, res) => {
             ...(comments && { comments }),
             ...(centerId && { centerId }),
             ...(dueDate && { dueDate }),
+            ...(repeat && { repeat }),
             ...(userId && { userId }),
             ...(status && { status })
         };
@@ -147,6 +195,7 @@ export const searchActivities = async (req, res) => {
     try {
         const { id } = req.params;
         const { search } = req.query;
+        const { userId } = req.query.userId;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
         }
@@ -168,8 +217,50 @@ export const searchActivities = async (req, res) => {
             return res.status(404).json({ message: 'No activities found', success: false });
         }
 
+        const filteredActivities = activities.filter(activity => 
+            activity.assignedTo.some(assignee => assignee.value === "all"|| assignee.value === req.query.userId)
+          );
+
+          let repeatedActivities = [];
+          filteredActivities.forEach(activity => {
+              const { repeat, createdAt, dueDate } = activity;
+              if (["Day", "Week", "Month", "Year"].includes(repeat)) {
+                  const startDate = moment(createdAt).startOf('day');
+                  const endDate = moment(dueDate).endOf('day');
+  
+                  let currentDate = startDate.clone();
+                  while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+                      repeatedActivities.push({
+                          ...activity.toObject(),
+                          _id: `${activity._id}-${currentDate.format("YYYY-MM-DD")}`, // Unique ID per repeat date
+                          repeatedDate: currentDate.format("YYYY-MM-DD")
+                      });
+  
+                      // Increment based on the repeat type
+                      switch (repeat) {
+                          case "Day":
+                              currentDate.add(1, 'day');
+                              break;
+                          case "Week":
+                              currentDate.add(1, 'week');
+                              break;
+                          case "Month":
+                              currentDate.add(1, 'month');
+                              break;
+                          case "Year":
+                              currentDate.add(1, 'year');
+                              break;
+                          default:
+                              break;
+                      }
+                  }
+              } else {
+                  repeatedActivities.push(activity.toObject());
+              }
+          });
+
         return res.status(200).json({
-            activities: activities,
+            activities: repeatedActivities.reverse(),
             success: true,
             pagination: {
                 currentPage: 1,

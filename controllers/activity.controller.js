@@ -11,6 +11,35 @@ export const addActivity = async (req, res) => {
             return res.status(400).json({ message: 'All required fields must be filled', success: false });
         }
 
+        let repeatedActivities = [];
+        const activityCreated = moment().startOf("day");
+        const activityDue = moment(dueDate).endOf("day");
+        let currentDate = activityCreated.clone();
+
+        if (["Day", "Week", "Month", "Year"].includes(repeat)) {
+            while (currentDate.isSameOrBefore(activityDue)) {
+                repeatedActivities.push({
+                    repeatedDate: currentDate.format("YYYY-MM-DD"),
+                    status: status || "Pending",
+                });
+
+                switch (repeat) {
+                    case "Day":
+                        currentDate.add(1, "day");
+                        break;
+                    case "Week":
+                        currentDate.add(1, "week");
+                        break;
+                    case "Month":
+                        currentDate.add(1, "month");
+                        break;
+                    case "Year":
+                        currentDate.add(1, "year");
+                        break;
+                }
+            }
+        }
+
         // Create a new activity
         const activity = new Activity({
             activityType,
@@ -21,6 +50,7 @@ export const addActivity = async (req, res) => {
             centerId,
             dueDate,
             repeat,
+            repeatedActivities,
             userId,
             status
         });
@@ -36,79 +66,61 @@ export const addActivity = async (req, res) => {
 // Get all activities
 export const getActivities = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { userId } = req.query.userId;
-        
-        const activities = await Activity.find({ centerId: id });
-        if (!activities) {
-            return res.status(404).json({ message: 'No activities found', success: false });
+        const { id } = req.params; // Center ID
+        const { userId, startDate, endDate } = req.query;
+
+        // Validate date inputs
+        if (!startDate || !endDate) {
+            return res.status(400).json({ message: "Start and End dates are required", success: false });
         }
-        const filteredActivities =  activities.filter(activity => 
-            activity.assignedTo.some(assignee => assignee.value === "all"|| assignee.value === req.query.userId)
-          );
 
-          let repeatedActivities = [];
-          filteredActivities.forEach(activity => {
-            const { repeat, createdAt, dueDate } = activity;
+        const start = moment(startDate).startOf("day");
+        const end = moment(endDate).endOf("day");
 
-            if (["Day", "Week", "Month", "Year"].includes(repeat)) {
-                const startDate = moment(createdAt).startOf('day');
-                const endDate = moment(dueDate).startOf('day'); // Ensure dueDate is compared correctly
+        // Fetch activities for the given center
+        const activities = await Activity.find({ centerId: id });
 
-                let currentDate = startDate.clone();
-                while (currentDate.isSameOrBefore(endDate, 'day')) {
-                    repeatedActivities.push({
-                        ...activity.toObject(),
-                        _id: `${activity._id}-${currentDate.format("YYYY-MM-DD")}`,
-                        repeatedDate: currentDate.format("YYYY-MM-DD")
-                    });
+        // Filter activities assigned to the user & check if start is between createdAt and dueDate
+        const filteredActivities = activities.filter(activity => {
+            const createdDate = moment(activity.createdAt).startOf("day");
+            const dueDate = moment(activity.dueDate).endOf("day");
 
-                    // Increment date based on repeat type
-                    switch (repeat) {
-                        case "Day":
-                            currentDate.add(1, 'day');
-                            break;
-                        case "Week":
-                            currentDate.add(1, 'week');
-                            break;
-                        case "Month":
-                            currentDate.add(1, 'month');
-                            break;
-                        case "Year":
-                            currentDate.add(1, 'year');
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            } else {
-                repeatedActivities.push(activity.toObject());
+            // Ensure start date is within activity's created & due date range
+            // if (!start.isBetween(createdDate, dueDate, "day", "[]")) {
+            //     return false;
+            // }
+
+            if (dueDate.isBefore(start) || createdDate.isAfter(end)) {
+                return false; // No repeated activities
             }
+        
+
+            return activity.assignedTo.some(assignee => assignee.value === "all" || assignee.value === userId);
         });
-          
-        const reversedactivities = repeatedActivities.reverse();
-        const page = parseInt(req.query.page) || 1;
 
-        // Define the number of items per page
-        const limit = 12;
+        // Process repeated activities
+        const finalActivities = filteredActivities.map(activity => {
+            let validRepeatedActivities = [];
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+            if (activity.repeatedActivities && activity.repeatedActivities.length > 0) {
+                validRepeatedActivities = activity.repeatedActivities.filter(repeat =>
+                    moment(repeat.repeatedDate).isBetween(start, end, "day", "[]")
+                );
+            }
 
-        // Paginate the reversed movies array
-        const paginatedactivities = reversedactivities.slice(startIndex, endIndex);
-        res.status(200).json({ activities:paginatedactivities, 
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(repeatedActivities.length / limit),
-            totalActivities: repeatedActivities.length,} });
+            return {
+                ...activity.toObject(),
+                repeatedActivities: validRepeatedActivities,
+            };
+        });
+
+        res.status(200).json({ activities: finalActivities.reverse(), success: true });
     } catch (error) {
-        console.error('Error fetching activities:', error);
-        res.status(500).json({ message: 'Failed to fetch activities', success: false });
+        console.error("Error fetching activities:", error);
+        res.status(500).json({ message: "Failed to fetch activities", success: false });
     }
 };
+
 
 // Get activity by ID
 export const getActivityById = async (req, res) => {
@@ -131,6 +143,36 @@ export const updateActivity = async (req, res) => {
         const { id } = req.params;
         const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat, userId, status } = req.body;
 
+        let repeatedActivities = [];
+        const activityCreated = moment().startOf("day");
+        const activityDue = moment(dueDate).endOf("day");
+        let currentDate = activityCreated.clone();
+
+        if (["Day", "Week", "Month", "Year"].includes(repeat)) {
+            while (currentDate.isSameOrBefore(activityDue)) {
+                repeatedActivities.push({
+                    repeatedDate: currentDate.format("YYYY-MM-DD"),
+                    status: status || "Pending",
+                });
+
+                switch (repeat) {
+                    case "Day":
+                        currentDate.add(1, "day");
+                        break;
+                    case "Week":
+                        currentDate.add(1, "week");
+                        break;
+                    case "Month":
+                        currentDate.add(1, "month");
+                        break;
+                    case "Year":
+                        currentDate.add(1, "year");
+                        break;
+                }
+            }
+        }
+
+
         // Build updated data
         const updatedData = {
             ...(activityType && { activityType }),
@@ -141,6 +183,37 @@ export const updateActivity = async (req, res) => {
             ...(centerId && { centerId }),
             ...(dueDate && { dueDate }),
             ...(repeat && { repeat }),
+            repeatedActivities,
+            ...(userId && { userId }),
+            ...(status && { status })
+        };
+
+        const activity = await Activity.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+        if (!activity) {
+            return res.status(404).json({ message: 'Activity not found', success: false });
+        }
+        res.status(200).json({ activity, success: true });
+    } catch (error) {
+        console.error('Error updating activity:', error);
+        res.status(400).json({ message: 'Failed to update activity', success: false });
+    }
+};
+
+export const followupActivity = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat,repeatedActivities, userId, status } = req.body;
+
+        const updatedData = {
+            ...(activityType && { activityType }),
+            ...(activityTitle && { activityTitle }),
+            ...(assignedTo && { assignedTo }),
+            ...(notes && { notes }),
+            ...(comments && { comments }),
+            ...(centerId && { centerId }),
+            ...(dueDate && { dueDate }),
+            ...(repeat && { repeat }),
+            repeatedActivities,
             ...(userId && { userId }),
             ...(status && { status })
         };
@@ -194,82 +267,71 @@ export const dashboardActivities = async (req, res) => {
 export const searchActivities = async (req, res) => {
     try {
         const { id } = req.params;
-        const { search } = req.query;
-        const { userId } = req.query.userId;
+        const { userId, startDate, endDate, search } = req.query;
+
         if (!search) {
-            return res.status(400).json({ message: 'Search query is required', success: false });
+            return res.status(400).json({ message: "Search query is required", success: false });
         }
 
-        const regex = new RegExp(search, 'i'); // Case-insensitive search
-        const searchDate = !isNaN(Date.parse(search)) ? new Date(search) : null; 
+        const start = startDate ? moment(startDate).startOf("day") : moment().startOf("day");
+        const end = endDate ? moment(endDate).endOf("day") : moment().endOf("day");
+
+        const regex = new RegExp(search, "i");
+        const searchDate = !isNaN(Date.parse(search)) ? new Date(search) : null;
 
         const activities = await Activity.find({
             centerId: id,
+            //dueDate: { $gte: start.toDate(), $lte: end.toDate() },
             $or: [
                 { activityType: regex },
                 { activityTitle: regex },
                 { notes: regex },
-                ...(searchDate !== null ? [{ dueDate: { $gte: searchDate, $lt: new Date(searchDate.getTime() + 86400000) } }] : [])
+                ...(searchDate !== null
+                    ? [{ dueDate: { $gte: searchDate, $lt: new Date(searchDate.getTime() + 86400000) } }]
+                    : [])
             ]
         });
 
-        if (!activities) {
-            return res.status(404).json({ message: 'No activities found', success: false });
-        }
+        const filteredActivities = activities.filter(activity => {
+            const createdDate = moment(activity.createdAt).startOf("day");
+            const dueDate = moment(activity.dueDate).endOf("day");
 
-        const filteredActivities = activities.filter(activity => 
-            activity.assignedTo.some(assignee => assignee.value === "all"|| assignee.value === req.query.userId)
-          );
+            // Ensure start date is within activity's created & due date range
+            // if (!start.isBetween(createdDate, dueDate, "day", "[]")) {
+            //     return false;
+            // }
 
-          let repeatedActivities = [];
-          filteredActivities.forEach(activity => {
-              const { repeat, createdAt, dueDate } = activity;
-              if (["Day", "Week", "Month", "Year"].includes(repeat)) {
-                  const startDate = moment(createdAt).startOf('day');
-                  const endDate = moment(dueDate).endOf('day');
-  
-                  let currentDate = startDate.clone();
-                  while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
-                      repeatedActivities.push({
-                          ...activity.toObject(),
-                          _id: `${activity._id}-${currentDate.format("YYYY-MM-DD")}`, // Unique ID per repeat date
-                          repeatedDate: currentDate.format("YYYY-MM-DD")
-                      });
-  
-                      // Increment based on the repeat type
-                      switch (repeat) {
-                          case "Day":
-                              currentDate.add(1, 'day');
-                              break;
-                          case "Week":
-                              currentDate.add(1, 'week');
-                              break;
-                          case "Month":
-                              currentDate.add(1, 'month');
-                              break;
-                          case "Year":
-                              currentDate.add(1, 'year');
-                              break;
-                          default:
-                              break;
-                      }
-                  }
-              } else {
-                  repeatedActivities.push(activity.toObject());
-              }
-          });
+            if (dueDate.isBefore(start) || createdDate.isAfter(end)) {
+                return false; // No repeated activities
+            }
+        
 
-        return res.status(200).json({
-            activities: repeatedActivities.reverse(),
-            success: true,
-            pagination: {
-                currentPage: 1,
-                totalPages: Math.ceil(activities.length / 12),
-                totalActivities: activities.length,
-            },
+            return activity.assignedTo.some(assignee => assignee.value === "all" || assignee.value === userId);
         });
+
+        // Process repeated activities
+        const finalActivities = filteredActivities.map(activity => {
+            let validRepeatedActivities = [];
+
+            if (activity.repeatedActivities && activity.repeatedActivities.length > 0) {
+                validRepeatedActivities = activity.repeatedActivities.filter(repeat =>
+                    moment(repeat.repeatedDate).isBetween(start, end, "day", "[]")
+                );
+            }
+
+            return {
+                ...activity.toObject(),
+                repeatedActivities: validRepeatedActivities,
+            };
+        });
+
+        res.status(200).json({
+            activities: finalActivities.reverse(),
+            success: true
+        });
+
     } catch (error) {
-        console.error('Error searching activities:', error);
-        res.status(500).json({ message: 'Failed to search activities', success: false });
+        console.error("Error searching activities:", error);
+        res.status(500).json({ message: "Failed to search activities", success: false });
     }
 };

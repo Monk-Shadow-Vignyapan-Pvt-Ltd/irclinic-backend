@@ -30,6 +30,10 @@ const activitySchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    repeatedActivities:{
+      type: mongoose.Schema.Types.Mixed,
+      required: false,
+    },
     dueDate: {
       type: Date,
       required: true,

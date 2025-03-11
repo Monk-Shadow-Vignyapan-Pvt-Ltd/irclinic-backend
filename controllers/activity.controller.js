@@ -80,7 +80,6 @@ export const getActivities = async (req, res) => {
 
         // Fetch activities for the given center
         const activities = await Activity.find({ centerId: id });
-        console.log(activities,userId);
 
         // Filter activities assigned to the user & check if start is between createdAt and dueDate
         const filteredActivities = activities.filter(activity => {

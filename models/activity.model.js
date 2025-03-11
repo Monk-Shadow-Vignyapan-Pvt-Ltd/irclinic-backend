@@ -34,6 +34,10 @@ const activitySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       required: false,
     },
+    startDate: {
+      type: Date,
+      required: true,
+    },
     dueDate: {
       type: Date,
       required: true,

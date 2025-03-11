@@ -4,15 +4,15 @@ import moment from 'moment';
 // Add a new activity
 export const addActivity = async (req, res) => {
     try {
-        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat, userId, status } = req.body;
+        const { activityType, activityTitle, assignedTo, notes, comments, centerId,startDate, dueDate,repeat, userId, status } = req.body;
 
         // Validate required fields
-        if (!activityType || !activityTitle || !assignedTo || !notes || !dueDate) {
+        if (!activityType || !activityTitle || !assignedTo || !notes || !startDate || !dueDate) {
             return res.status(400).json({ message: 'All required fields must be filled', success: false });
         }
 
         let repeatedActivities = [];
-        const activityCreated = moment().startOf("day");
+        const activityCreated = moment(startDate).startOf("day");
         const activityDue = moment(dueDate).endOf("day");
         let currentDate = activityCreated.clone();
 
@@ -48,6 +48,7 @@ export const addActivity = async (req, res) => {
             notes,
             comments,
             centerId,
+            startDate,
             dueDate,
             repeat,
             repeatedActivities,
@@ -79,10 +80,11 @@ export const getActivities = async (req, res) => {
 
         // Fetch activities for the given center
         const activities = await Activity.find({ centerId: id });
+        console.log(activities,userId);
 
         // Filter activities assigned to the user & check if start is between createdAt and dueDate
         const filteredActivities = activities.filter(activity => {
-            const createdDate = moment(activity.createdAt).startOf("day");
+            const createdDate = moment(activity.startDate).startOf("day");
             const dueDate = moment(activity.dueDate).endOf("day");
 
             // Ensure start date is within activity's created & due date range
@@ -90,12 +92,11 @@ export const getActivities = async (req, res) => {
             //     return false;
             // }
 
-            if (dueDate.isBefore(start) || createdDate.isAfter(end)) {
+            if ( dueDate.isBefore(start) ||  createdDate.isAfter(end)) {
                 return false; // No repeated activities
             }
-        
-
-            return activity.assignedTo.some(assignee => assignee.value === "all" || assignee.value === userId);
+             
+            return   (activity.userId && activity.userId.toString() === userId) || activity.assignedTo.some(assignee => assignee.value === "all" || assignee.value === userId)  ;
         });
 
         // Process repeated activities
@@ -141,10 +142,10 @@ export const getActivityById = async (req, res) => {
 export const updateActivity = async (req, res) => {
     try {
         const { id } = req.params;
-        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat, userId, status } = req.body;
+        const { activityType, activityTitle, assignedTo, notes, comments, centerId,startDate, dueDate,repeat, userId, status } = req.body;
 
         let repeatedActivities = [];
-        const activityCreated = moment().startOf("day");
+        const activityCreated = moment(startDate).startOf("day");
         const activityDue = moment(dueDate).endOf("day");
         let currentDate = activityCreated.clone();
 
@@ -181,6 +182,7 @@ export const updateActivity = async (req, res) => {
             ...(notes && { notes }),
             ...(comments && { comments }),
             ...(centerId && { centerId }),
+            ...(startDate && { startDate }),
             ...(dueDate && { dueDate }),
             ...(repeat && { repeat }),
             repeatedActivities,
@@ -202,7 +204,7 @@ export const updateActivity = async (req, res) => {
 export const followupActivity = async (req, res) => {
     try {
         const { id } = req.params;
-        const { activityType, activityTitle, assignedTo, notes, comments, centerId, dueDate,repeat,repeatedActivities, userId, status } = req.body;
+        const { activityType, activityTitle, assignedTo, notes, comments, centerId,startDate, dueDate,repeat,repeatedActivities, userId, status } = req.body;
 
         const updatedData = {
             ...(activityType && { activityType }),
@@ -211,6 +213,7 @@ export const followupActivity = async (req, res) => {
             ...(notes && { notes }),
             ...(comments && { comments }),
             ...(centerId && { centerId }),
+            ...(startDate && { startDate }),
             ...(dueDate && { dueDate }),
             ...(repeat && { repeat }),
             repeatedActivities,

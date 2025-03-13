@@ -17,7 +17,7 @@ const vendorSchema = new mongoose.Schema({
           required:false
       },
       centerId:{
-        type: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.Mixed, 
           required:false
       }
 }, { timestamps: true });

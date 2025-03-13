@@ -39,7 +39,12 @@ export const addVendor = async (req, res) => {
 export const getVendors = async (req, res) => {
     try {
         const { id } = req.params;
-        const vendors = await Vendor.find({ centerId: id });
+        const vendors = await Vendor.find();
+
+         const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+          );
+         // console.log(filteredVendors)
+
         // const users = await User.find();
         // const filteredUsers = users.filter(user => 
         //     user.role === "Vendor" && user.centerId.some(item => item.centerId === id)
@@ -60,10 +65,10 @@ export const getVendors = async (req, res) => {
           
         //   const uniqueVendors = Array.from(mergedVendors.values());
        
-        if (!vendors ) {
+        if (!filteredVendors ) {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
-        const reversedvendors = vendors.reverse();
+        const reversedvendors = filteredVendors.reverse();
         const page = parseInt(req.query.page) || 1;
 
         // Deftheine  number of items per page
@@ -92,7 +97,9 @@ export const getVendors = async (req, res) => {
 export const getAllVendors = async (req, res) => {
     try {
         const { id } = req.params;
-        const vendors = await Vendor.find({ centerId: id });
+        const vendors = await Vendor.find();
+        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+         );
         // const users = await User.find();
         // const filteredUsers = users.filter(user => 
         //     user.role === "Vendor" && user.centerId.some(item => item.centerId === id)
@@ -112,12 +119,12 @@ export const getAllVendors = async (req, res) => {
         //   }, new Map());
           
         //   const uniqueVendors = Array.from(mergedVendors.values());
-        if (!vendors ) {
+        if (!filteredVendors ) {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
-        const reversedvendors = vendors.reverse();
+        const reversedvendors = filteredVendors.reverse();
         return res.status(200).json({ 
-            vendors, 
+            vendors:filteredVendors, 
             success: true ,});
     } catch (error) {
         console.error('Error fetching vendors:', error);
@@ -212,11 +219,13 @@ export const dashboardVendors = async (req, res) => {
           
         //   const uniqueVendors = Array.from(mergedVendors.values());
 
-          const totalVendors = await Vendor.countDocuments({ centerId: id });// Get total count
+        const vendors = await Vendor.find();
+        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+         );
 
-          const lastFiveVendors = await Vendor.find({ centerId: id }, { vendorName: 1, _id: 1 }) // Select only vendorName
-          .sort({ createdAt: -1 }) // Sort by creation date (descending)
-          .limit(5); // Get last 5 Vendors
+          const totalVendors = filteredVendors.length;// Get total count
+
+          const lastFiveVendors = filteredVendors.slice(-5); // Get last 5 Vendors
 
         return res.status(200).json({ 
             totalVendors, 
@@ -239,7 +248,6 @@ export const searchVendors = async (req, res) => {
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
         const vendors = await Vendor.find({
-            centerId: id ,
             $or: [
                 { vendorName: regex },
                 { email: regex },
@@ -250,6 +258,9 @@ export const searchVendors = async (req, res) => {
                 { state: regex }
             ]
         });
+
+        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+         );
 
         // const users = await User.find();
         // const filteredUsers = users.filter(user => 
@@ -271,17 +282,17 @@ export const searchVendors = async (req, res) => {
           
         //   const uniqueVendors = Array.from(mergedVendors.values());
 
-        if (!vendors) {
+        if (!filteredVendors) {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
 
         return res.status(200).json({
-            vendors: vendors,
+            vendors: filteredVendors,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(vendors.length / 12),
-                totalVendors: vendors.length,
+                totalPages: Math.ceil(filteredVendors.length / 12),
+                totalVendors: filteredVendors.length,
             },
         });
     } catch (error) {

@@ -41,7 +41,7 @@ export const getVendors = async (req, res) => {
         const { id } = req.params;
         const vendors = await Vendor.find();
 
-         const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+         const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId.toString() === id.toString() 
           );
          // console.log(filteredVendors)
 
@@ -85,8 +85,8 @@ export const getVendors = async (req, res) => {
             success: true ,
             pagination: {
             currentPage: page,
-            totalPages: Math.ceil(vendors.length / limit),
-            totalvendors: vendors.length,
+            totalPages: Math.ceil(filteredVendors.length / limit),
+            totalvendors: filteredVendors.length,
         },});
     } catch (error) {
         console.error('Error fetching vendors:', error);
@@ -98,7 +98,7 @@ export const getAllVendors = async (req, res) => {
     try {
         const { id } = req.params;
         const vendors = await Vendor.find();
-        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId.toString() === id.toString()
          );
         // const users = await User.find();
         // const filteredUsers = users.filter(user => 
@@ -220,7 +220,7 @@ export const dashboardVendors = async (req, res) => {
         //   const uniqueVendors = Array.from(mergedVendors.values());
 
         const vendors = await Vendor.find();
-        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId.toString() === id.toString() 
          );
 
           const totalVendors = filteredVendors.length;// Get total count
@@ -259,7 +259,7 @@ export const searchVendors = async (req, res) => {
             ]
         });
 
-        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId === id 
+        const filteredVendors = vendors.filter(vendor => Array.isArray(vendor.centerId) ? vendor.centerId.some(item => item.centerId === id): vendor.centerId.toString() === id.toString() 
          );
 
         // const users = await User.find();

@@ -117,6 +117,7 @@ export const getUser = async (req, res) => {
       avatar: user.avatar,
       role:user.role,
       roles:user.roles,
+      notifications:user.notifications,
       selectedRoles:user.selectedRoles,
       userId:user.userId,
       users:filteredUsers
@@ -329,7 +330,36 @@ export const updateDashboard = async (req, res) => {
         roles:existingEntry.roles,
         centerId: existingEntry.centerId ,
         userId : existingEntry.userId,
+        notifications:existingEntry.notifications,
         selectedRoles
+      }
+
+      const user = await User.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+      if (!user) return res.status(404).json({ message: "User not found!", success: false });
+      return res.status(200).json({ user, success: true });
+  } catch (error) {
+      console.log(error);
+      res.status(400).json({ message: error.message, success: false });
+  }
+};
+
+export const updateNotifications = async (req, res) => {
+  try {
+      const { id } = req.params;
+      const { notifications} = req.body;
+      const existingEntry = await User.findById(id); 
+
+      const updatedData = { 
+        email:existingEntry.email,
+        password: existingEntry.password,
+        username:existingEntry.username,
+        avatar:existingEntry.avatar,
+        role:existingEntry.role,
+        roles:existingEntry.roles,
+        centerId: existingEntry.centerId ,
+        userId : existingEntry.userId,
+        selectedRoles:existingEntry.selectedRoles,
+        notifications
       }
 
       const user = await User.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

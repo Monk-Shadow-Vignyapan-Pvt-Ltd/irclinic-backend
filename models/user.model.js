@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
     required: false
   },
+  notifications:{
+    type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
+    required: false
+  },
 }, { timestamps: true });
 
 export const User = mongoose.model("User", userSchema);

@@ -1,4 +1,19 @@
 import { Quicknote } from "../models/quicknote.model.js";
+import admin from "firebase-admin";
+import dotenv from "dotenv";
+import { FirebaseToken } from '../models/firebaseToken.model.js';
+import { User } from '../models/user.model.js';
+import mongoose from "mongoose";
+
+dotenv.config();
+
+const firebaseConfig = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS, "base64").toString("utf8"));
+
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(firebaseConfig),
+    });
+}
 
 // Add a new quicknote with audio
 export const addQuicknote = async (req, res) => {
@@ -28,6 +43,88 @@ export const addQuicknote = async (req, res) => {
         });
 
         await quicknote.save();
+        // Fetch users who should receive notifications
+                const firebasetokens = await FirebaseToken.find();
+                const users = await User.find();
+                const filteredUsers = users.filter(user => user.role === "Super Admin");
+        
+                const filterTokens = firebasetokens.filter(token =>
+                    filteredUsers.some(user => user._id.toString() === token.userId.toString())
+                );
+        
+                const tokens = [
+                    ...new Set(
+                      filterTokens
+                        .filter(token => token.centerId.toString() === centerId.toString())
+                        .flatMap(user => [user.webToken, user.mobileToken])  // Include both tokens
+                        .filter(token => token)  // Remove undefined or null values
+                    )
+                  ];
+
+                const notificationMessage = {
+                           title: `New Quick Appointment Created, Type: ${quicknoteType}`,
+                           body: `${notes}`,
+                            type: "Quick Appointment",
+                            date: new Date(),
+                            appointmentId: quicknote._id,
+                            isView:false
+                        };
+
+                        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                
+                        // Store notifications in each matched user
+                        await User.updateMany(
+                            { 
+                                _id: { $in: filteredUsers.map(user => user._id) },
+                                $or: [
+                                    { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                    { centerId: centerId.toString() } // Match string version
+                                ]
+                            },
+                            { 
+                                $pull: { notifications: { date: { $lt: sevenDaysAgo } } } // Remove older than 7 days
+                            }
+                        );
+
+                        await User.updateMany(
+                            { 
+                                _id: { $in: filteredUsers.map(user => user._id) },
+                                $or: [
+                                    { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                    { centerId: centerId.toString() } // Match string version
+                                ]
+                            },
+                            { 
+                                $push: { notifications: notificationMessage },
+                            }
+                        );
+                
+                        // Send Firebase Notification
+                        if (tokens.length > 0) {
+                            const message = {
+                                notification: {
+                                    title: notificationMessage.title,
+                                    body: notificationMessage.body
+                                },
+                                tokens: tokens, // Use tokens array for multicast
+                            };
+                
+                            admin.messaging().sendEachForMulticast(message)
+                                .then(response => {
+                                    response.responses.forEach((resp, index) => {
+                                        if (!resp.success) {
+                                            console.error(`Error sending to token ${tokens[index]}:`, resp.error);
+                                        }
+                                    });
+                                })
+                                .catch(error => {
+                                    console.error("Firebase Messaging Error:", error);
+                                });
+                        }
+        
+        
+                
         res.status(201).json({ quicknote, success: true });
     } catch (error) {
         console.error("Error adding quicknote:", error);

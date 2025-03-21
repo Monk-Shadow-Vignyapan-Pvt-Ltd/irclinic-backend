@@ -167,7 +167,7 @@ export const getAppointmentsByPatientId = async (req, res) => {
         // Fetch all appointments for the given patient ID
         const appointments = await Appointment.find({ patientId: id });
 
-        if (!appointments || appointments.length === 0) {
+        if (!appointments ) {
             return res.status(404).json({ message: 'No appointments found for this patient', success: false });
         }
 

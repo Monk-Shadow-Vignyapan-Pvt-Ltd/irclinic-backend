@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 const patientSchema = new mongoose.Schema({
     patientName: { type: String, required: true },
     gender: { type: String, enum: ['Male', 'Female', 'Others'], required: true },
-    phoneNo: { type: String, required: false },
+    phoneNo: { type: String, required: true,unique:true },
     age: { type: String, required: false },
     address: { type: String, required: false },
     patientType: { type: String, required: true },
@@ -27,5 +27,7 @@ const patientSchema = new mongoose.Schema({
           required:false
       }
 }, { timestamps: true });
+
+patientSchema.index({ phoneNo: 1 }, { unique: true });
 
 export const Patient = mongoose.model("Patient", patientSchema);

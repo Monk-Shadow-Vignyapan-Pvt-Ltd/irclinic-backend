@@ -30,7 +30,7 @@ export const addPatient = async (req, res) => {
         res.status(201).json({ patient, success: true });
     } catch (error) {
         console.error('Error adding patient:', error);
-        res.status(500).json({ message: 'Failed to add patient', success: false });
+        res.status(500).json({ message: error.message, success: false });
     }
 };
 
@@ -146,7 +146,7 @@ export const updatePatient = async (req, res) => {
         res.status(200).json({ patient, success: true });
     } catch (error) {
         console.error('Error updating patient:', error);
-        res.status(400).json({ message: 'Failed to update patient', success: false });
+        res.status(400).json({ message: error.message, success: false });
     }
 };
 

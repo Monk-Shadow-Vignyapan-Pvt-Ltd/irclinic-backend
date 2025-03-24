@@ -67,6 +67,14 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
       default:"Scheduled"
     },
+    checkInTime: {
+      type: Date,
+      required: false,
+    },
+    checkOutTime: {
+      type: Date,
+      required: false,
+    },
     isFollowUp:{
       type: Boolean,
       required: false,

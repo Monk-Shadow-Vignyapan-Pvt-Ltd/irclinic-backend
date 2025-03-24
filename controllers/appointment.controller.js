@@ -7,6 +7,8 @@ import { FirebaseToken } from '../models/firebaseToken.model.js';
 import { User } from '../models/user.model.js';
 import { Doctor } from '../models/doctor.model.js';
 import mongoose from "mongoose";
+import { io } from "../index.js";
+
 
 dotenv.config();
 
@@ -214,7 +216,7 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp } = req.body;
+        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp,checkInTime,checkOutTime } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -230,13 +232,20 @@ export const updateAppointment = async (req, res) => {
             isCancelled, cancelby, cancelReason,
             userId: userId || null,
             ...(status && { status }),
-            isFollowUp
+            isFollowUp,
+            checkInTime,checkOutTime
         };
 
         const appointment = await Appointment.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found', success: false });
         }
+
+        if (appointmentType === "OPD") {
+            
+            io.emit("appointmentStatusUpdated",  appointment );
+        }
+        
         // Fetch users who should receive notifications
         const firebasetokens = await FirebaseToken.find();
         const users = await User.find();

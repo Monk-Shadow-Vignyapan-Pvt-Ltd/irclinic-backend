@@ -44,6 +44,7 @@ export const addQuicknote = async (req, res) => {
 
         await quicknote.save();
         // Fetch users who should receive notifications
+        if(quicknoteType === 'Outside'){
                 const firebasetokens = await FirebaseToken.find();
                 const users = await User.find();
                 const filteredUsers = users.filter(user => user.role === "Super Admin");
@@ -122,7 +123,7 @@ export const addQuicknote = async (req, res) => {
                                     console.error("Firebase Messaging Error:", error);
                                 });
                         }
-        
+                    }
         
                 
         res.status(201).json({ quicknote, success: true });

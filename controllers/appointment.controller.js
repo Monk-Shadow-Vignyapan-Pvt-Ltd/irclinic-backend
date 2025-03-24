@@ -49,86 +49,89 @@ export const addAppointment = async (req, res) => {
 
         await appointment.save();
         // Fetch users who should receive notifications
-        const firebasetokens = await FirebaseToken.find();
-        const users = await User.find();
-        const filteredUsers = users.filter(user => user.role === "Super Admin");
-
-        const filterTokens = firebasetokens.filter(token =>
-            filteredUsers.some(user => user._id.toString() === token.userId.toString())
-        );
-
-        const tokens = [
-            ...new Set(
-              filterTokens
-                .filter(token => token.centerId.toString() === centerId.toString())
-                .flatMap(user => [user.webToken, user.mobileToken])  // Include both tokens
-                .filter(token => token)  // Remove undefined or null values
-            )
-          ];
-        const doctor = await Doctor.findById(doctorId);
-
-
-        const notificationMessage = {
-            title: `New Appointment Created For Doctor ${doctor.firstName} ${doctor.lastName}`,
-            body: `An appointment with ${title} is scheduled on ${new Date(start).toLocaleString()}.`,
-            type: "Appointment",
-            date: new Date(),
-            appointmentId: appointment._id,
-            isView:false
-        };
-
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        // Store notifications in each matched user
-        await User.updateMany(
-                                    { 
-                                        _id: { $in: filteredUsers.map(user => user._id) },
-                                        $or: [
-                                            { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
-                                            { centerId: centerId.toString() } // Match string version
-                                        ]
-                                    },
-                                    { 
-                                        $pull: { notifications: { date: { $lt: sevenDaysAgo } } } // Remove older than 7 days
-                                    }
-                                );
-        
-                                await User.updateMany(
-                                    { 
-                                        _id: { $in: filteredUsers.map(user => user._id) },
-                                        $or: [
-                                            { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
-                                            { centerId: centerId.toString() } // Match string version
-                                        ]
-                                    },
-                                    { 
-                                        $push: { notifications: notificationMessage },
-                                    }
-                                );
-
-        // Send Firebase Notification
-        if (tokens.length > 0) {
-            const message = {
-                notification: {
-                    title: notificationMessage.title,
-                    body: notificationMessage.body
-                },
-                tokens: tokens, // Use tokens array for multicast
+        if(appointmentType === 'Outside'){
+            const firebasetokens = await FirebaseToken.find();
+            const users = await User.find();
+            const filteredUsers = users.filter(user => user.role === "Super Admin");
+    
+            const filterTokens = firebasetokens.filter(token =>
+                filteredUsers.some(user => user._id.toString() === token.userId.toString())
+            );
+    
+            const tokens = [
+                ...new Set(
+                  filterTokens
+                    .filter(token => token.centerId.toString() === centerId.toString())
+                    .flatMap(user => [user.webToken, user.mobileToken])  // Include both tokens
+                    .filter(token => token)  // Remove undefined or null values
+                )
+              ];
+            const doctor = await Doctor.findById(doctorId);
+    
+    
+            const notificationMessage = {
+                title: `New Appointment Created For Doctor ${doctor.firstName} ${doctor.lastName}`,
+                body: `An appointment with ${title} is scheduled on ${new Date(start).toLocaleString()}.`,
+                type: "Appointment",
+                date: new Date(),
+                appointmentId: appointment._id,
+                isView:false
             };
-
-            admin.messaging().sendEachForMulticast(message)
-                .then(response => {
-                    response.responses.forEach((resp, index) => {
-                        if (!resp.success) {
-                            console.error(`Error sending to token ${tokens[index]}:`, resp.error);
-                        }
+    
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+            // Store notifications in each matched user
+            await User.updateMany(
+                                        { 
+                                            _id: { $in: filteredUsers.map(user => user._id) },
+                                            $or: [
+                                                { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                                { centerId: centerId.toString() } // Match string version
+                                            ]
+                                        },
+                                        { 
+                                            $pull: { notifications: { date: { $lt: sevenDaysAgo } } } // Remove older than 7 days
+                                        }
+                                    );
+            
+                                    await User.updateMany(
+                                        { 
+                                            _id: { $in: filteredUsers.map(user => user._id) },
+                                            $or: [
+                                                { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                                { centerId: centerId.toString() } // Match string version
+                                            ]
+                                        },
+                                        { 
+                                            $push: { notifications: notificationMessage },
+                                        }
+                                    );
+    
+            // Send Firebase Notification
+            if (tokens.length > 0) {
+                const message = {
+                    notification: {
+                        title: notificationMessage.title,
+                        body: notificationMessage.body
+                    },
+                    tokens: tokens, // Use tokens array for multicast
+                };
+    
+                admin.messaging().sendEachForMulticast(message)
+                    .then(response => {
+                        response.responses.forEach((resp, index) => {
+                            if (!resp.success) {
+                                console.error(`Error sending to token ${tokens[index]}:`, resp.error);
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error("Firebase Messaging Error:", error);
                     });
-                })
-                .catch(error => {
-                    console.error("Firebase Messaging Error:", error);
-                });
+            }
         }
+       
 
         res.status(201).json({ appointment, success: true });
     } catch (error) {
@@ -247,6 +250,7 @@ export const updateAppointment = async (req, res) => {
         }
         
         // Fetch users who should receive notifications
+        if(appointmentType === 'Outside'){
         const firebasetokens = await FirebaseToken.find();
         const users = await User.find();
         const filteredUsers = users.filter(user => user.role === "Super Admin");
@@ -327,6 +331,7 @@ export const updateAppointment = async (req, res) => {
                     console.error("Firebase Messaging Error:", error);
                 });
         }
+    }
         res.status(200).json({ appointment, success: true });
     } catch (error) {
         console.error('Error updating appointment:', error);

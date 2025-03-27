@@ -48,7 +48,7 @@ export const addAppointment = async (req, res) => {
         });
 
         await appointment.save();
-        io.emit("appointmentAdd",  appointment );
+        io.emit("appointmentAddUpdate",  { success: true } );
         // Fetch users who should receive notifications
         if(appointmentType === 'Outside'){
             const firebasetokens = await FirebaseToken.find();
@@ -245,7 +245,7 @@ export const updateAppointment = async (req, res) => {
             return res.status(404).json({ message: 'Appointment not found', success: false });
         }
 
-        io.emit("appointmentUpdate",  appointment );
+        io.emit("appointmentAddUpdate",  { success: true }  );
 
         if (appointmentType === "OPD") {
             
@@ -350,6 +350,7 @@ export const deleteAppointment = async (req, res) => {
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found', success: false });
         }
+        io.emit("appointmentAddUpdate",  { success: true } );
         res.status(200).json({ appointment, success: true });
     } catch (error) {
         console.error('Error deleting appointment:', error);

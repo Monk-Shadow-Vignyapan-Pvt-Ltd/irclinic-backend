@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { FirebaseToken } from '../models/firebaseToken.model.js';
 import { User } from '../models/user.model.js';
 import mongoose from "mongoose";
+import { io } from "../index.js";
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ export const addQuicknote = async (req, res) => {
         });
 
         await quicknote.save();
+        io.emit("quickNoteAddUpdate",  { success: true } );
         // Fetch users who should receive notifications
         if(quicknoteType === 'Outside'){
                 const firebasetokens = await FirebaseToken.find();
@@ -208,6 +210,7 @@ export const deleteQuicknote = async (req, res) => {
         if (!quicknote) {
             return res.status(404).json({ message: "Quicknote not found", success: false });
         }
+        io.emit("quickNoteAddUpdate",  { success: true } );
 
         res.status(200).json({ quicknote, success: true });
     } catch (error) {

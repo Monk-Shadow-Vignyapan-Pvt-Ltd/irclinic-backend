@@ -95,6 +95,7 @@ app.use("/api/v1/specialities", routes.specialityRoute);
 app.use("/api/v1/nonStockInventories", routes.nonStockInventoryRoute);
 app.use("/api/v1/firebaseTokens", routes.firebaseTokenRoute);
 app.use("/api/v1/videoQueues", routes.videoQueueRoute);
+app.use("/api/v1/prints",routes.printRoute)
 
 // Start the server
 server.listen(PORT, () => {

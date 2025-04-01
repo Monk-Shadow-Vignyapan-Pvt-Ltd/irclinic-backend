@@ -24,6 +24,7 @@ import specialityRoute from "./speciality.route.js";
 import nonStockInventoryRoute from "./nonstockinventory.route.js";
 import firebaseTokenRoute from "./firebaseToken.route.js";
 import videoQueueRoute from "./videoQueue.route.js";
+import printRoute from "./print.route.js";
 
 const routes = {
   doctorRoute,
@@ -51,7 +52,8 @@ const routes = {
   specialityRoute,
   nonStockInventoryRoute,
   firebaseTokenRoute,
-  videoQueueRoute
+  videoQueueRoute,
+  printRoute
 };
 
 export default routes;

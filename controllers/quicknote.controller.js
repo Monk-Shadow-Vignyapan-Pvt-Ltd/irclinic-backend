@@ -155,17 +155,30 @@ export const addQuicknote = async (req, res) => {
 export const getQuicknotes = async (req, res) => {
     try {
         const { id } = req.params;
-        const quicknotes = await Quicknote.find({ centerId: id })// Exclude audio data in list
-        const quicknotesWithAudio = quicknotes.map(qn => ({
-            ...qn._doc, // Spread MongoDB document fields
-            audio: qn.audio ? qn.audio.toString("base64") : null, // Convert Buffer to Base64
+        
+        // Fetch quicknotes and do NOT use async in map
+        const quicknotes = await Quicknote.find({ centerId: id });
+
+        // Process each quicknote asynchronously
+        const quicknotesWithAudio = await Promise.all(quicknotes.map(async (qn) => {
+            // Fetch username from User model
+            const user = await User.findById(qn.userId).select("username"); 
+
+            return {
+                ...qn._doc, // Spread MongoDB document fields
+                audio: qn.audio ? qn.audio.toString("base64") : null, // Convert Buffer to Base64
+                userName: user ? user.username : "Unknown" // Attach username
+            };
         }));
-        res.status(200).json({ quicknotes:quicknotesWithAudio, success: true });
+
+        res.status(200).json({ quicknotes: quicknotesWithAudio, success: true });
+
     } catch (error) {
         console.error("Error fetching quicknotes:", error);
         res.status(500).json({ message: "Failed to fetch quicknotes", success: false });
     }
 };
+
 
 // Get quicknote by ID (including audio)
 export const getQuicknoteById = async (req, res) => {

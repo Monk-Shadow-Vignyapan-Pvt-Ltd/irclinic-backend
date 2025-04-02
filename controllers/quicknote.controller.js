@@ -123,6 +123,9 @@ export const addQuicknote = async (req, res) => {
                                     title: notificationMessage.title,
                                     body: notificationMessage.body
                                 },
+                                data: { // ✅ Add URL inside "data"
+                                    url: "https://console.interventionalradiology.co.in/appointment"
+                                },
                                 tokens: tokens, // Use tokens array for multicast
                             };
                 

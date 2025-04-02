@@ -129,6 +129,9 @@ export const addAppointment = async (req, res) => {
                         title: notificationMessage.title,
                         body: notificationMessage.body
                     },
+                    data: { // ✅ Add URL inside "data"
+                        url: "https://console.interventionalradiology.co.in/appointment"
+                    },
                     tokens: tokens, // Use tokens array for multicast
                 };
     
@@ -343,6 +346,9 @@ export const updateAppointment = async (req, res) => {
                 notification: {
                     title: notificationMessage.title,
                     body: notificationMessage.body
+                },
+                data: { // ✅ Add URL inside "data"
+                    url: "https://console.interventionalradiology.co.in/appointment"
                 },
                 tokens: tokens, // Use tokens array for multicast
             };

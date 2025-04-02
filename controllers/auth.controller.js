@@ -117,7 +117,7 @@ export const getUser = async (req, res) => {
       avatar: user.avatar,
       role:user.role,
       roles:user.roles,
-      notifications:user.notifications.reverse(),
+      notifications:user.notifications ? user.notifications.reverse() : [],
       selectedRoles:user.selectedRoles,
       userId:user.userId,
       users:filteredUsers

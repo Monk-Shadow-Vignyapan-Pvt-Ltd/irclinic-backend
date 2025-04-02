@@ -74,20 +74,31 @@ export const addQuicknote = async (req, res) => {
                         };
 
                         const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                        sevenDaysAgo.setHours(0, 0, 0, 0);
                 
                         // Store notifications in each matched user
                         await User.updateMany(
                             { 
                                 _id: { $in: filteredUsers.map(user => user._id) },
                                 $or: [
-                                    { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
-                                    { centerId: centerId.toString() } // Match string version
+                                    { centerId: new mongoose.Types.ObjectId(centerId) },
+                                    { centerId: centerId.toString() }
                                 ]
                             },
-                            { 
-                                $pull: { notifications: { date: { $lt: sevenDaysAgo } } } // Remove older than 7 days
-                            }
+                            [
+                                {
+                                    $set: {
+                                        notifications: {
+                                            $filter: {
+                                                input: "$notifications",
+                                                as: "notif",
+                                                cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] } // Convert date if needed
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         );
 
                         await User.updateMany(
@@ -102,6 +113,8 @@ export const addQuicknote = async (req, res) => {
                                 $push: { notifications: notificationMessage },
                             }
                         );
+
+                        io.emit("notification",  { success: true }  );
                 
                         // Send Firebase Notification
                         if (tokens.length > 0) {

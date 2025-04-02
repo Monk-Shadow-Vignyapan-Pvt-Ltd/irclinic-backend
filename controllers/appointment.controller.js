@@ -72,7 +72,7 @@ export const addAppointment = async (req, res) => {
     
             const notificationMessage = {
                 title: `New Appointment Created For Doctor ${doctor.firstName} ${doctor.lastName}`,
-                body: `An appointment with ${title} is scheduled on ${new Date(start).toLocaleString()}.`,
+                body: `An appointment with ${title} is scheduled on ${new Date(start).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.`,
                 type: "Appointment",
                 date: new Date(),
                 appointmentId: appointment._id,
@@ -81,9 +81,10 @@ export const addAppointment = async (req, res) => {
     
             const sevenDaysAgo = new Date();
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            sevenDaysAgo.setHours(0, 0, 0, 0);
     
             // Store notifications in each matched user
-            await User.updateMany(
+             await User.updateMany(
                                         { 
                                             _id: { $in: filteredUsers.map(user => user._id) },
                                             $or: [
@@ -108,6 +109,8 @@ export const addAppointment = async (req, res) => {
                                             $push: { notifications: notificationMessage },
                                         }
                                     );
+
+                                    io.emit("notification",  { success: true }  );
     
             // Send Firebase Notification
             if (tokens.length > 0) {
@@ -275,7 +278,7 @@ export const updateAppointment = async (req, res) => {
 
         const notificationMessage = {
             title: `Appointment Updated For Doctor ${doctor.firstName} ${doctor.lastName}`,
-            body: `An appointment with ${title} is scheduled on ${new Date(start).toLocaleString()}.`,
+            body: `An appointment with ${title} is scheduled on ${new Date(start).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.`,
             type: "Appointment",
             date: new Date(),
             appointmentId: appointment._id,
@@ -283,12 +286,13 @@ export const updateAppointment = async (req, res) => {
         };
 
         const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            sevenDaysAgo.setHours(0, 0, 0, 0);
 
         // Store notifications in each matched user
         await User.updateMany(
                                     { 
-                                        _id: { $in: filteredUsers.map(user => user._id) },
+                                        _id: { $in: filteredUsers.map(user => user._id),},
                                         $or: [
                                             { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
                                             { centerId: centerId.toString() } // Match string version
@@ -311,6 +315,7 @@ export const updateAppointment = async (req, res) => {
                                         $push: { notifications: notificationMessage },
                                     }
                                 );
+                                io.emit("notification",  { success: true }  );
 
         // Send Firebase Notification
         if (tokens.length > 0) {

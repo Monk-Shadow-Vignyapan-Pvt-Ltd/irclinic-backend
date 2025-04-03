@@ -3,7 +3,7 @@ import { Patient } from '../models/patient.model.js'; // Update the path as per 
 // Add a new patient
 export const addPatient = async (req, res) => {
     try {
-        const { patientName, gender, phoneNo, age, address, patientType, reference, centerId,state,city,caseId, userId } = req.body;
+        const { patientName, gender, phoneNo, age, address, patientType, reference,referencePhoneNo, centerId,state,city,caseId, userId } = req.body;
 
         // Validate required fields
         if (!patientName || !gender  || !patientType) {
@@ -19,6 +19,7 @@ export const addPatient = async (req, res) => {
             address,
             patientType,
             reference,
+            referencePhoneNo,
             centerId:(centerId === '')  ? null:centerId,
             state,
             city,
@@ -121,7 +122,7 @@ export const getPatientById = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientName, gender, phoneNo, age, address, patientType, reference, centerId,state,city,caseId, userId } = req.body;
+        const { patientName, gender, phoneNo, age, address, patientType, reference,referencePhoneNo, centerId,state,city,caseId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -132,6 +133,7 @@ export const updatePatient = async (req, res) => {
             ...(address && { address }),
             ...(patientType && { patientType }),
             ...(reference && { reference }),
+            ...(referencePhoneNo && { referencePhoneNo }),
             centerId: (centerId === "") ? null : centerId ,
             ...(state && { state }),
             ...(city && { city }),

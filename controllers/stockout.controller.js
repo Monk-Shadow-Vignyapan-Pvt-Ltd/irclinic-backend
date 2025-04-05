@@ -75,36 +75,45 @@ export const getStockoutById = async (req, res) => {
 
 export const getStockoutsByVendorId = async (req, res) => {
     try {
-        const { id } = req.params;
-        const stockouts = await Stockout.find({vendorId: id});
+        const { id: vendorId } = req.params;
+        const { centerId, page = 1 } = req.query;
+
+        if (!centerId) {
+            return res.status(400).json({ message: 'centerId is required', success: false });
+        }
+
+        // Find matching stockouts
+        const stockouts = await Stockout.find({
+            vendorId,
+            centerId,
+        });
+
         if (!stockouts) {
             return res.status(404).json({ message: 'No stockouts found', success: false });
         }
-        const reversedstockouts = stockouts.filter(stockout => stockout.totalStock > 0 ).reverse();
-        const page = parseInt(req.query.page) || 1;
 
-        // Define the number of items per page
+        const filteredStockouts = stockouts.filter(stockout => stockout.totalStock > 0).reverse();
+
         const limit = 12;
-
-        // Calculate the start and end indices for pagination
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
+        const paginatedStockouts = filteredStockouts.slice(startIndex, endIndex);
 
-        // Paginate the reversed movies array
-        const paginatedstockouts = reversedstockouts.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            stockouts:paginatedstockouts, 
-            success: true ,
+        return res.status(200).json({
+            stockouts: paginatedStockouts,
+            success: true,
             pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(stockouts.length / limit),
-            totalstockouts: stockouts.length,
-        },});
+                currentPage: Number(page),
+                totalPages: Math.ceil(filteredStockouts.length / limit),
+                totalStockouts: filteredStockouts.length,
+            },
+        });
     } catch (error) {
         console.error('Error fetching stockouts:', error);
         res.status(500).json({ message: 'Failed to fetch stockouts', success: false });
     }
 };
+
 
 
 export const updateStockout = async (req, res) => {
@@ -135,15 +144,15 @@ export const updateStockout = async (req, res) => {
 
 export const searchStockouts = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { search } = req.query;
+        const { id: vendorId } = req.params;
+        const { search,centerId } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
         }
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
 
-        const stockouts = await Stockout.find({centerId: id});
+        const stockouts = await Stockout.find({vendorId,centerId});
 
         if (!stockouts) {
             return res.status(404).json({ message: 'No stockouts found', success: false });

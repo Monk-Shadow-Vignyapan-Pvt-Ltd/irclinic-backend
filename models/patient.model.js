@@ -9,6 +9,7 @@ const patientSchema = new mongoose.Schema({
     address: { type: String, required: false },
     patientType: { type: String, required: true },
     reference: { type: mongoose.Schema.Types.Mixed, required: false },
+    visitHistory: { type: mongoose.Schema.Types.Mixed, required: false },
     centerId:{
         type:mongoose.Schema.Types.ObjectId,
         required:false

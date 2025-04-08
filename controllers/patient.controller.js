@@ -35,10 +35,44 @@ export const addPatient = async (req, res) => {
 };
 
 // Get all patients
-export const getPatients = async (req, res) => {
+export const getOPDPatients = async (req, res) => {
     try {
         const { id } = req.params;
-        const patients = await Patient.find({ centerId: id });
+        const patients = await Patient.find({ centerId: id,patientType:"OPD" });
+        if (!patients) {
+            return res.status(404).json({ message: 'No patients found', success: false });
+        }
+        //const outsidePatients = patients.filter(patient => patient.patientType === "Outside")
+        const reversedpatients = patients.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedpatients = reversedpatients.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            patients:paginatedpatients, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(patients.length / limit),
+            totalpatients: patients.length,
+        },});
+    } catch (error) {
+        console.error('Error fetching patients:', error);
+        res.status(500).json({ message: 'Failed to fetch patients', success: false });
+    }
+};
+
+export const getOutSidePatients = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const patients = await Patient.find({ centerId: id,patientType:"Outside" });
         if (!patients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
@@ -121,7 +155,7 @@ export const getPatientById = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientName, gender, phoneNo, age, address, patientType, reference, centerId,state,city,caseId, userId } = req.body;
+        const { patientName, gender, phoneNo, age, address, patientType, reference,visitHistory, centerId,state,city,caseId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -132,6 +166,7 @@ export const updatePatient = async (req, res) => {
             ...(address && { address }),
             ...(patientType && { patientType }),
             ...(reference && { reference }),
+            ...(visitHistory && { visitHistory }),
             centerId: (centerId === "") ? null : centerId ,
             ...(state && { state }),
             ...(city && { city }),
@@ -184,7 +219,7 @@ export const dashboardPatients = async (req, res) => {
     }
 };
 
-export const searchPatients = async (req, res) => {
+export const searchOPDPatients = async (req, res) => {
     try {
         const { id } = req.params;
         const { search } = req.query;
@@ -196,9 +231,53 @@ export const searchPatients = async (req, res) => {
 
         const patients = await Patient.find({
             centerId: id,
+            patientType:"OPD",
             $or: [
                 { patientName: regex },
-                { patientType: regex },
+                { gender: regex },
+                { phoneNo: regex },
+                { age: regex },
+                { city: regex },
+                { state: regex },
+                { address: regex },
+                { reference: regex },
+            ]
+        });
+
+        if (!patients) {
+            return res.status(404).json({ message: 'No patients found', success: false });
+        }
+
+        return res.status(200).json({
+            patients: patients,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(patients.length / 12),
+                totalPatients: patients.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching patients:', error);
+        res.status(500).json({ message: 'Failed to search patients', success: false });
+    }
+};
+
+export const searchOutSidePatients = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const patients = await Patient.find({
+            centerId: id,
+            patientType:"Outside",
+            $or: [
+                { patientName: regex },
                 { gender: regex },
                 { phoneNo: regex },
                 { age: regex },

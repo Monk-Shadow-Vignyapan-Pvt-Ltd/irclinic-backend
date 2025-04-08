@@ -7,6 +7,8 @@ const centerSchema = new mongoose.Schema({
     accountPhoneNo: { type: String, required: true },
     centerEmail: { type: String, required: true },
     centerAddress: { type: String, required: true },
+    centerTiming: { type: String, required: false },
+    centerOpenOn: { type: String, required: false },
     stateCode: { type: String, required: true },
     cityCode: { type: String, required: true },
     centerCode:{

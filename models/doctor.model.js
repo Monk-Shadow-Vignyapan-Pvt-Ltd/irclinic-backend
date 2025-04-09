@@ -12,6 +12,7 @@ const doctorSchema = new mongoose.Schema({
     city: { type: String, required: false },
     speciality: { type: mongoose.Schema.Types.Mixed, required: false },
     isPartner: { type: Boolean, default: false },
+    superDoctor: { type: Boolean, default: false },
     centerId:{
         type:mongoose.Schema.Types.ObjectId,
         required:false

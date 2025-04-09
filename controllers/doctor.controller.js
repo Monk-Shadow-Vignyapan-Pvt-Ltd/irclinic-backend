@@ -3,7 +3,7 @@ import { Doctor } from '../models/doctor.model.js'; // Update the path as per yo
 // Add a new doctor
 export const addDoctor = async (req, res) => {
     try {
-        const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,centerId, userId } = req.body;
+        const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,superDoctor,centerId, userId } = req.body;
 
         // Validate required fields
         if (!firstName || !lastName || !gender || !phoneNo ) {
@@ -22,6 +22,7 @@ export const addDoctor = async (req, res) => {
             city,
             speciality,
             isPartner,
+            superDoctor,
             centerId:(centerId === '')  ? null:centerId,
             userId
         });
@@ -70,20 +71,29 @@ export const getDoctors = async (req, res) => {
 
 export const getAllDoctors = async (req, res) => {
     try {
-        const { id } = req.params; 
-        const doctors = await Doctor.find({ centerId: id });
-        if (!doctors ) {
+        const { id } = req.params;
+
+        const doctors = await Doctor.find({
+            $or: [
+                { centerId: id },
+                { superDoctor: true }
+            ]
+        });
+
+        if (!doctors || doctors.length === 0) {
             return res.status(404).json({ message: "No doctors found", success: false });
         }
+
         return res.status(200).json({ 
             doctors, 
-            success: true ,
-            });
+            success: true
+        });
     } catch (error) {
         console.error('Error fetching doctors:', error);
         res.status(500).json({ message: 'Failed to fetch doctors', success: false });
     }
 };
+
 
 // Get doctor by ID
 export const getDoctorById = async (req, res) => {
@@ -104,7 +114,7 @@ export const getDoctorById = async (req, res) => {
 export const updateDoctor = async (req, res) => {
     try {
         const { id } = req.params;
-        const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,centerId, userId } = req.body;
+        const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,superDoctor,centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -118,6 +128,7 @@ export const updateDoctor = async (req, res) => {
             ...(city && { city }),
             ...(speciality && { speciality }),
             ...(isPartner !== undefined && { isPartner }),
+            superDoctor,
             centerId: (centerId === "") ? null : centerId ,
             ...(userId && { userId })
         };

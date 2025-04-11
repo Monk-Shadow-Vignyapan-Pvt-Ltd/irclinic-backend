@@ -1,6 +1,6 @@
 import express, { urlencoded } from "express";
-import { createServer } from "http";  // Import HTTP server
-import { Server } from "socket.io";   // Import Socket.IO
+import { createServer } from "http"; // Import HTTP server
+import { Server } from "socket.io"; // Import Socket.IO
 import connectDB from "./db/connection.js";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
@@ -14,13 +14,13 @@ connectDB();
 
 const PORT = process.env.PORT || 8080;
 const app = express();
-const server = createServer(app);  // Create an HTTP server
+const server = createServer(app); // Create an HTTP server
 const io = new Server(server, {
   cors: {
     origin: [
       "https://irclinic-dashboard.netlify.app",
       "http://localhost:5173",
-      "http://localhost:5174"
+      "http://localhost:5174",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: [
@@ -29,7 +29,7 @@ const io = new Server(server, {
       "Content-Type",
       "Accept",
       "Authorization",
-      "x-auth-token"
+      "x-auth-token",
     ],
     credentials: true,
   },
@@ -45,28 +45,30 @@ io.on("connection", (socket) => {
 });
 
 // Middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(bodyParser.json({ limit: '50mb' }));  // Example for a 50MB limit
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(bodyParser.json({ limit: "50mb" })); // Example for a 50MB limit
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors({
-  origin: [
-    "https://irclinic-dashboard.netlify.app",
-    "http://localhost:5173",
-    "http://localhost:5174"
-  ],
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  allowedHeaders: [
-    "Origin",
-    "X-Requested-With",
-    "Content-Type",
-    "Accept",
-    "Authorization",
-    "x-auth-token"
-  ],
-  credentials: true, // Allow cookies and authentication headers
-}));
+app.use(
+  cors({
+    origin: [
+      "https://irclinic-dashboard.netlify.app",
+      "http://localhost:5173",
+      "http://localhost:5174",
+    ],
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    allowedHeaders: [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "Authorization",
+      "x-auth-token",
+    ],
+    credentials: true, // Allow cookies and authentication headers
+  })
+);
 
 // API Routes
 app.use("/api/v1/auth", routes.authRoute);
@@ -95,7 +97,12 @@ app.use("/api/v1/specialities", routes.specialityRoute);
 app.use("/api/v1/nonStockInventories", routes.nonStockInventoryRoute);
 app.use("/api/v1/firebaseTokens", routes.firebaseTokenRoute);
 app.use("/api/v1/videoQueues", routes.videoQueueRoute);
-app.use("/api/v1/prints",routes.printRoute)
+app.use("/api/v1/prints", routes.printRoute);
+app.use("/api/v1/services", routes.serviceRoute);
+app.use("/api/v1/subServices", routes.subServiceRoute);
+app.use("/api/v1/testimonials", routes.testimonialRoute);
+app.use("/api/v1/faqs", routes.faqRoute);
+
 
 // Start the server
 server.listen(PORT, () => {

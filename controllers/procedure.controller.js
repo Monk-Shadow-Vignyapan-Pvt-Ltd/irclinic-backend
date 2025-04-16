@@ -3,7 +3,7 @@ import { Procedure } from '../models/procedure.model.js'; // Update the path as 
 // Add a new procedure
 export const addProcedure = async (req, res) => {
     try {
-        const { procedureName, cost, notes, instructions,isProcedure, userId,centerId } = req.body;
+        const { procedureName, cost, notes, instructions,isProcedure,procedureUrl, userId,centerId } = req.body;
 
         // Validate required fields
         if (!procedureName || cost === undefined ) {
@@ -18,6 +18,7 @@ export const addProcedure = async (req, res) => {
             instructions,
             isProcedure,
             userId,
+            procedureUrl,
             centerId
         });
 
@@ -33,7 +34,9 @@ export const addProcedure = async (req, res) => {
 export const getProcedures = async (req, res) => {
     try {
         const { id } = req.params;
-        const procedures = await Procedure.find({ centerId: id });
+        const procedures = await Procedure.find({
+            'centerId.value': { $in: ['all', id] }
+          });
         if (!procedures ) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
@@ -66,7 +69,9 @@ export const getProcedures = async (req, res) => {
 export const getAllProcedures = async (req, res) => {
     try {
         const { id } = req.params;
-        const procedures = await Procedure.find({ centerId: id });
+        const procedures = await Procedure.find({
+            'centerId.value': { $in: ['all', id] }
+          });
         if (!procedures ) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
@@ -99,7 +104,7 @@ export const getProcedureById = async (req, res) => {
 export const updateProcedure = async (req, res) => {
     try {
         const { id } = req.params;
-        const { procedureName, cost, notes, instructions,isProcedure, userId,centerId } = req.body;
+        const { procedureName, cost, notes, instructions,isProcedure, userId,procedureUrl,centerId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -109,6 +114,7 @@ export const updateProcedure = async (req, res) => {
             ...(instructions && { instructions }),
             isProcedure ,
             ...(userId && { userId }),
+            procedureUrl,
             centerId
         };
 
@@ -141,9 +147,13 @@ export const deleteProcedure = async (req, res) => {
 export const dashboardProcedures = async (req, res) => {
     try {
         const { id } = req.params;
-        const totalProcedures = await Procedure.countDocuments({ centerId: id }); // Get total count
+        const totalProcedures = await Procedure.countDocuments({
+            'centerId.value': { $in: ['all', id] }
+          }); // Get total count
 
-        const lastFiveProcedures = await Procedure.find({ centerId: id }, { procedureName: 1, _id: 1 }) // Select only ProcedureName
+        const lastFiveProcedures = await Procedure.find({
+            'centerId.value': { $in: ['all', id] }
+          }, { procedureName: 1, _id: 1 }) // Select only ProcedureName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Procedures
 
@@ -169,7 +179,9 @@ export const searchProcedures = async (req, res) => {
         const searchNumber = !isNaN(search) ? Number(search) : null; 
 
         const procedures = await Procedure.find({
-            centerId: id,
+            
+                'centerId.value': { $in: ['all', id] }
+              ,
             $or: [
                 { procedureName: regex },
                 { notes: regex },

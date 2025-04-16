@@ -6,12 +6,13 @@ const procedureSchema = new mongoose.Schema({
     notes: { type: String, required: false },
     instructions: { type: mongoose.Schema.Types.Mixed, required: false },
     isProcedure: { type: Boolean, required: true, default:true },
+    procedureUrl: { type: String, required: false },
     userId:{
         type: mongoose.Schema.Types.ObjectId, 
           required:false
       },
       centerId:{
-        type: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.Mixed, 
           required:false
       },
 

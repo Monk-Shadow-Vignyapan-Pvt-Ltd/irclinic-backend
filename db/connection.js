@@ -3,12 +3,111 @@ import { initializeDefaultStatuses } from "../controllers/status.controller.js";
 import bcrypt from "bcryptjs"; // For hashing passwords
 import { User } from "../models/user.model.js"; // Adjust path as needed
 import {Center} from "../models/center.model.js";
-import fs from 'fs';
 // import archiver from 'archiver'; // Import archiver for zip compression
 
 // Example: Your Mongoose model for the collection you want to query
 // import { SubService } from "../models/sub_service.model.js";
 
+import fs from 'fs';
+import archiver from 'archiver';
+import { fileURLToPath } from 'url';
+import nodemailer from 'nodemailer';
+import path from 'path';
+import cron from 'node-cron';
+import { exec } from 'child_process';
+import { dirname } from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
+
+// MongoDB configurations
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const DB_URI = process.env.MONGO_URI;
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'clathiya403@gmail.com',
+    pass: 'mepf llze qmlf cauf',
+  },
+});
+
+export const backupMongoDB = () => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupDir = path.join(__dirname, '../../backups'); // Adjust path if necessary
+    const dumpDir = path.join(backupDir, `dump-${timestamp}`);
+    const zipPath = path.join(backupDir, `backup-${timestamp}.zip`);
+    const dumpCommand = `mongodump --uri="${DB_URI}" --out="${dumpDir}"`;
+  
+    exec(dumpCommand, (error, stdout, stderr) => {
+        if (error) {
+            console.error('❌ Dump Error:', error.message);
+        }
+        if (stderr) {
+           // console.error('❌ Dump STDERR:', stderr);
+        }
+        if (stdout) {
+            console.log('✅ Dump STDOUT:', stdout);
+        }
+  
+      console.log('✅ MongoDB dump successful.');
+  
+      // Create ZIP from dump folder
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+  
+      output.on('close', () => {
+        console.log(`✅ ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
+  
+        // Send email and cleanup
+        const mailOptions = {
+          from: 'clathiya403@gmail.com',
+          to: 'irclinic2018@gmail.com', // Change this to your actual email
+          subject: 'Daily Database Backup',
+          text: 'Attached is the daily MongoDB backup.',
+          attachments: [
+            {
+              filename: path.basename(zipPath),
+              path: zipPath,
+            },
+          ],
+        };
+  
+        transporter.sendMail(mailOptions, (emailErr, info) => {
+          if (emailErr) {
+            console.error('❌ Email Error:', emailErr);
+          } else {
+            console.log('📧 Backup email sent:', info.response);
+          }
+  
+          // Cleanup ZIP & dump folder regardless of email success
+          try {
+            if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+            if (fs.existsSync(dumpDir)) fs.rmSync(dumpDir, { recursive: true, force: true });
+            console.log('🧹 Cleaned up ZIP and dump folder.');
+          } catch (cleanupErr) {
+            console.error('❌ Cleanup error:', cleanupErr);
+          }
+        });
+      });
+  
+      archive.on('error', err => {
+        console.error('❌ Archiving error:', err);
+      });
+  
+      archive.pipe(output);
+      archive.directory(dumpDir, false);
+      archive.finalize();
+    });
+  };
+  
+
+// Cron job to schedule backup every 7 days
+cron.schedule('0 0 * * *', () => {
+    backupMongoDB(); // Trigger backup every day at midnight
+  });
+//backupMongoDB();
 const connectDB = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);

@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import bodyParser from "body-parser";
 import routes from "./routes/index.js";
+import { startWhatsAppReminderCron } from './controllers/appointment.controller.js';
 
 dotenv.config();
 // connect db
@@ -102,7 +103,7 @@ app.use("/api/v1/services", routes.serviceRoute);
 app.use("/api/v1/subServices", routes.subServiceRoute);
 app.use("/api/v1/testimonials", routes.testimonialRoute);
 app.use("/api/v1/faqs", routes.faqRoute);
-
+startWhatsAppReminderCron();
 
 // Start the server
 server.listen(PORT, () => {

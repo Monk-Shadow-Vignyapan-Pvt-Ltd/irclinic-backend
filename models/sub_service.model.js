@@ -17,11 +17,11 @@ const subServiceSchema = new mongoose.Schema({
     },
     howWorks: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
-        required: true
+        required: false
     },
     howWorksName:{
         type: String, 
-        required: true,
+        required: false,
     },
     others: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)

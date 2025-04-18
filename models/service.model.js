@@ -21,19 +21,19 @@ const serviceSchema = new mongoose.Schema({
     },
     whyChoose: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
-        required: true
+        required: false
     },
     whyChooseName:{
         type: String, 
-        required: true,
+        required: false,
     },
     howWorks: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
-        required: true
+        required: false
     },
     howWorksName:{
         type: String, 
-        required: true,
+        required: false,
     },
     others: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
@@ -44,6 +44,10 @@ const serviceSchema = new mongoose.Schema({
         required: false
     },
     procedureId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        required:true
+     },
+    categoryId: { 
         type: mongoose.Schema.Types.ObjectId, 
         required:true
      },

@@ -29,12 +29,14 @@ import serviceRoute from "./service.route.js";
 import subServiceRoute from "./sub_service.route.js";
 import faqRoute from "./faq.route.js";
 import testimonialRoute from "./testimonial.route.js";
+import categoryRoute from "./category.route.js";
 
 
 const routes = {
   doctorRoute,
   faqRoute,
   testimonialRoute,
+  categoryRoute,
   authRoute,
   serviceRoute,
   subServiceRoute,

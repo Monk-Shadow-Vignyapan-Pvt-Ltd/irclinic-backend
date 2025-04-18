@@ -103,6 +103,8 @@ app.use("/api/v1/services", routes.serviceRoute);
 app.use("/api/v1/subServices", routes.subServiceRoute);
 app.use("/api/v1/testimonials", routes.testimonialRoute);
 app.use("/api/v1/faqs", routes.faqRoute);
+app.use("/api/v1/categories", routes.categoryRoute);
+
 startWhatsAppReminderCron();
 
 // Start the server

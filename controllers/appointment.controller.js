@@ -444,7 +444,8 @@ const sendAppointmentConfirmation = async (appointment, patient, doctor, center)
     if (appointment.reason && Array.isArray(appointment.reason)) {
         enrichedProcedures = await Promise.all(
             appointment.reason.map(async (rea) => {
-                if (rea.value) {
+                const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+                if (rea.value && isValidObjectId(rea.value)) {
                     const procedure = await Procedure.findById(rea.value);
                     if (procedure && procedure.isProcedure) {
                         return {
@@ -485,7 +486,7 @@ const sendAppointmentConfirmation = async (appointment, patient, doctor, center)
           `${doctor.firstName} ${doctor.lastName}`,
           center.centerAddress || "IR Clinic",
           center.adminPhoneNo || "0000000000",
-          procedureSection.trim() || ""
+          procedureSection.trim() || "https://irclinicindia.com/"
         ],
         source: "new-landing-page form",
         paramsFallbackValue: {
@@ -505,7 +506,7 @@ const sendAppointmentConfirmation = async (appointment, patient, doctor, center)
 const sendWhatsApp = async (payload) => {
     try {
       const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
-      console.log("AISensy Response:", data);
+      //console.log("AISensy Response:", data);
     } catch (err) {
       console.error("AISensy Error:", err.response?.data || err.message);
     }
@@ -536,7 +537,8 @@ const sendWhatsApp = async (payload) => {
     if (appt.reason && Array.isArray(appt.reason)) {
         enrichedProcedures = await Promise.all(
             appt.reason.map(async (rea) => {
-                if (rea.value) {
+                const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+                if (rea.value && isValidObjectId(rea.value)) {
                     const procedure = await Procedure.findById(rea.value);
                     if (procedure && procedure.isProcedure) {
                         return {
@@ -571,7 +573,7 @@ const sendWhatsApp = async (payload) => {
         userName: "IR Clinic",
         templateParams: [
           patient.patientName,
-          procedureSection.trim() || ""
+          procedureSection.trim() || "https://irclinicindia.com/"
         ],
         source: "new-landing-page form",
         paramsFallbackValue: {
@@ -599,14 +601,14 @@ const sendWhatsApp = async (payload) => {
       if (!patient || !doctor || !center) continue;
   
       const apptDate = moment(appt.start).format("DD/MM/YYYY");
-      const apptTime = moment(appt.start).format("hh:mm A");
       let procedureSection = '';
       let enrichedProcedures = [];
 
     if (appt.reason && Array.isArray(appt.reason)) {
         enrichedProcedures = await Promise.all(
             appt.reason.map(async (rea) => {
-                if (rea.value) {
+                const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+                if (rea.value && isValidObjectId(rea.value)) {
                     const procedure = await Procedure.findById(rea.value);
                     if (procedure && procedure.isProcedure) {
                         return {
@@ -636,16 +638,15 @@ const sendWhatsApp = async (payload) => {
   
       const payload = {
         apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Follow Up Appointments",
+        campaignName: "Follow Up Appointments1",
         destination: `+91${patient.phoneNo}`,
         userName: "IR Clinic",
         templateParams: [
           patient.patientName,
           apptDate,
-          apptTime,
           `${doctor.firstName} ${doctor.lastName}`,
           center.centerAddress || "IR Clinic",
-          procedureSection.trim() || ""
+          procedureSection.trim() || "https://irclinicindia.com/"
         ],
         source: "new-landing-page form",
         paramsFallbackValue: {
@@ -655,79 +656,97 @@ const sendWhatsApp = async (payload) => {
       await sendWhatsApp(payload);
     }
   
-    // === 3. Procedure Bookings Reminder (for tomorrow)
-    // const procedures = await Procedure.find({
-    //   date: {
-    //     $gte: tomorrow.toDate(),
-    //     $lt: moment(tomorrow).endOf("day").toDate()
-    //   }
-    // });
-  
-    // for (const proc of procedures) {
-    //   const [patient, doctor, center] = await Promise.all([
-    //     Patient.findById(proc.patientId),
-    //     Doctor.findById(proc.doctorId),
-    //     Center.findById(proc.centerId),
-    //   ]);
-    //   if (!patient || !doctor || !center) continue;
+   // === 3. Procedure Bookings Reminder (for tomorrow)
+   const tomorrowStart = moment().add(1, 'day').startOf('day').toDate();
+   const tomorrowEnd = moment().add(1, 'day').endOf('day').toDate();
+ 
+  // Find appointments with procedurePlan where dateTime as a string is within tomorrow's range
+  const procedureAppointments = await Appointment.find({
+    "procedurePlan": {
+      $elemMatch: {
+        dateTime: {
+          $gte: tomorrowStart.toISOString(),  // Convert to ISO string for comparison
+          $lt: tomorrowEnd.toISOString()     // Convert to ISO string for comparison
+        }
+      }
+    }
+  });
 
-    //   let procedureSection = '';
-    //   let enrichedProcedures = [];
+for (const appt of procedureAppointments) {
+  const [patient, doctor, center] = await Promise.all([
+    Patient.findById(appt.patientId),
+    Doctor.findById(appt.doctorId),
+    Center.findById(appt.centerId),
+  ]);
+  if (!patient || !doctor || !center) continue;
+
+  // 🔹 Get the first procedurePlan entry that matches tomorrow
+  const matchingProcedure = appt.procedurePlan.find(p => {
+    const dt = new Date(p.dateTime);
+    return dt >= tomorrowStart && dt < tomorrowEnd;
+  });
+  if (!matchingProcedure) continue;
+
+  const procedureDate = moment(matchingProcedure.dateTime).format("DD/MM/YYYY");
+  const procedureTime = moment(matchingProcedure.dateTime).format("hh:mm A");
+  const procedureName = matchingProcedure.procedureName || "Procedure";
+
+  let procedureSection = '';
+  let enrichedProcedures = [];
+
+  if (appt.procedurePlan && Array.isArray(appt.procedurePlan)) {
+    enrichedProcedures = await Promise.all(
+      appt.procedurePlan.map(async (plan) => {
+        const isValidObjectId = mongoose.Types.ObjectId.isValid(plan.value);
+        if (plan.value && isValidObjectId) {
+          const procedure = await Procedure.findById(plan.value);
+          if (procedure && procedure.isProcedure) {
+            return {
+              name: procedure.procedureName || procedure.name || "Procedure",
+              link: procedure.procedureUrl || ""
+            };
+          }
+        }
+        return null;
+      })
+    );
+    enrichedProcedures = enrichedProcedures.filter(p => p);
+  }
   
-    //   if (appt.reason && Array.isArray(appt.reason)) {
-    //       enrichedProcedures = await Promise.all(
-    //           appt.reason.map(async (rea) => {
-    //               if (rea.value) {
-    //                   const procedure = await Procedure.findById(rea.value);
-    //                   if (procedure && procedure.isProcedure) {
-    //                       return {
-    //                           name: procedure.procedureName || procedure.name || "Procedure",
-    //                           link: procedure.procedureUrl || ""
-    //                       };
-    //                   }
-    //               }
-    //               return null;
-    //           })
-    //       );
-    //       enrichedProcedures = enrichedProcedures.filter(p => p);
-  
-    //   }
-  
-    //   if (enrichedProcedures.length > 0) {
-    //       const procedureLines = enrichedProcedures.map(proc => {
-    //         if (proc.link) {
-    //           return `🔹 *${proc.name}*: ${proc.link}`;
-    //         }
-    //         return '';
-    //       });
-        
-    //       // Join with commas instead of newlines
-    //       procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
-    //     }
-  
-    //   const procDate = moment(proc.date).format("DD/MM/YYYY");
-    //   const procTime = moment(proc.date).format("hh:mm A");
-  
-    //   const payload = {
-    //     apiKey: process.env.AISENSY_API_KEY,
-    //     campaignName: "Follow Up Appointments",
-    //     subCampaignName: proc._id.toString(),
-    //     destination: `+91${patient.phoneNo}`,
-    //     userName: "IR Clinic",
-    //     templateParams: [
-    //       patient.patientName,
-    //       procDate,
-    //       procTime,
-    //       proc.name || "Procedure",
-    //       `${doctor.firstName} ${doctor.lastName}`,
-    //       center.centerAddress || "IR Clinic",
-    //       proc.procedureUrl || "https://interventionalradiology.co.in"
-    //     ],
-    //     source: "cron-procedure",
-    //     paramsFallbackValue: { FirstName: "user" }
-    //   };
-    //   await sendWhatsApp(payload);
-    // }
+
+  if (enrichedProcedures.length > 0) {
+    const procedureLines = enrichedProcedures.map(proc => {
+      if (proc.link) {
+        return `🔹 *${proc.name}*: ${proc.link}`;
+      }
+      return '';
+    });
+
+    procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+  }
+
+  const payload = {
+    apiKey: process.env.AISENSY_API_KEY,
+    campaignName: "Procedure Plan Appointments2",
+    destination: `+91${patient.phoneNo}`,
+    userName: "IR Clinic",
+    templateParams: [
+      patient.patientName,
+      procedureDate,
+      procedureTime,
+      procedureName,
+      `${doctor.firstName} ${doctor.lastName}`,
+      center.centerAddress || "IR Clinic",
+      procedureSection.trim() || "https://irclinicindia.com/"
+    ],
+    source: "new-landing-page form",
+    paramsFallbackValue: {
+      FirstName: "user"
+    }
+  };
+
+  await sendWhatsApp(payload);
+}
   
     console.log("✅ WhatsApp Cron Completed");
   });

@@ -420,23 +420,21 @@ export const dashboardAppointments = async (req, res) => {
 };
 
 const sendAppointmentConfirmation = async (appointment, patient, doctor, center) => {
-    const now = new Date();
-    const appointmentDate = new Date(appointment.start);
+    const now = moment();  // Get current time in the local timezone
+    const appointmentDate = moment(appointment.start);
 
-    if (appointmentDate <= now) {
+    if (appointmentDate.isBefore(now)) {
         console.log("Appointment is not in the future. WhatsApp message skipped.");
         return;
     }
+    
 
     // Format date: DD/MM/YYYY
-    const formattedDate = `${appointmentDate.getDate().toString().padStart(2, '0')}/${(appointmentDate.getMonth() + 1).toString().padStart(2, '0')}/${appointmentDate.getFullYear()}`;
+    const formattedDate = appointmentDate.format('DD/MM/YYYY');
 
     // Format time: hh:mm AM/PM
-    const formattedTime = appointmentDate.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+    const formattedTime = appointmentDate.format('hh:mm A');
+
 
     let procedureSection = '';
     let enrichedProcedures = [];

@@ -3,7 +3,7 @@ import { Doctor } from '../models/doctor.model.js'; // Update the path as per yo
 // Add a new doctor
 export const addDoctor = async (req, res) => {
     try {
-        const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,superDoctor,centerId, userId } = req.body;
+        const { firstName, lastName, gender, phoneNo,alterphoneNo, email, company, state, city, speciality, isPartner,superDoctor,centerId, userId } = req.body;
 
         // Validate required fields
         if (!firstName || !lastName || !gender || !phoneNo ) {
@@ -16,6 +16,7 @@ export const addDoctor = async (req, res) => {
             lastName,
             gender,
             phoneNo,
+            alterphoneNo,
             email,
             company,
             state,
@@ -114,7 +115,7 @@ export const getDoctorById = async (req, res) => {
 export const updateDoctor = async (req, res) => {
     try {
         const { id } = req.params;
-        const { firstName, lastName, gender, phoneNo, email, company, state, city, speciality, isPartner,superDoctor,centerId, userId } = req.body;
+        const { firstName, lastName, gender, phoneNo,alterphoneNo, email, company, state, city, speciality, isPartner,superDoctor,centerId, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -122,6 +123,7 @@ export const updateDoctor = async (req, res) => {
             ...(lastName && { lastName }),
             ...(gender && { gender }),
             ...(phoneNo && { phoneNo }),
+            ...(alterphoneNo && { alterphoneNo }),
             ...(email && { email }),
             ...(company && { company }),
             ...(state && { state }),

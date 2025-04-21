@@ -6,6 +6,7 @@ const doctorSchema = new mongoose.Schema({
     lastName: { type: String, required: true },
     gender: { type: String, enum: ['Male', 'Female', 'Others'], required: true },
     phoneNo: { type: String, required: true },
+    alterphoneNo: { type: String, required: false,},
     email: { type: String, required: false },
     company: { type: String, required: false },
     state: { type: String, required: false },

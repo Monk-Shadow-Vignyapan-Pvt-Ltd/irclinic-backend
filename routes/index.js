@@ -30,12 +30,15 @@ import subServiceRoute from "./sub_service.route.js";
 import faqRoute from "./faq.route.js";
 import testimonialRoute from "./testimonial.route.js";
 import categoryRoute from "./category.route.js";
+import diseaseRoute from "./disease.route.js";
+import blogRoute from "./blog.route.js";
 
 
 const routes = {
   doctorRoute,
   faqRoute,
   testimonialRoute,
+  diseaseRoute,
   categoryRoute,
   authRoute,
   serviceRoute,
@@ -65,6 +68,7 @@ const routes = {
   firebaseTokenRoute,
   videoQueueRoute,
   printRoute,
+  blogRoute,
 };
 
 export default routes;

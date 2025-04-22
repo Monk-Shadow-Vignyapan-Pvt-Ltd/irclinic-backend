@@ -82,7 +82,8 @@ export const addAppointment = async (req, res) => {
                 type: "Appointment",
                 date: new Date(),
                 appointmentId: appointment._id,
-                isView:false
+                isView:false,
+                link:"/appointment"
             };
     
             const sevenDaysAgo = new Date();
@@ -136,7 +137,7 @@ export const addAppointment = async (req, res) => {
                         body: notificationMessage.body
                     },
                     data: { // ✅ Add URL inside "data"
-                        url: "https://console.interventionalradiology.co.in/appointment"
+                        url: "https://console.interventionalradiology.co.in"
                     },
                     tokens: tokens, // Use tokens array for multicast
                 };
@@ -312,7 +313,8 @@ export const updateAppointment = async (req, res) => {
             type: "Appointment",
             date: new Date(),
             appointmentId: appointment._id,
-            isView:false
+            isView:false,
+            link:"/appointment"
         };
 
         const sevenDaysAgo = new Date();
@@ -365,7 +367,7 @@ export const updateAppointment = async (req, res) => {
                     body: notificationMessage.body
                 },
                 data: { // ✅ Add URL inside "data"
-                    url: "https://console.interventionalradiology.co.in/appointment"
+                    url: "https://console.interventionalradiology.co.in"
                 },
                 tokens: tokens, // Use tokens array for multicast
             };

@@ -70,7 +70,8 @@ export const addQuicknote = async (req, res) => {
                             type: "Quick Appointment",
                             date: new Date(),
                             appointmentId: quicknote._id,
-                            isView:false
+                            isView:false,
+                            link:"/appointment"
                         };
 
                         const sevenDaysAgo = new Date();
@@ -124,7 +125,7 @@ export const addQuicknote = async (req, res) => {
                                     body: notificationMessage.body
                                 },
                                 data: { // ✅ Add URL inside "data"
-                                    url: "https://console.interventionalradiology.co.in/appointment"
+                                    url: "https://console.interventionalradiology.co.in"
                                 },
                                 tokens: tokens, // Use tokens array for multicast
                             };

@@ -100,7 +100,8 @@ export const addActivity = async (req, res) => {
             type: "Activity",
             date: new Date(),
             activityId: activity._id,
-            isView:false
+            isView:false,
+            link:"/activity"
         };
 
         const sevenDaysAgo = new Date();
@@ -157,7 +158,7 @@ export const addActivity = async (req, res) => {
                     body: notificationMessage.body
                 },
                 data: { // ✅ Add URL inside "data"
-                    url: "https://console.interventionalradiology.co.in/activity"
+                    url: "https://console.interventionalradiology.co.in"
                 },
                 tokens: tokens, // Use tokens array for multicast
             };

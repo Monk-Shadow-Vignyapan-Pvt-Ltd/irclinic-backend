@@ -7,7 +7,7 @@ import sharp from 'sharp';
 // Add a new service
 export const addService = async (req, res) => {
     try {
-        let { serviceName, serviceDescription, serviceImage,serviceType, whyChoose,whyChooseName, howWorks,howWorksName,beforeAfterGallary = [], others, procedureId,categoryId, serviceEnabled,serviceUrl,seoTitle,seoDescription, userId} = req.body;
+        let { serviceName, serviceDescription, serviceImage,serviceType, whyChoose,whyChooseName, howWorks,howWorksName,beforeAfterGallary = [], others, procedureId,categoryId, diseaseId, serviceEnabled,serviceUrl,seoTitle,seoDescription, userId} = req.body;
         
         // Validate base64 image data
         if (!serviceImage || !serviceImage.startsWith('data:image') ) {
@@ -96,6 +96,7 @@ export const addService = async (req, res) => {
             others,
             procedureId,
             categoryId,
+            diseaseId,
             serviceEnabled,
             serviceUrl,
             seoTitle,seoDescription,
@@ -124,7 +125,7 @@ export const addService = async (req, res) => {
 
 export const getServices = async (req, res) => {
     try {
-        const services = await Service.find().select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId serviceType serviceEnabled').populate('procedureId');
+        const services = await Service.find().select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled').populate('procedureId');
         if (!services) {
             return res.status(404).json({ message: 'No services found', success: false });
         }
@@ -156,7 +157,7 @@ export const getEnabledServices = async (req, res) => {
     try {
         // Fetch only enabled services
         const services = await Service.find({ serviceEnabled: true })
-            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId serviceType serviceEnabled')
+            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
             .populate('procedureId');
 
         if (!services.length) {
@@ -261,7 +262,7 @@ export const getServicesByCategory = async (req, res) => {
     try {
         const { id } = req.params; // Extract the service ID from the request parameters
         const services = await Service.find({ procedureId: id })
-        .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId serviceType serviceEnabled'); // Correctly query by serviceId
+        .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled'); // Correctly query by serviceId
         if (!services) {
             return res.status(404).json({ message: "services not found!", success: false });
         }
@@ -276,7 +277,7 @@ export const getServicesByCategory = async (req, res) => {
 export const updateService = async (req, res) => {
     try {
         const { id } = req.params;
-        let { serviceName, serviceDescription, serviceImage,serviceType, whyChoose,whyChooseName, howWorks,howWorksName,beforeAfterGallary = [], others, procedureId, categoryId, serviceEnabled,serviceUrl,seoTitle,seoDescription,userId } = req.body;
+        let { serviceName, serviceDescription, serviceImage,serviceType, whyChoose,whyChooseName, howWorks,howWorksName,beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled,serviceUrl,seoTitle,seoDescription,userId } = req.body;
          
         const existingService = await Service.findById(id);
         if (!existingService) {
@@ -374,6 +375,7 @@ export const updateService = async (req, res) => {
             others,
             procedureId,
             categoryId,
+            diseaseId,
             serviceEnabled,
             serviceUrl,seoTitle,seoDescription,
             userId,
@@ -410,6 +412,7 @@ export const onOffService = async (req, res) => {
             others:existingService.others,
             procedureId:existingService.procedureId,
             categoryId:existingService.categoryId,
+            diseaseId:existingService.diseaseId,
             serviceEnabled:serviceEnabled,
             serviceUrl:existingService.serviceUrl,
             seoTitle:existingService.seoTitle,
@@ -444,7 +447,7 @@ export const deleteService = async (req, res) => {
 export const getServicesFrontend = async (req, res) => {
     try {
         const services = await Service.find()
-        .select('serviceName serviceUrl procedureId categoryId serviceType serviceEnabled')
+        .select('serviceName serviceUrl procedureId categoryId diseaseId serviceType serviceEnabled')
         .populate('procedureId'); // Populating category data
         if (!services) return res.status(404).json({ message: "Services not found", success: false });
         return res.status(200).json({ services });

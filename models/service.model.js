@@ -51,6 +51,10 @@ const serviceSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, 
         required:true
      },
+    diseaseId: { 
+        type: mongoose.Schema.Types.Mixed, 
+        required:true
+     },
      serviceEnabled:{
         type:Boolean,
         required:true

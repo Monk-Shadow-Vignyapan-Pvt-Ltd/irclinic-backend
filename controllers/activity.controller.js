@@ -1,5 +1,21 @@
 import { Activity } from '../models/activity.model.js'; // Update the path as per your project structure
 import moment from 'moment';
+import dotenv from "dotenv";
+import { FirebaseToken } from '../models/firebaseToken.model.js';
+import { User } from '../models/user.model.js';
+import mongoose from "mongoose";
+import { io } from "../index.js";
+import admin from "firebase-admin";
+
+dotenv.config();
+
+const firebaseConfig = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS, "base64").toString("utf8"));
+
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(firebaseConfig),
+    });
+}
 
 // Add a new activity
 export const addActivity = async (req, res) => {
@@ -57,6 +73,107 @@ export const addActivity = async (req, res) => {
         });
 
         await activity.save();
+        const firebasetokens = await FirebaseToken.find();
+        const users = await User.find( {role: { $ne: 'Vendor' },centerId: new mongoose.Types.ObjectId(centerId),});
+        const assignedIds = assignedTo.map(u => u.value); 
+        const filteredUsers = assignedIds.includes("all")
+            ? users
+            : users.filter(user => assignedIds.includes(user._id.toString()));
+
+        const filterTokens = firebasetokens.filter(token =>
+            filteredUsers.some(user => user._id.toString() === token.userId.toString())
+        );
+
+        const tokens = [
+            ...new Set(
+              filterTokens
+                .filter(token => token.centerId.toString() === centerId.toString())
+                .flatMap(user => [user.webToken, user.mobileToken])  // Include both tokens
+                .filter(token => token)  // Remove undefined or null values
+            )
+          ];
+
+
+        const notificationMessage = {
+            title: `New Activity Created For You`,
+            body: `An activity with ${activityTitle} is scheduled on ${new Date(startDate).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}.`,
+            type: "Activity",
+            date: new Date(),
+            activityId: activity._id,
+            isView:false
+        };
+
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        
+
+        // Store notifications in each matched user
+        await User.updateMany(
+            {
+              _id: { $in: filteredUsers.map(user => user._id) },
+              $or: [
+                { centerId: new mongoose.Types.ObjectId(centerId) },
+                { centerId: centerId.toString() }
+              ]
+            },
+            [
+              {
+                $set: {
+                  notifications: {
+                    $filter: {
+                      input: { $ifNull: ["$notifications", []] }, // ensures it's always an array
+                      as: "notif",
+                      cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] }
+                    }
+                  }
+                }
+              }
+            ]
+          );
+          
+        
+                                await User.updateMany(
+                                    { 
+                                        _id: { $in: filteredUsers.map(user => user._id) },
+                                        $or: [
+                                            { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                            { centerId: centerId.toString() } // Match string version
+                                        ]
+                                    },
+                                    { 
+                                        $push: { notifications: notificationMessage },
+                                    }
+                                );
+
+                                io.emit("notification",  { success: true }  );
+
+        // Send Firebase Notification
+        if (tokens.length > 0) {
+            const message = {
+                notification: {
+                    title: notificationMessage.title,
+                    body: notificationMessage.body
+                },
+                data: { // ✅ Add URL inside "data"
+                    url: "https://console.interventionalradiology.co.in/activity"
+                },
+                tokens: tokens, // Use tokens array for multicast
+            };
+
+            admin.messaging().sendEachForMulticast(message)
+                .then(response => {
+                    response.responses.forEach((resp, index) => {
+                        if (!resp.success) {
+                            console.error(`Error sending to token ${tokens[index]}:`, resp.error);
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error("Firebase Messaging Error:", error);
+                });
+        }
         res.status(201).json({ activity, success: true });
     } catch (error) {
         console.error('Error adding activity:', error);

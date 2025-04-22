@@ -182,9 +182,15 @@ export const getAppointments = async (req, res) => {
             centerId: id,
             start: { $gte: new Date(start) },
             end: { $lte: new Date(end) },
-        });
+        }).populate('patientId', 'patientName');
 
-        res.status(200).json({ appointments, success: true });
+        const mappedAppointments = appointments.map(app => ({
+            ...app._doc,
+            title: app.patientId?.patientName || 'Unnamed Patient',
+            patientId:app.patientId?._id
+        }));
+
+        res.status(200).json({ appointments:mappedAppointments, success: true });
     } catch (error) {
         console.error("Error fetching appointments:", error);
         res.status(500).json({ message: "Failed to fetch appointments", success: false });

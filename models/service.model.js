@@ -44,7 +44,7 @@ const serviceSchema = new mongoose.Schema({
         required: false
     },
     procedureId: { 
-        type: mongoose.Schema.Types.ObjectId, 
+        type: mongoose.Schema.Types.Mixed, 
         required:true
      },
     categoryId: { 

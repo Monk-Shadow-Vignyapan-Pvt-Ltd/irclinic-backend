@@ -171,20 +171,6 @@ export const getTestimonialsHome = async (req, res) => {
                 }
             },
             {
-                $lookup: {
-                    from: 'subservices', // Name of the subServices collection
-                    localField: 'selectedServiceId', // Match serviceId with the subServices collection
-                    foreignField: '_id', // Assuming subServices collection has serviceId field
-                    as: 'subServiceDetails'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$subServiceDetails', // Unwind the subServiceDetails array to get details
-                    preserveNullAndEmptyArrays: true // Keep testimonials even if no matching subService is found
-                }
-            },
-            {
                 $project: {
                     // Retain all existing fields from the Testimonial
                     _id: 1,

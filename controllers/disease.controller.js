@@ -89,7 +89,7 @@ export const getDiseasesFrontend = async (req, res) => {
           diseaseName: 1,
           diseaseDescription: 1,
           parentID: 1,
-          imageBase64: 1,
+          diseaseImage: 1,
           diseaseURL: 1,
           seoTitle: 1,
           seoDescription: 1,

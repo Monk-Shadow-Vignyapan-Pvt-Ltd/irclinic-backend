@@ -33,12 +33,15 @@ import categoryRoute from "./category.route.js";
 import diseaseRoute from "./disease.route.js";
 import blogRoute from "./blog.route.js";
 import tagRoute from "./tag.route.js";
+import contactRoute from "./contact.route.js";
+import gallaryRoute from "./gallary.route.js";
 
 
 const routes = {
   doctorRoute,
   tagRoute,
   faqRoute,
+  gallaryRoute,
   testimonialRoute,
   diseaseRoute,
   categoryRoute,
@@ -71,6 +74,7 @@ const routes = {
   videoQueueRoute,
   printRoute,
   blogRoute,
+  contactRoute
 };
 
 export default routes;

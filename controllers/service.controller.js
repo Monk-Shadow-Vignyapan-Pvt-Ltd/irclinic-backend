@@ -447,7 +447,7 @@ export const deleteService = async (req, res) => {
 export const getServicesFrontend = async (req, res) => {
     try {
         const services = await Service.find()
-        .select('serviceName serviceUrl procedureId categoryId diseaseId serviceType serviceEnabled')
+        .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
         .populate('procedureId'); // Populating category data
         if (!services) return res.status(404).json({ message: "Services not found", success: false });
         return res.status(200).json({ services });

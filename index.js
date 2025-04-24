@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import bodyParser from "body-parser";
 import routes from "./routes/index.js";
-import { startWhatsAppReminderCron } from './controllers/appointment.controller.js';
+import { startWhatsAppReminderCron } from "./controllers/appointment.controller.js";
 
 dotenv.config();
 // connect db
@@ -41,7 +41,7 @@ io.on("connection", (socket) => {
   //console.log("New client connected");
 
   socket.on("disconnect", () => {
-  //  console.log("Client disconnected");
+    //  console.log("Client disconnected");
   });
 });
 
@@ -57,7 +57,7 @@ app.use(
       "https://irclinic-dashboard.netlify.app",
       "http://localhost:5173",
       "http://localhost:5174",
-      "http://localhost:3000"
+      "http://localhost:3000",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: [
@@ -76,6 +76,8 @@ app.use(
 app.use("/api/v1/auth", routes.authRoute);
 app.use("/api/v1/blogs", routes.blogRoute);
 app.use("/api/v1/tags", routes.tagRoute);
+app.use("/api/v1/contacts", routes.contactRoute);
+app.use("/api/v1/galleries", routes.gallaryRoute);
 app.use("/api/v1/doctors", routes.doctorRoute);
 app.use("/api/v1/hospitals", routes.hospitalRoute);
 app.use("/api/v1/vendors", routes.vendorRoute);

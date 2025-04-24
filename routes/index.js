@@ -32,10 +32,12 @@ import testimonialRoute from "./testimonial.route.js";
 import categoryRoute from "./category.route.js";
 import diseaseRoute from "./disease.route.js";
 import blogRoute from "./blog.route.js";
+import tagRoute from "./tag.route.js";
 
 
 const routes = {
   doctorRoute,
+  tagRoute,
   faqRoute,
   testimonialRoute,
   diseaseRoute,

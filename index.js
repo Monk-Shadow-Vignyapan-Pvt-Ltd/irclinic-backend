@@ -73,6 +73,8 @@ app.use(
 
 // API Routes
 app.use("/api/v1/auth", routes.authRoute);
+app.use("/api/v1/blogs", routes.blogRoute);
+app.use("/api/v1/tags", routes.tagRoute);
 app.use("/api/v1/doctors", routes.doctorRoute);
 app.use("/api/v1/hospitals", routes.hospitalRoute);
 app.use("/api/v1/vendors", routes.vendorRoute);

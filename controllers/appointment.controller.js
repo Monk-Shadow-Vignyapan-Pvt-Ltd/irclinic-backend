@@ -217,11 +217,13 @@ export const getAppointmentsByPatientId = async (req, res) => {
                 if (appointment.invoiceId) {
                     const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
                     const invoicePlan = invoice.invoicePlan;
-                    return { ...appointment.toObject(), invoicePlan }; // Convert Mongoose document to plain object
+                    const invoiceDate = invoice.createdAt;
+                    return { ...appointment.toObject(), invoicePlan,invoiceDate }; // Convert Mongoose document to plain object
                 } else if (appointment.estimateId) {
                     const estimate = await Estimate.findOne({ _id: appointment.estimateId });
                     const estimatePlan = estimate.estimatePlan;
-                    return { ...appointment.toObject(), estimatePlan }; // Convert Mongoose document to plain object
+                    const estimateDate = estimate.createdAt;
+                    return { ...appointment.toObject(), estimatePlan,estimateDate }; // Convert Mongoose document to plain object
                 }
                 return appointment.toObject(); // If no invoiceId, return appointment as-is
             })

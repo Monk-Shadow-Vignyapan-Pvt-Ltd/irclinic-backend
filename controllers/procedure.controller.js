@@ -66,6 +66,21 @@ export const getProcedures = async (req, res) => {
     }
 };
 
+export const getProceduresFrontend = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const procedures = await Procedure.find({
+            'centerId.value': { $in: [ id] }
+          }).select('procedureName, cost, notes, instructions, isProcedure, procedureUrl, userId, centerId')
+        .populate('procedureId'); // Populating category data
+        if (!procedures) return res.status(404).json({ message: "Procedures not found", success: false });
+        return res.status(200).json({ procedures });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch procedures', success: false });
+    }
+};
+
 export const getAllProcedures = async (req, res) => {
     try {
         const { id } = req.params;

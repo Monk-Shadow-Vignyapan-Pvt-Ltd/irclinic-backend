@@ -35,9 +35,11 @@ import blogRoute from "./blog.route.js";
 import tagRoute from "./tag.route.js";
 import contactRoute from "./contact.route.js";
 import gallaryRoute from "./gallary.route.js";
+import adminDoctorRoute from "./admin_doctor.route.js";
 
 
 const routes = {
+  adminDoctorRoute,
   doctorRoute,
   tagRoute,
   faqRoute,

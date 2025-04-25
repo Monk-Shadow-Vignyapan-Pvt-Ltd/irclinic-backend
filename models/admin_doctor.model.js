@@ -29,9 +29,9 @@ const adminDoctorSchema = new mongoose.Schema(
       required: false,
     },
     doctorUrl: { type: String, required: true, unique: true },
-    fbUrl: { type: String, required: false  },
+    fbUrl: { type: String, required: false },
     instaUrl: { type: String, required: true },
-   linkedinUrl: { type: String, required: true },
+    linkedinUrl: { type: String, required: true },
     oldUrls: {
       type: mongoose.Schema.Types.Mixed, // Use Mixed for flexible structure (JSON-like object)
       required: false,

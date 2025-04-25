@@ -44,68 +44,6 @@ export const addDoctor = async (req, res) => {
     // Compress the main doctor image
     const compressedDoctorBase64 = await compressImage(doctorImage);
 
-    // Compress all images in beforeAfterGallary array, if it exists and is not empty
-    const compressGalleryImages = async (gallery) => {
-      if (!Array.isArray(gallery)) {
-        throw new Error("Input must be an array");
-      }
-
-      const compressedGallery = await Promise.all(
-        gallery.map(async (item) => {
-          if (
-            !item.before.startsWith("data:image") ||
-            !item.after.startsWith("data:image")
-          ) {
-            throw new Error(
-              `Invalid image in gallery item with id: ${item.id}`
-            );
-          }
-
-          return {
-            ...item,
-            before: await compressImage(item.before),
-            after: await compressImage(item.after),
-          };
-        })
-      );
-
-      return compressedGallery;
-    };
-    beforeAfterGallary = await compressGalleryImages(beforeAfterGallary);
-    const compressAllImages = async (others) => {
-      if (!Array.isArray(others)) return []; // Return empty array if others is not valid
-
-      return await Promise.all(
-        others.map(async (item) => {
-          try {
-            if (!Array.isArray(item.images)) {
-              return item;
-            }
-
-            const compressedImages = await Promise.all(
-              item.images.map(async (image) => {
-                if (!image.file || !image.file.startsWith("data:image")) {
-                  return null;
-                }
-                const compressedFile = await compressImage(image.file);
-                return { ...image, file: compressedFile };
-              })
-            );
-
-            return {
-              ...item,
-              images: compressedImages.filter((image) => image !== null),
-            };
-          } catch (err) {
-            console.error("Error processing item:", item, err);
-            return item; // Fallback to original item if error occurs
-          }
-        })
-      );
-    };
-
-    // Process and compress images
-    others = await compressAllImages(others);
 
     const doctor = new AdminDoctor({
       doctorName,
@@ -139,7 +77,7 @@ export const addDoctor = async (req, res) => {
 export const getDoctors = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find().select(
-      "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls"
+      "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
     );
     if (!doctors) {
       return res
@@ -271,6 +209,9 @@ export const updateDoctor = async (req, res) => {
       instaUrl,
       linkedinUrl,
       doctorUrl,
+      seoTitle,
+      seoDescription,
+      userId
     } = req.body;
 
     const existingDoctor = await AdminDoctor.findById(id);
@@ -309,69 +250,6 @@ export const updateDoctor = async (req, res) => {
     // Compress the main Doctor image
     const compressedDoctorBase64 = await compressImage(doctorImage);
 
-    // Compress all images in beforeAfterGallary array, if it exists and is not empty
-    const compressGalleryImages = async (gallery) => {
-      if (!Array.isArray(gallery)) {
-        throw new Error("Input must be an array");
-      }
-
-      const compressedGallery = await Promise.all(
-        gallery.map(async (item) => {
-          if (
-            !item.before.startsWith("data:image") ||
-            !item.after.startsWith("data:image")
-          ) {
-            throw new Error(
-              `Invalid image in gallery item with id: ${item.id}`
-            );
-          }
-
-          return {
-            ...item,
-            before: await compressImage(item.before),
-            after: await compressImage(item.after),
-          };
-        })
-      );
-
-      return compressedGallery;
-    };
-    beforeAfterGallary = await compressGalleryImages(beforeAfterGallary);
-    // Compress all images in the gallery
-    const compressAllImages = async (others) => {
-      if (!Array.isArray(others)) return []; // Return empty array if others is not valid
-
-      return await Promise.all(
-        others.map(async (item) => {
-          try {
-            if (!Array.isArray(item.images)) {
-              return item;
-            }
-
-            const compressedImages = await Promise.all(
-              item.images.map(async (image) => {
-                if (!image.file || !image.file.startsWith("data:image")) {
-                  return null;
-                }
-                const compressedFile = await compressImage(image.file);
-                return { ...image, file: compressedFile };
-              })
-            );
-
-            return {
-              ...item,
-              images: compressedImages.filter((image) => image !== null),
-            };
-          } catch (err) {
-            console.error("Error processing item:", item, err);
-            return item; // Fallback to original item if error occurs
-          }
-        })
-      );
-    };
-
-    // Process and compress images
-    others = await compressAllImages(others);
     const updatedData = {
       doctorName,
       doctorDescription,
@@ -429,7 +307,7 @@ export const getDoctorsFrontend = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find()
       .select(
-        "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl"
+        "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl seoDescription seoTitle"
       )
 
     if (!doctors)

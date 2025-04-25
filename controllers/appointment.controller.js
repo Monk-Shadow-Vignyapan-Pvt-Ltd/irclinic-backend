@@ -236,6 +236,25 @@ export const getAppointmentsByPatientId = async (req, res) => {
     }
 };
 
+export const getLastAppointmentByPatientId = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Fetch all appointments for the given patient ID
+        const appointment = await Appointment.findOne({ patientId: id })
+            .sort({ createdAt: -1 }); // Latest first
+
+        if (!appointment ) {
+            return res.status(200).json({ appointment: {}, success: true });
+        }
+
+        res.status(200).json({ appointment, success: true });
+    } catch (error) {
+        console.error('Error fetching appointment:', error);
+        res.status(500).json({ message: 'Failed to fetch appointment', success: false });
+    }
+};
+
 
 // Get appointment by ID
 export const getAppointmentById = async (req, res) => {

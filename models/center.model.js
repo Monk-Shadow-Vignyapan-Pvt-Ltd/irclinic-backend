@@ -11,6 +11,25 @@ const centerSchema = new mongoose.Schema({
     centerOpenOn: { type: String, required: false },
     stateCode: { type: String, required: true },
     cityCode: { type: String, required: true },
+    centerImage:{
+        type: String, required: false
+    },
+    centerMapUrl:{
+        type: String, required: false
+    },
+    centerSeoUrl:{
+        type: String, required: true,unique:true
+    },
+    oldUrls: {
+            type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
+            required: false
+        },
+    seoTitle:{
+        type: String, required: false
+    },
+    seoDescription:{
+        type: String, required: false
+    },
     centerCode:{
         type: String, 
         required: true,

@@ -15,7 +15,7 @@ export const addContact = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!name || !phone || !email || !message) {
+    if (!name || !phone || !email ) {
       return res.status(400).json({
         message: "Please provide all required fields",
         success: false,
@@ -23,29 +23,29 @@ export const addContact = async (req, res) => {
     }
 
     // Check if a contact with the same email or phone already exists
-    const existingContact = await Contact.findOne({
-      $or: [{ email }, { phone }],
-    });
+    // const existingContact = await Contact.findOne({
+    //   $or: [{ email }, { phone }],
+    // });
 
-    if (existingContact) {
-      // Update the existing contact
-      existingContact.name = name;
-      existingContact.phone = phone;
-      existingContact.email = email;
-      existingContact.subject = subject;
-      existingContact.message = message;
-      existingContact.isContactClose = isContactClose;
-      existingContact.userId = userId;
-      existingContact.followups = followups;
-      // Save the updated contact
-      await existingContact.save();
+    // if (existingContact) {
+    //   // Update the existing contact
+    //   existingContact.name = name;
+    //   existingContact.phone = phone;
+    //   existingContact.email = email;
+    //   existingContact.subject = subject;
+    //   existingContact.message = message;
+    //   existingContact.isContactClose = isContactClose;
+    //   existingContact.userId = userId;
+    //   existingContact.followups = followups;
+    //   // Save the updated contact
+    //   await existingContact.save();
 
-      return res.status(200).json({
-        message: "Contact updated successfully",
-        contact: existingContact,
-        success: true,
-      });
-    }
+    //   return res.status(200).json({
+    //     message: "Contact updated successfully",
+    //     contact: existingContact,
+    //     success: true,
+    //   });
+    // }
 
     // Create a new contact document if no existing contact is found
     const newContact = new Contact({

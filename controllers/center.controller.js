@@ -3,10 +3,10 @@ import { Center } from '../models/center.model.js'; // Update the path as per yo
 // Add a new center
 export const addCenter = async (req, res) => {
     try {
-        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress,centerTiming,centerOpenOn, stateCode, cityCode,centerCode, userId } = req.body;
+        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress,centerTiming,centerOpenOn, stateCode, cityCode,centerCode, userId,centerImage,centerMapUrl,centerSeoUrl,seoTitle ,seoDescription} = req.body;
 
         // Validate required fields
-        if (!centerName || !adminPhoneNo || !accountPhoneNo || !centerEmail || !centerAddress || !stateCode || !cityCode || !centerCode) {
+        if (!centerName || !adminPhoneNo || !accountPhoneNo || !centerEmail || !centerAddress || !stateCode || !cityCode || !centerCode || !centerSeoUrl) {
             return res.status(400).json({ message: 'All fields are required', success: false });
         }
 
@@ -23,7 +23,7 @@ export const addCenter = async (req, res) => {
             stateCode,
             cityCode,
             centerCode:upperCaseCenterCode,
-            userId
+            userId,centerImage,centerMapUrl,centerSeoUrl,seoTitle ,seoDescription
         });
 
         await center.save();
@@ -96,13 +96,36 @@ export const getCenterById = async (req, res) => {
     }
 };
 
+export const getCenterByUrl = async (req, res) => {
+    try {
+        const centerSeoUrl = req.params.id;
+        const center = await Center.findOne({centerSeoUrl}); // Populating category data
+        if (!center) return res.status(404).json({ message: "Center not found!", success: false });
+        return res.status(200).json({ center, success: true });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch center', success: false });
+    }
+};
+
 // Update center by ID
 export const updateCenter = async (req, res) => {
     try {
         const { id } = req.params;
-        const {  centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress,centerTiming,centerOpenOn, stateCode, cityCode,centerCode, userId } = req.body;
+        const {  centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress,centerTiming,centerOpenOn, stateCode, cityCode,centerCode, userId ,centerImage,centerMapUrl,centerSeoUrl,seoTitle ,seoDescription} = req.body;
 
         const upperCaseCenterCode = centerCode.toUpperCase();
+
+        const existingCenter = await Center.findById(id);
+                if (!existingCenter) {
+                    return res.status(404).json({ message: "Center not found!", success: false });
+                }
+        
+                // Initialize oldUrls array and add the previous serviceUrl if it's different
+                let oldUrls = existingCenter.oldUrls || [];
+                if (existingCenter.centerSeoUrl && existingService.centerSeoUrl !== centerSeoUrl && !oldUrls.includes(existingCenter.centerSeoUrl)) {
+                    oldUrls.push(existingCenter.centerSeoUrl);
+                }
 
         // Build updated data
         const updatedData = {
@@ -115,7 +138,7 @@ export const updateCenter = async (req, res) => {
             ...(stateCode && { stateCode }),
             ...(cityCode && { cityCode }),
             ...(upperCaseCenterCode && { centerCode:upperCaseCenterCode }),
-            ...(userId && { userId })
+            ...(userId && { userId }),centerImage,centerMapUrl,centerSeoUrl,oldUrls,seoTitle ,seoDescription
         };
 
         const center = await Center.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

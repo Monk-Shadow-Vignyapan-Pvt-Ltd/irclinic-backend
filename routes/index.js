@@ -36,7 +36,7 @@ import tagRoute from "./tag.route.js";
 import contactRoute from "./contact.route.js";
 import gallaryRoute from "./gallary.route.js";
 import adminDoctorRoute from "./admin_doctor.route.js";
-
+import areaRoute from "./area.route.js";
 
 const routes = {
   adminDoctorRoute,
@@ -76,7 +76,8 @@ const routes = {
   videoQueueRoute,
   printRoute,
   blogRoute,
-  contactRoute
+  contactRoute,
+  areaRoute
 };
 
 export default routes;

@@ -5,6 +5,7 @@ import { FirebaseToken } from '../models/firebaseToken.model.js';
 import { User } from '../models/user.model.js';
 import mongoose from "mongoose";
 import { io } from "../index.js";
+import sharp from 'sharp';
 
 dotenv.config();
 
@@ -19,7 +20,7 @@ if (!admin.apps.length) {
 // Add a new quicknote with audio
 export const addQuicknote = async (req, res) => {
     try {
-        const { notes, quicknoteType, isAppointment, centerId, userId } = req.body;
+        const { notes, quicknoteType, isAppointment,images, centerId, userId } = req.body;
         
         if (!notes || !quicknoteType) {
             return res.status(400).json({ message: "Notes and quicknoteType are required", success: false });
@@ -33,6 +34,27 @@ export const addQuicknote = async (req, res) => {
             audioType = req.file.mimetype; // Store MIME type
         }
 
+        const compressAllImages = async (images) => {
+            if (!images || !Array.isArray(images)) return [];
+          
+            return await Promise.all(
+              images.map(async (file) => {
+                try {
+                  const compressedBuffer = await sharp(file.buffer)
+                    .resize(800, 600, { fit: 'inside' })
+                    .jpeg({ quality: 80 })
+                    .toBuffer();
+                  return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+                } catch (err) {
+                  console.error("Error compressing image:", err);
+                  return null;
+                }
+              })
+            ).then(compressed => compressed.filter(Boolean));
+          };
+          
+          const compressedImages = await compressAllImages(req.files?.images || []);
+
         const quicknote = new Quicknote({
             notes,
             quicknoteType,
@@ -40,6 +62,7 @@ export const addQuicknote = async (req, res) => {
             centerId,
             userId,
             audio,
+            images:compressedImages,
             audioType,
         });
 

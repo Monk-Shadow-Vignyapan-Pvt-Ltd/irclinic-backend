@@ -111,6 +111,7 @@ app.use("/api/v1/testimonials", routes.testimonialRoute);
 app.use("/api/v1/faqs", routes.faqRoute);
 app.use("/api/v1/categories", routes.categoryRoute);
 app.use("/api/v1/diseases", routes.diseaseRoute);
+app.use("/api/v1/areas", routes.areaRoute);
 
 startWhatsAppReminderCron();
 

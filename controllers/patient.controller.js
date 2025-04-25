@@ -3,7 +3,7 @@ import { Patient } from '../models/patient.model.js'; // Update the path as per 
 // Add a new patient
 export const addPatient = async (req, res) => {
     try {
-        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference, centerId,state,city,caseId, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference, centerId,state,city,caseId,area, userId } = req.body;
 
         // Validate required fields
         if (!patientName || !gender  || !patientType) {
@@ -24,6 +24,7 @@ export const addPatient = async (req, res) => {
             state,
             city,
             caseId,
+            area,
             userId
         });
 
@@ -156,7 +157,7 @@ export const getPatientById = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference,visitHistory, centerId,state,city,caseId, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference,visitHistory, centerId,state,city,caseId,area, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -173,6 +174,7 @@ export const updatePatient = async (req, res) => {
             ...(state && { state }),
             ...(city && { city }),
             ...(caseId && { caseId }),
+            ...(area && { area }),
             ...(userId && { userId }),
         };
 
@@ -242,7 +244,8 @@ export const searchOPDPatients = async (req, res) => {
                 { city: regex },
                 { state: regex },
                 { address: regex },
-                { reference: regex },
+                { "reference.label": regex },
+                { "area.label": regex },
             ]
         });
 
@@ -286,7 +289,8 @@ export const searchOutSidePatients = async (req, res) => {
                 { city: regex },
                 { state: regex },
                 { address: regex },
-                { reference: regex },
+                { "reference.label": regex },
+                { "area.label": regex },
             ]
         });
 
@@ -308,3 +312,5 @@ export const searchOutSidePatients = async (req, res) => {
         res.status(500).json({ message: 'Failed to search patients', success: false });
     }
 };
+
+

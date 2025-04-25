@@ -24,6 +24,7 @@ const patientSchema = new mongoose.Schema({
     caseId:{
         type: String, required: true
     },
+    area: { type: mongoose.Schema.Types.Mixed, required: false },
     userId:{
         type: mongoose.Schema.Types.ObjectId, 
           required:false

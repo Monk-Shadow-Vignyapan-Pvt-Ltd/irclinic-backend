@@ -111,18 +111,6 @@ export const addService = async (req, res) => {
     }
 };
 
-// Get all services
-// export const getServices = async (req, res) => {
-//     try {
-//         const services = await Service.find().select('serviceName serviceUrl serviceImage procedureId serviceType serviceEnabled').populate('procedureId'); // Populating category data
-//         if (!services) return res.status(404).json({ message: "Services not found", success: false });
-//         return res.status(200).json({ services });
-//     } catch (error) {
-//         console.log(error);
-//         res.status(500).json({ message: 'Failed to fetch services', success: false });
-//     }
-// };
-
 export const getServices = async (req, res) => {
     try {
         const services = await Service.find().select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled').populate('procedureId');

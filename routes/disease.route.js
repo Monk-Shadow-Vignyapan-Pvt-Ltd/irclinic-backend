@@ -5,6 +5,7 @@ import {
   getDiseasesFrontend,
   getDiseaseById,
   getDiseaseName,
+  getDiseaseByUrl,
   deleteDisease,
   updateDisease,
   updateDiseaseRank,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.route("/addDisease").post(addDisease);
 router.route("/getDiseases").get(getDiseases);
+router.route("/getDiseaseByUrl/:id").put( getDiseaseByUrl);
 router.route("/getDiseasesFrontend").get(getDiseasesFrontend);
 router.route("/getDiseaseName").get(getDiseaseName);
 router.route("/getDiseaseById/:id").put(getDiseaseById);

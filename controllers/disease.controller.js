@@ -63,13 +63,37 @@ export const addDisease = async (req, res) => {
 
 // Get all disease
 export const getDiseases = async (req, res) => {
+  const disease = await Disease.find().select(
+    "diseaseName diseaseDescription parentID rank diseaseImage diseaseURL seoTitle seoDescription"
+  );
+
   try {
-    const diseases = await Disease.find();
-    if (!diseases)
+    if (!disease) {
       return res
         .status(404)
-        .json({ message: "diseases not found", success: false });
-    return res.status(200).json({ diseases });
+        .json({ message: "No disease found", success: false });
+    }
+    const reversedDisease = disease.reverse();
+    const page = parseInt(req.query.page) || 1;
+
+    // Define the number of items per page
+    const limit = 12;
+
+    // Calculate the start and end indices for pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    // Paginate the reversed movies array
+    const paginatedDisease = reversedDisease.slice(startIndex, endIndex);
+    res.status(200).json({
+      diseases: paginatedDisease,
+      success: true,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(disease.length / limit),
+        totaldisease: disease.length,
+      },
+    });
   } catch (error) {
     console.log(error);
     res
@@ -81,8 +105,7 @@ export const getDiseases = async (req, res) => {
 export const getDiseasesFrontend = async (req, res) => {
   try {
     const diseases = await Disease.aggregate([
-        { $match: { parentID: { $nin: [null, ""] } } }
-        ,// Only children
+      { $match: { parentID: { $nin: [null, ""] } } }, // Only children
       { $sample: { size: 8 } }, // Random 8 diseases
       {
         $project: {
@@ -155,6 +178,23 @@ export const getDiseaseById = async (req, res) => {
   }
 };
 
+export const getDiseaseByUrl = async (req, res) => {
+  try {
+    const diseaseURL = req.params.id;
+    const disease = await Disease.findOne({ diseaseURL }); // Populating category data
+    if (!disease)
+      return res
+        .status(404)
+        .json({ message: "Disease not found!", success: false });
+    return res.status(200).json({ disease, success: true });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch Disease", success: false });
+  }
+};
+
 // Update disease by ID
 export const updateDisease = async (req, res) => {
   try {
@@ -178,7 +218,7 @@ export const updateDisease = async (req, res) => {
         .json({ message: "Disease not found!", success: false });
     }
 
-    // Initialize oldUrls array and add the previous serviceUrl if it's different
+    // Initialize oldUrls array and add the previous diseaseUrl if it's different
     let oldUrls = existingDisease.oldUrls || [];
     if (
       existingDisease.diseaseURL &&

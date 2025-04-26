@@ -102,28 +102,28 @@ export const addQuicknote = async (req, res) => {
                         sevenDaysAgo.setHours(0, 0, 0, 0);
                 
                         // Store notifications in each matched user
-                        await User.updateMany(
-                            { 
-                                _id: { $in: filteredUsers.map(user => user._id) },
-                                $or: [
-                                    { centerId: new mongoose.Types.ObjectId(centerId) },
-                                    { centerId: centerId.toString() }
-                                ]
-                            },
-                            [
-                                {
-                                    $set: {
-                                        notifications: {
+                         await User.updateMany(
+                                    {
+                                      _id: { $in: filteredUsers.map(user => user._id) },
+                                      $or: [
+                                        { centerId: new mongoose.Types.ObjectId(centerId) },
+                                        { centerId: centerId.toString() }
+                                      ]
+                                    },
+                                    [
+                                      {
+                                        $set: {
+                                          notifications: {
                                             $filter: {
-                                                input: "$notifications",
-                                                as: "notif",
-                                                cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] } // Convert date if needed
+                                              input: { $ifNull: ["$notifications", []] }, // ensures it's always an array
+                                              as: "notif",
+                                              cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] }
                                             }
+                                          }
                                         }
-                                    }
-                                }
-                            ]
-                        );
+                                      }
+                                    ]
+                                  );
 
                         await User.updateMany(
                             { 

@@ -159,6 +159,9 @@ export const addAppointment = async (req, res) => {
             const doctor = await Doctor.findById(doctorId);
             const center = await Center.findById(centerId);
             await sendAppointmentConfirmation(appointment,patient, doctor, center);
+            if (patient.reference) {
+            await sendRefAppointmentConfirmation(appointment,patient, doctor, center);  
+            }
         }
        
 
@@ -527,6 +530,52 @@ const sendAppointmentConfirmation = async (appointment, patient, doctor, center)
     } catch (err) {
         console.error("WhatsApp API Error:", err.response?.data || err.message);
     }
+};
+
+const sendRefAppointmentConfirmation = async (appointment, patient, doctor, center) => {
+  const now = moment();  // Get current time in the local timezone
+  const appointmentDate = moment(appointment.start);
+
+  if (appointmentDate.isBefore(now)) {
+      console.log("Appointment is not in the future. WhatsApp message skipped.");
+      return;
+  }
+  
+
+  // Format date: DD/MM/YYYY
+  const formattedDate = appointmentDate.format('DD/MM/YYYY');
+
+  // Format time: hh:mm AM/PM
+  const formattedTime = appointmentDate.format('hh:mm A');
+
+
+  
+
+  const payload = {
+      apiKey: process.env.AISENSY_API_KEY,
+      campaignName: "Appointment Confirmation Reference",  // ✅ Must match your campaign in Aisensy
+      subCampaignName: appointment._id.toString(), // ✅ Unique per message
+      destination: `+91${patient.reference.referencePhoneNo}`,
+      userName: "IR Clinic",
+      templateParams: [
+        patient.reference.label,
+        patient.patientName,
+        formattedDate,
+        formattedTime,
+        center.centerAddress || "IR Clinic",
+      ],
+      source: "new-landing-page form",
+      paramsFallbackValue: {
+        FirstName: "user"
+      }
+    };
+
+  try {
+      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
 };
 
 

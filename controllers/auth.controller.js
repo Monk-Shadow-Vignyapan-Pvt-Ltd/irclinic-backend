@@ -60,11 +60,9 @@ export const login = async (req, res) => {
       return res.status(400).json({ msg: "Please enter all the fields" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: new RegExp(`^${email}$`, 'i') });
     if (!user) {
-      return res
-        .status(400)
-        .send({ msg: "User with this email does not exist" });
+      return res.status(400).send({ msg: "User with this email does not exist" });
     }
 
     const isMatch = await bcryptjs.compare(password, user.password);
@@ -78,6 +76,7 @@ export const login = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Token Validation Controller
 export const tokenIsValid = async (req, res) => {

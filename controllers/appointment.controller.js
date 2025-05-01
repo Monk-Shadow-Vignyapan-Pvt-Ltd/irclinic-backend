@@ -452,20 +452,19 @@ export const dashboardAppointments = async (req, res) => {
 };
 
 const sendAppointmentConfirmation = async (appointment, patient, doctor, center) => {
-    const now = moment();  // Get current time in the local timezone
-    const appointmentDate = moment(appointment.start);
+  const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
 
-    if (appointmentDate.isBefore(now)) {
-        console.log("Appointment is not in the future. WhatsApp message skipped.");
-        return;
-    }
-    
+// Also create 'now' in IST for fair comparison
+const now = moment.utc().add(5, 'hours').add(30, 'minutes'); // IST now
 
-    // Format date: DD/MM/YYYY
-    const formattedDate = appointmentDate.format('DD/MM/YYYY');
+if (appointmentDate.isBefore(now)) {
+    console.log("Appointment is not in the future. WhatsApp message skipped.");
+    return;
+}
 
-    // Format time: hh:mm AM/PM
-    const formattedTime = appointmentDate.format('hh:mm A');
+// Format date and time for message
+const formattedDate = appointmentDate.format('DD/MM/YYYY');
+const formattedTime = appointmentDate.format('hh:mm A');
 
 
     let procedureSection = '';
@@ -533,20 +532,19 @@ const sendAppointmentConfirmation = async (appointment, patient, doctor, center)
 };
 
 const sendRefAppointmentConfirmation = async (appointment, patient, doctor, center) => {
-  const now = moment();  // Get current time in the local timezone
-  const appointmentDate = moment(appointment.start);
+  const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
 
-  if (appointmentDate.isBefore(now)) {
-      console.log("Appointment is not in the future. WhatsApp message skipped.");
-      return;
-  }
-  
+// Also create 'now' in IST for fair comparison
+const now = moment.utc().add(5, 'hours').add(30, 'minutes'); // IST now
 
-  // Format date: DD/MM/YYYY
-  const formattedDate = appointmentDate.format('DD/MM/YYYY');
+if (appointmentDate.isBefore(now)) {
+    console.log("Appointment is not in the future. WhatsApp message skipped.");
+    return;
+}
 
-  // Format time: hh:mm AM/PM
-  const formattedTime = appointmentDate.format('hh:mm A');
+// Format date and time for message
+const formattedDate = appointmentDate.format('DD/MM/YYYY');
+const formattedTime = appointmentDate.format('hh:mm A');
 
 
   

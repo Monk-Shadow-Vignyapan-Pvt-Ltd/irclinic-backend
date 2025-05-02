@@ -1,12 +1,44 @@
 import { VendorInvoice } from "../models/vendorInvoice.model.js";
+import sharp from 'sharp';
 
-// Add a new Vendor Invoice
 export const addVendorInvoice = async (req, res) => {
   try {
     const { invoiceImage, approveStatus, vendorId, userId, centerId } = req.body;
 
+    if (!invoiceImage || !invoiceImage.startsWith('data:image')) {
+      return res.status(400).json({ message: 'Invalid image data', success: false });
+    }
+
+    // Extract MIME type from the Base64 string
+    const mimeMatch = invoiceImage.match(/^data:(image\/(png|jpeg|jpg|webp));base64,/);
+    if (!mimeMatch) {
+      return res.status(400).json({ message: 'Unsupported image format', success: false });
+    }
+
+    const mimeType = mimeMatch[1]; // full MIME type like "image/png"
+    const format = mimeMatch[2];   // file extension like "png", "jpeg", etc.
+    const base64Data = invoiceImage.split(';base64,').pop();
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    let compressedBuffer;
+
+    // Use sharp to compress and preserve format
+    const image = sharp(buffer).resize(800, 600, { fit: 'inside' });
+
+    if (format === 'jpeg' || format === 'jpg') {
+      compressedBuffer = await image.jpeg({ quality: 80 }).toBuffer();
+    } else if (format === 'png') {
+      compressedBuffer = await image.png({ compressionLevel: 8 }).toBuffer();
+    } else if (format === 'webp') {
+      compressedBuffer = await image.webp({ quality: 80 }).toBuffer();
+    } else {
+      return res.status(400).json({ message: 'Unsupported image format', success: false });
+    }
+
+    const compressedBase64 = `data:${mimeType};base64,${compressedBuffer.toString('base64')}`;
+
     const newInvoice = new VendorInvoice({
-      invoiceImage,
+      invoiceImage: compressedBase64,
       approveStatus,
       vendorId,
       userId,
@@ -20,6 +52,7 @@ export const addVendorInvoice = async (req, res) => {
     res.status(500).json({ message: "Failed to upload vendor invoice", success: false });
   }
 };
+
 
 // Get all Vendor Invoices
 export const getVendorInvoices = async (req, res) => {
@@ -121,9 +154,40 @@ export const updateVendorInvoice = async (req, res) => {
   try {
     const { id } = req.params;
     const { invoiceImage, approveStatus, vendorId, userId, centerId } = req.body;
+    if (!invoiceImage || !invoiceImage.startsWith('data:image')) {
+        return res.status(400).json({ message: 'Invalid image data', success: false });
+      }
+  
+      // Extract MIME type from the Base64 string
+      const mimeMatch = invoiceImage.match(/^data:(image\/(png|jpeg|jpg|webp));base64,/);
+      if (!mimeMatch) {
+        return res.status(400).json({ message: 'Unsupported image format', success: false });
+      }
+  
+      const mimeType = mimeMatch[1]; // full MIME type like "image/png"
+      const format = mimeMatch[2];   // file extension like "png", "jpeg", etc.
+      const base64Data = invoiceImage.split(';base64,').pop();
+      const buffer = Buffer.from(base64Data, 'base64');
+  
+      let compressedBuffer;
+  
+      // Use sharp to compress and preserve format
+      const image = sharp(buffer).resize(800, 600, { fit: 'inside' });
+  
+      if (format === 'jpeg' || format === 'jpg') {
+        compressedBuffer = await image.jpeg({ quality: 80 }).toBuffer();
+      } else if (format === 'png') {
+        compressedBuffer = await image.png({ compressionLevel: 8 }).toBuffer();
+      } else if (format === 'webp') {
+        compressedBuffer = await image.webp({ quality: 80 }).toBuffer();
+      } else {
+        return res.status(400).json({ message: 'Unsupported image format', success: false });
+      }
+  
+      const compressedBase64 = `data:${mimeType};base64,${compressedBuffer.toString('base64')}`;
 
     const updatedData = {
-      invoiceImage,
+      invoiceImage:compressedBase64,
       approveStatus,
       vendorId,
       userId,

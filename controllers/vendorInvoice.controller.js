@@ -209,6 +209,29 @@ export const updateVendorInvoice = async (req, res) => {
   }
 };
 
+export const approveVendorInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approveStatus } = req.body;
+
+    const updatedInvoice = await VendorInvoice.findByIdAndUpdate(
+      id,
+      { approveStatus },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedInvoice) {
+      return res.status(404).json({ message: 'Invoice not found', success: false });
+    }
+
+    return res.status(200).json({ invoice: updatedInvoice, success: true });
+  } catch (error) {
+    console.error('Error approving invoice:', error);
+    res.status(500).json({ message: 'Failed to approve invoice', success: false });
+  }
+};
+
+
 // Delete Vendor Invoice by ID
 export const deleteVendorInvoice = async (req, res) => {
   try {

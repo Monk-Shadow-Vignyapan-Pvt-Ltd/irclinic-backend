@@ -5,6 +5,7 @@ import {
     getVendorInvoiceById,
     getVendorInvoicesByVendorId,
     updateVendorInvoice,
+    approveVendorInvoice,
     deleteVendorInvoice
 } from "../controllers/vendorInvoice.controller.js";
 
@@ -16,5 +17,6 @@ router.route("/getVendorInvoiceById/:id").put(getVendorInvoiceById);
 router.route("/getVendorInvoicesByVendorId/:id").get( getVendorInvoicesByVendorId);
 router.route("/deleteVendorInvoice/:id").delete(deleteVendorInvoice);
 router.route("/updateVendorInvoice/:id").post(updateVendorInvoice);
+router.route("/approveVendorInvoice/:id").post(approveVendorInvoice);
 
 export default router;

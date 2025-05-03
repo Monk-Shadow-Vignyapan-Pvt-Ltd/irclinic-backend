@@ -1,5 +1,22 @@
 import { Stockout } from '../models/stockout.model.js'; // Update the path as per your project structure
 import { Inventory } from '../models/inventory.model.js';
+import { Stockin } from '../models/stockin.model.js';
+import admin from "firebase-admin";
+import dotenv from "dotenv";
+import { FirebaseToken } from '../models/firebaseToken.model.js';
+import { User } from '../models/user.model.js';
+import mongoose from "mongoose";
+import { io } from "../index.js";
+
+dotenv.config();
+
+const firebaseConfig = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS, "base64").toString("utf8"));
+
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(firebaseConfig),
+    });
+}
 
 // Add a new stockin
 export const addStockout = async (req, res) => {
@@ -13,6 +30,109 @@ export const addStockout = async (req, res) => {
                 success: false 
             });
         }
+
+        const inventory = await Inventory.findOne({_id:inventoryId}).select("ignoreStockLevel stockLevel inventoryName") ;
+        const stockin = await Stockin.findOne({inventoryId}).select("totalStock vendorId");
+        if(!inventory.ignoreStockLevel){
+            if((parseFloat(stockin.totalStock) - parseFloat(totalStock) ) < parseFloat(inventory.stockLevel)){
+                  const firebasetokens = await FirebaseToken.find();
+                                     const users = await User.find();
+                                     const filteredUsers = users.filter(user => (user.role === "Super Admin" || user.role === "Center Head"));
+                             
+                                     const filterTokens = firebasetokens.filter(token =>
+                                         filteredUsers.some(user => user._id.toString() === token.userId.toString())
+                                     );
+                             
+                                     const tokens = [
+                                         ...new Set(
+                                           filterTokens
+                                             .filter(token => token.centerId.toString() === centerId.toString())
+                                             .flatMap(user => [user.webToken, user.mobileToken])  // Include both tokens
+                                             .filter(token => token)  // Remove undefined or null values
+                                         )
+                                       ];
+                     
+                                     const notificationMessage = {
+                                                title: `Please Maintain Stock Level For Inventory`,
+                                                body: ` ${inventory.inventoryName}`,
+                                                 type: "Stock Level",
+                                                 date: new Date(),
+                                                 inventoryId: inventory._id,
+                                                 isView:false,
+                                                 link:"/stock-in"
+                                             };
+                     
+                                             const sevenDaysAgo = new Date();
+                                             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                             sevenDaysAgo.setHours(0, 0, 0, 0);
+                                     
+                                             // Store notifications in each matched user
+                                              await User.updateMany(
+                                                         {
+                                                           _id: { $in: filteredUsers.map(user => user._id) },
+                                                           $or: [
+                                                             { centerId: new mongoose.Types.ObjectId(centerId) },
+                                                             { centerId: centerId.toString() }
+                                                           ]
+                                                         },
+                                                         [
+                                                           {
+                                                             $set: {
+                                                               notifications: {
+                                                                 $filter: {
+                                                                   input: { $ifNull: ["$notifications", []] }, // ensures it's always an array
+                                                                   as: "notif",
+                                                                   cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] }
+                                                                 }
+                                                               }
+                                                             }
+                                                           }
+                                                         ]
+                                                       );
+                     
+                                             await User.updateMany(
+                                                 { 
+                                                     _id: { $in: filteredUsers.map(user => user._id) },
+                                                     $or: [
+                                                         { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                                         { centerId: centerId.toString() } // Match string version
+                                                     ]
+                                                 },
+                                                 { 
+                                                     $push: { notifications: notificationMessage },
+                                                 }
+                                             );
+                     
+                                             io.emit("notification",  { success: true }  );
+                                     
+                                             // Send Firebase Notification
+                                             if (tokens.length > 0) {
+                                                 const message = {
+                                                     notification: {
+                                                         title: notificationMessage.title,
+                                                         body: notificationMessage.body
+                                                     },
+                                                     data: { // ✅ Add URL inside "data"
+                                                         url: "https://console.interventionalradiology.co.in"
+                                                     },
+                                                     tokens: tokens, // Use tokens array for multicast
+                                                 };
+                                     
+                                                 admin.messaging().sendEachForMulticast(message)
+                                                     .then(response => {
+                                                         response.responses.forEach((resp, index) => {
+                                                             if (!resp.success) {
+                                                                 console.error(`Error sending to token ${tokens[index]}:`, resp.error);
+                                                             }
+                                                         });
+                                                     })
+                                                     .catch(error => {
+                                                         console.error("Firebase Messaging Error:", error);
+                                                     });
+                                             }
+            }
+        }
+        
 
         // Create a new stockin
         const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId,appointmentType,hospitalId });
@@ -134,6 +254,108 @@ export const updateStockout = async (req, res) => {
         const stockout = await Stockout.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
         if (!stockout) {
             return res.status(404).json({ message: 'stockout not found', success: false });
+        }
+        const inventory = await Inventory.findOne({_id:inventoryId}).select("ignoreStockLevel stockLevel inventoryName") ;
+        const stockin = await Stockin.findOne({inventoryId}).select("totalStock vendorId");
+        if(!inventory.ignoreStockLevel){
+            if((parseFloat(stockin.totalStock) - parseFloat(totalStock) ) < parseFloat(inventory.stockLevel)){
+                  const firebasetokens = await FirebaseToken.find();
+                                     const users = await User.find();
+                            
+                                     const filteredUsers = users.filter(user => (user.role === "Super Admin" || user.role === "Center Head"));
+                             
+                                     const filterTokens = firebasetokens.filter(token =>
+                                         filteredUsers.some(user => user._id.toString() === token.userId.toString())
+                                     );
+                             
+                                     const tokens = [
+                                         ...new Set(
+                                           filterTokens
+                                             .filter(token => token.centerId.toString() === centerId.toString())
+                                             .flatMap(user => [user.webToken, user.mobileToken])  // Include both tokens
+                                             .filter(token => token)  // Remove undefined or null values
+                                         )
+                                       ];
+                     
+                                     const notificationMessage = {
+                                                title: `Please Maintain Stock Level For Inventory`,
+                                                body: ` ${inventory.inventoryName}`,
+                                                 type: "Stock Level",
+                                                 date: new Date(),
+                                                 inventoryId: inventory._id,
+                                                 isView:false,
+                                                 link:"/stock-in"
+                                             };
+                     
+                                             const sevenDaysAgo = new Date();
+                                             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                             sevenDaysAgo.setHours(0, 0, 0, 0);
+                                     
+                                             // Store notifications in each matched user
+                                              await User.updateMany(
+                                                         {
+                                                           _id: { $in: filteredUsers.map(user => user._id) },
+                                                           $or: [
+                                                             { centerId: new mongoose.Types.ObjectId(centerId) },
+                                                             { centerId: centerId.toString() }
+                                                           ]
+                                                         },
+                                                         [
+                                                           {
+                                                             $set: {
+                                                               notifications: {
+                                                                 $filter: {
+                                                                   input: { $ifNull: ["$notifications", []] }, // ensures it's always an array
+                                                                   as: "notif",
+                                                                   cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] }
+                                                                 }
+                                                               }
+                                                             }
+                                                           }
+                                                         ]
+                                                       );
+                     
+                                             await User.updateMany(
+                                                 { 
+                                                     _id: { $in: filteredUsers.map(user => user._id) },
+                                                     $or: [
+                                                         { centerId: new mongoose.Types.ObjectId(centerId) }, // Match ObjectId
+                                                         { centerId: centerId.toString() } // Match string version
+                                                     ]
+                                                 },
+                                                 { 
+                                                     $push: { notifications: notificationMessage },
+                                                 }
+                                             );
+                     
+                                             io.emit("notification",  { success: true }  );
+                                     
+                                             // Send Firebase Notification
+                                             if (tokens.length > 0) {
+                                                 const message = {
+                                                     notification: {
+                                                         title: notificationMessage.title,
+                                                         body: notificationMessage.body
+                                                     },
+                                                     data: { // ✅ Add URL inside "data"
+                                                         url: "https://console.interventionalradiology.co.in"
+                                                     },
+                                                     tokens: tokens, // Use tokens array for multicast
+                                                 };
+                                     
+                                                 admin.messaging().sendEachForMulticast(message)
+                                                     .then(response => {
+                                                         response.responses.forEach((resp, index) => {
+                                                             if (!resp.success) {
+                                                                 console.error(`Error sending to token ${tokens[index]}:`, resp.error);
+                                                             }
+                                                         });
+                                                     })
+                                                     .catch(error => {
+                                                         console.error("Firebase Messaging Error:", error);
+                                                     });
+                                             }
+            }
         }
         res.status(200).json({ stockout, success: true });
     } catch (error) {

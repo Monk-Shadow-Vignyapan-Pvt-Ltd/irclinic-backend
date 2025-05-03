@@ -59,7 +59,7 @@ export const addAppointment = async (req, res) => {
         if(appointmentType === 'Outside'){
             const firebasetokens = await FirebaseToken.find();
             const users = await User.find();
-            const filteredUsers = users.filter(user => user.role === "Super Admin");
+            const filteredUsers = users.filter(user => (user.role === "Super Admin" || user.role === "Center Head"));
     
             const filterTokens = firebasetokens.filter(token =>
                 filteredUsers.some(user => user._id.toString() === token.userId.toString())
@@ -314,7 +314,7 @@ export const updateAppointment = async (req, res) => {
         if(appointmentType === 'Outside'){
         const firebasetokens = await FirebaseToken.find();
         const users = await User.find();
-        const filteredUsers = users.filter(user => user.role === "Super Admin");
+        const filteredUsers = users.filter(user => (user.role === "Super Admin" || user.role === "Center Head"));
 
         const filterTokens = firebasetokens.filter(token =>
             filteredUsers.some(user => user._id.toString() === token.userId.toString())

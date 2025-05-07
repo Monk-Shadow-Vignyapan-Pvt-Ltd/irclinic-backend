@@ -160,7 +160,12 @@ export const addAppointment = async (req, res) => {
             const center = await Center.findById(centerId);
             await sendAppointmentConfirmation(appointment,patient, doctor, center);
             if (patient.reference) {
-            await sendRefAppointmentConfirmation(appointment,patient, doctor, center);  
+              if(isFollowUp){
+                await sendRefFollowUpAppointmentConfirmation(appointment,patient, doctor, center); 
+              }else{
+                await sendRefAppointmentConfirmation(appointment,patient, doctor, center); 
+              }
+             
             }
         }
        
@@ -298,6 +303,26 @@ export const updateAppointment = async (req, res) => {
             checkInTime,checkOutTime
         };
 
+        const existingAppointment = await Appointment.findById(id);
+
+        let reportsChanged = false;
+        if ((!existingAppointment.reports || existingAppointment.reports.length === 0) && reports && reports.length > 0) {
+          reportsChanged = true;
+      } else if (reports && existingAppointment.reports) {
+          if (existingAppointment.reports.length !== reports.length) {
+              reportsChanged = true;
+          } else {
+              reportsChanged = reports.some((newReport, i) => {
+                  const oldReport = existingAppointment.reports[i];
+                  return !oldReport ||
+                      oldReport.creationReportDate !== newReport.creationReportDate ||
+                      oldReport.description !== newReport.description ||
+                      oldReport.impression !== newReport.impression ||
+                      oldReport.advice !== newReport.advice;
+              });
+          }
+      }
+
         const appointment = await Appointment.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found', success: false });
@@ -408,6 +433,14 @@ export const updateAppointment = async (req, res) => {
                     console.error("Firebase Messaging Error:", error);
                 });
         }
+    }else{
+      const patient = await Patient.findById(patientId)
+            if (reportsChanged && patient.reference) {
+              
+                await sendRefAppointmentImpression(patient,reports); 
+              
+             
+            }
     }
         res.status(200).json({ appointment, success: true });
     } catch (error) {
@@ -561,6 +594,82 @@ const formattedTime = appointmentDate.format('hh:mm A');
         formattedDate,
         formattedTime,
         center.centerAddress || "IR Clinic",
+      ],
+      source: "new-landing-page form",
+      paramsFallbackValue: {
+        FirstName: "user"
+      }
+    };
+
+  try {
+      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
+};
+
+const sendRefFollowUpAppointmentConfirmation = async (appointment, patient, doctor, center) => {
+  const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
+
+// Also create 'now' in IST for fair comparison
+const now = moment.utc().add(5, 'hours').add(30, 'minutes'); // IST now
+
+if (appointmentDate.isBefore(now)) {
+    console.log("Appointment is not in the future. WhatsApp message skipped.");
+    return;
+}
+
+// Format date and time for message
+const formattedDate = appointmentDate.format('DD/MM/YYYY');
+const formattedTime = appointmentDate.format('hh:mm A');
+
+  const payload = {
+      apiKey: process.env.AISENSY_API_KEY,
+      campaignName: "Follow Up Appointments For Reference Doctor1",  // ✅ Must match your campaign in Aisensy
+      subCampaignName: appointment._id.toString(), // ✅ Unique per message
+      destination: `+91${patient.reference.referencePhoneNo}`,
+      userName: "IR Clinic",
+      templateParams: [
+        patient.reference.label,
+        formattedDate,
+        formattedTime,
+        patient.patientName,
+        center.centerAddress || "IR Clinic",
+      ],
+      source: "new-landing-page form",
+      paramsFallbackValue: {
+        FirstName: "user"
+      }
+    };
+
+  try {
+      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
+};
+
+const sendRefAppointmentImpression = async (patient, reports) => {
+  const appointmentDate = moment.utc(reports[0].creationReportDate).add(5, 'hours').add(30, 'minutes');
+
+// Format date and time for message
+const formattedDate = appointmentDate.format('DD/MM/YYYY');
+const formattedTime = appointmentDate.format('hh:mm A');
+
+  const payload = {
+      apiKey: process.env.AISENSY_API_KEY,
+      campaignName: "Follow Up Impression Reference",  // ✅ Must match your campaign in Aisensy
+      subCampaignName: patient._id.toString(), // ✅ Unique per message
+      destination: `+91${patient.reference.referencePhoneNo}`,
+      userName: "IR Clinic",
+      templateParams: [
+        patient.reference.label,
+        formattedDate,
+        formattedTime,
+        patient.patientName,
+        reports[0].impression.replace(/<[^>]*>/g, '').trim(),
       ],
       source: "new-landing-page form",
       paramsFallbackValue: {

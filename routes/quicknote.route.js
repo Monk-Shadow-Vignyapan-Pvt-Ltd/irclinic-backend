@@ -2,9 +2,11 @@ import express from "express";
 import { 
     addQuicknote, 
     getQuicknotes, 
+    getQuickAppointments,
     getQuicknoteById, 
     deleteQuicknote, 
-    updateQuicknote 
+    updateQuicknote ,
+    convertQuicknotetoAppointment
 } from "../controllers/quicknote.controller.js";
 import multer from "multer";
 
@@ -26,8 +28,10 @@ const quicknoteUpload = upload.fields([
 // Routes
 router.route("/addQuicknote").post(quicknoteUpload, addQuicknote); // Accepts audio file
 router.route("/getQuicknotes/:id").get(getQuicknotes);
+router.route("/getQuickAppointments/:id").get(getQuickAppointments);
 router.route("/getQuicknoteById/:id").get(getQuicknoteById);
-router.route("/updateQuicknote/:id").post(quicknoteUpload, updateQuicknote); // Allows updating audio
+router.route("/updateQuicknote/:id").post(quicknoteUpload,updateQuicknote); // Allows updating audio
 router.route("/deleteQuicknote/:id").delete(deleteQuicknote);
+router.route("/convertQuicknotetoAppointment/:id").post(convertQuicknotetoAppointment);
 
 export default router;

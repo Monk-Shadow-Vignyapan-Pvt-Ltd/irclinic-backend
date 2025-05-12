@@ -18,21 +18,8 @@ const app = express();
 const server = createServer(app); // Create an HTTP server
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://irclinic-dashboard.netlify.app",
-      "http://localhost:5173",
-      "http://localhost:5174",
-    ],
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    allowedHeaders: [
-      "Origin",
-      "X-Requested-With",
-      "Content-Type",
-      "Accept",
-      "Authorization",
-      "x-auth-token",
-    ],
-    credentials: true,
+    origin: "*", // Adjust according to your needs
+    methods: ["GET", "POST"],
   },
 });
 

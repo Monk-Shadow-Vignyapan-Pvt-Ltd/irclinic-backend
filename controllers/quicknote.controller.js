@@ -36,22 +36,22 @@ export const addQuicknote = async (req, res) => {
 
         const compressAllImages = async (images) => {
             if (!images || !Array.isArray(images)) return [];
-          
+
             return await Promise.all(
-              images.map(async (file) => {
-                try {
-                  const compressedBuffer = await sharp(file.buffer)
-                    .resize(800, 600, { fit: 'inside' })
-                    .jpeg({ quality: 80 })
-                    .toBuffer();
-                  return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
-                } catch (err) {
-                  console.error("Error compressing image:", err);
-                  return null;
-                }
-              })
+                images.map(async (file) => {
+                    try {
+                        const compressedBuffer = await sharp(file.buffer)
+                            .resize({ width: 1600, withoutEnlargement: true }) // resize only if larger
+                            .jpeg({ quality: 95 }) // higher quality
+                            .toBuffer();
+                        return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+                    } catch (err) {
+                        console.error("Error compressing image:", err);
+                        return null;
+                    }
+                })
             ).then(compressed => compressed.filter(Boolean));
-          };
+        };
           
           const compressedImages = await compressAllImages(req.files?.images || []);
 
@@ -181,7 +181,7 @@ export const getQuicknotes = async (req, res) => {
         const { id } = req.params;
         
         // Fetch quicknotes and do NOT use async in map
-        const quicknotes = await Quicknote.find({ centerId: id });
+        const quicknotes = await Quicknote.find({ centerId: id,isAppointment:false });
 
         // Process each quicknote asynchronously
         const quicknotesWithAudio = await Promise.all(quicknotes.map(async (qn) => {
@@ -202,6 +202,56 @@ export const getQuicknotes = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch quicknotes", success: false });
     }
 };
+
+export const getQuickAppointments = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { page = 1, search = "", type = "" } = req.query;
+
+        const limit = 10;
+        const skip = (page - 1) * limit;
+
+        const query = {
+            centerId: id,
+            notes: { $regex: search, $options: "i" }
+        };
+
+        if (type) {
+            query.quicknoteType = type; // Apply type filter only if provided
+        }
+
+        const total = await Quicknote.countDocuments(query);
+
+        const quicknotes = await Quicknote.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+
+        const quicknotesWithAudio = await Promise.all(
+            quicknotes.map(async (qn) => {
+                const user = await User.findById(qn.userId).select("username");
+                return {
+                    ...qn._doc,
+                    audio: qn.audio ? qn.audio.toString("base64") : null,
+                    userName: user ? user.username : "Unknown"
+                };
+            })
+        );
+
+        res.status(200).json({
+            quicknotes: quicknotesWithAudio,
+            totalPages: Math.ceil(total / limit),
+            currentPage: Number(page),
+            totalItems: total,
+            success: true
+        });
+
+    } catch (error) {
+        console.error("Error fetching quicknotes:", error);
+        res.status(500).json({ message: "Failed to fetch quicknotes", success: false });
+    }
+};
+
 
 
 // Get quicknote by ID (including audio)
@@ -233,26 +283,192 @@ export const updateQuicknote = async (req, res) => {
         const { id } = req.params;
         const { notes, quicknoteType, isAppointment, centerId, userId } = req.body;
 
-        let updatedData = { notes, quicknoteType, isAppointment, centerId, userId };
-
-        // Check if audio file is included in the request
-        if (req.file) {
-            updatedData.audio = req.file.buffer;
-            updatedData.audioType = req.file.mimetype;
+        if (!notes || !quicknoteType) {
+            return res.status(400).json({ message: "Notes and quicknoteType are required", success: false });
         }
 
-        const quicknote = await Quicknote.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
-
+        const quicknote = await Quicknote.findById(id);
         if (!quicknote) {
             return res.status(404).json({ message: "Quicknote not found", success: false });
+        }
+
+        // Handle audio update
+        let audio = quicknote.audio;
+        let audioType = quicknote.audioType;
+        if (req.file) {
+            audio = req.file.buffer;
+            audioType = req.file.mimetype;
+        }
+
+        // Handle image compression
+        const compressAllImages = async (images) => {
+            if (!images || !Array.isArray(images)) return [];
+
+            return await Promise.all(
+                images.map(async (file) => {
+                    try {
+                        const compressedBuffer = await sharp(file.buffer)
+                            .resize({ width: 1600, withoutEnlargement: true })
+                            .jpeg({ quality: 95 })
+                            .toBuffer();
+                        return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+                    } catch (err) {
+                        console.error("Error compressing image:", err);
+                        return null;
+                    }
+                })
+            ).then(compressed => compressed.filter(Boolean));
+        };
+
+        const compressedImages = await compressAllImages(req.files?.images || []);
+
+        // Update fields
+        quicknote.notes = notes;
+        quicknote.quicknoteType = quicknoteType;
+        quicknote.isAppointment = isAppointment;
+        quicknote.centerId = centerId;
+        quicknote.userId = userId;
+        quicknote.audio = audio;
+        quicknote.audioType = audioType;
+        quicknote.images = compressedImages;
+
+        await quicknote.save();
+        io.emit("quickNoteAddUpdate", { success: true });
+
+        // Handle notifications again if Outside
+        if (quicknoteType === 'Outside') {
+            const firebasetokens = await FirebaseToken.find();
+            const users = await User.find();
+            const filteredUsers = users.filter(user => user.role === "Super Admin" || user.role === "Center Head");
+
+            const filterTokens = firebasetokens.filter(token =>
+                filteredUsers.some(user => user._id.toString() === token.userId.toString())
+            );
+
+            const tokens = [
+                ...new Set(
+                    filterTokens
+                        .filter(token => token.centerId.toString() === centerId.toString())
+                        .flatMap(user => [user.webToken, user.mobileToken])
+                        .filter(token => token)
+                )
+            ];
+
+            const notificationMessage = {
+                title: `Quicknote Updated, Type: ${quicknoteType}`,
+                body: `${notes}`,
+                type: "Quick Appointment",
+                date: new Date(),
+                appointmentId: quicknote._id,
+                isView: false,
+                link: "/appointment"
+            };
+
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            sevenDaysAgo.setHours(0, 0, 0, 0);
+
+            await User.updateMany(
+                {
+                    _id: { $in: filteredUsers.map(user => user._id) },
+                    $or: [
+                        { centerId: new mongoose.Types.ObjectId(centerId) },
+                        { centerId: centerId.toString() }
+                    ]
+                },
+                [
+                    {
+                        $set: {
+                            notifications: {
+                                $filter: {
+                                    input: { $ifNull: ["$notifications", []] },
+                                    as: "notif",
+                                    cond: { $gte: [{ $toDate: "$$notif.date" }, sevenDaysAgo] }
+                                }
+                            }
+                        }
+                    }
+                ]
+            );
+
+            await User.updateMany(
+                {
+                    _id: { $in: filteredUsers.map(user => user._id) },
+                    $or: [
+                        { centerId: new mongoose.Types.ObjectId(centerId) },
+                        { centerId: centerId.toString() }
+                    ]
+                },
+                {
+                    $push: { notifications: notificationMessage },
+                }
+            );
+
+            io.emit("notification", { success: true });
+
+            if (tokens.length > 0) {
+                const message = {
+                    notification: {
+                        title: notificationMessage.title,
+                        body: notificationMessage.body
+                    },
+                    data: {
+                        url: "https://console.interventionalradiology.co.in"
+                    },
+                    tokens: tokens,
+                };
+
+                admin.messaging().sendEachForMulticast(message)
+                    .then(response => {
+                        response.responses.forEach((resp, index) => {
+                            if (!resp.success) {
+                                console.error(`Error sending to token ${tokens[index]}:`, resp.error);
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error("Firebase Messaging Error:", error);
+                    });
+            }
         }
 
         res.status(200).json({ quicknote, success: true });
     } catch (error) {
         console.error("Error updating quicknote:", error);
+        res.status(500).json({ message: "Failed to update quicknote", success: false });
+    }
+};
+
+
+export const convertQuicknotetoAppointment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isAppointment } = req.body;
+
+        if (typeof isAppointment !== "boolean") {
+            return res.status(400).json({ message: "Invalid or missing isAppointment value", success: false });
+        }
+
+        const quicknote = await Quicknote.findByIdAndUpdate(
+            id,
+            { isAppointment },
+            { new: true, runValidators: true }
+        );
+
+        if (!quicknote) {
+            return res.status(404).json({ message: "Quicknote not found", success: false });
+        }
+
+        io.emit("quickNoteAddUpdate",  { success: true } );
+
+        res.status(200).json({ quicknote, success: true });
+
+    } catch (error) {
+        console.error("Error updating quicknote isAppointment:", error);
         res.status(400).json({ message: "Failed to update quicknote", success: false });
     }
 };
+
 
 // Delete quicknote
 export const deleteQuicknote = async (req, res) => {

@@ -1,15 +1,19 @@
 import { Estimate } from '../models/estimate.model.js'; // Update the path as per your project structure
 import {Appointment} from '../models/appointment.model.js' ;
+import { Patient } from '../models/patient.model.js'; 
 import sharp from 'sharp';
+import mongoose from 'mongoose';
 
 // Add a new estimate
 export const addEstimate = async (req, res) => {
     try {
-        let { estimatePlan, appointmentId, userId, centerId, followups } = req.body;
+        let { estimatePlan, appointmentId,patientId, userId, centerId, followups } = req.body;
 
         if (!estimatePlan) {
             return res.status(400).json({ message: 'Estimate plan is required', success: false });
         }
+
+        
 
         // Function to process audio (convert Base64 to Buffer)
         const processAudio = (base64Audio) => {
@@ -24,8 +28,8 @@ export const addEstimate = async (req, res) => {
             const base64Data = base64Image.split(';base64,').pop();
             const buffer = Buffer.from(base64Data, 'base64');
             const compressedBuffer = await sharp(buffer)
-                .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
-                .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+                .resize({ width: 1600, withoutEnlargement: true }) // resize only if larger
+                .jpeg({ quality: 95 }) // higher quality
                 .toBuffer();
             return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
         };
@@ -71,7 +75,7 @@ export const addEstimate = async (req, res) => {
         estimatePlan = await processEstimatePlan(estimatePlan);
 
         // Save to MongoDB
-        const estimate = new Estimate({ estimatePlan, appointmentId, userId, centerId, followups });
+        const estimate = new Estimate({ estimatePlan, appointmentId,patientId, userId, centerId, followups });
         await estimate.save();
 
         res.status(201).json({ estimate, success: true });
@@ -90,15 +94,24 @@ export const getEstimates = async (req, res) => {
         if (!estimates ) {
             return res.status(404).json({ message: 'No estimates found', success: false });
         }
-        const enhancedEstimates = await Promise.all(
-                            estimates.map(async (estimate) => {
-                                if (estimate.appointmentId) {
-                                    const appointment = await Appointment.findOne({ _id: estimate.appointmentId });
-                                    return { ...estimate.toObject(), appointment }; // Convert Mongoose document to plain object
-                                }
-                                return estimate.toObject(); 
-                            })
-                        );
+         const enhancedEstimates = await Promise.all(
+            estimates.map(async (estimate) => {
+                const estimateObj = estimate.toObject();
+
+                if (estimate.appointmentId) {
+                    const appointment = await Appointment.findById(estimate.appointmentId);
+                    estimateObj.appointment = appointment;
+                }
+
+                if (estimate.patientId) {
+                    const patient = await Patient.findById(estimate.patientId);
+                    estimateObj.patient = patient;
+                }
+
+                return estimateObj;
+            })
+        );
+
                         const reversedestimates = enhancedEstimates.reverse();
                         const page = parseInt(req.query.page) || 1;
                 
@@ -124,6 +137,124 @@ export const getEstimates = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch estimates', success: false });
     }
 };
+export const getPaginatedEstimates = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const search = req.query.search || "";
+    const status = req.query.status || "";
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // Search IDs
+    let patientIds = [];
+    let appointmentIds = [];
+
+    if (search) {
+      const matchedPatients = await Patient.find({
+        patientName: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      patientIds = matchedPatients.map(p => p._id);
+
+      const matchedAppointments = await Appointment.find({
+        title: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      appointmentIds = matchedAppointments.map(a => a._id);
+    }
+
+    // Build aggregation pipeline
+    const matchStage = {
+      centerId: new mongoose.Types.ObjectId(id),
+    };
+
+
+    if (search && (patientIds.length || appointmentIds.length)) {
+      matchStage.$or = [
+        ...(patientIds.length ? [{ patientId: { $in: patientIds } }] : []),
+        ...(appointmentIds.length ? [{ appointmentId: { $in: appointmentIds } }] : []),
+      ];
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      ...(status
+        ? [
+            {
+              $addFields: {
+                lastFollowup: { $arrayElemAt: ["$followups", -1] },
+              },
+            },
+            {
+              $match: {
+                "lastFollowup.followStatus": { $eq: status },
+              },
+            },
+          ]
+        : []),
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ];
+
+    const [totalEstimatesResult] = await Estimate.aggregate([
+      { $match: matchStage },
+      ...(status
+        ? [
+            {
+              $addFields: {
+                lastFollowup: { $arrayElemAt: ["$followups", -1] },
+              },
+            },
+            {
+              $match: {
+                "lastFollowup.followStatus": { $eq: status },
+              },
+            },
+          ]
+        : []),
+      { $count: "total" },
+    ]);
+
+    const totalEstimates = totalEstimatesResult?.total || 0;
+
+    const estimates = await Estimate.aggregate(pipeline);
+
+    // Enrich with patient/appointment names
+    const enhancedEstimates = await Promise.all(
+      estimates.map(async (estimate) => {
+        if (estimate.appointmentId) {
+          const appointment = await Appointment.findById(estimate.appointmentId);
+          estimate.patientName = appointment?.title || null;
+        }
+
+        if (estimate.patientId) {
+          const patient = await Patient.findById(estimate.patientId);
+          estimate.patientName = patient?.patientName || null;
+        }
+
+        return estimate;
+      })
+    );
+
+    res.status(200).json({
+      estimates: enhancedEstimates,
+      success: true,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalEstimates / limit),
+        totalEstimates,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching estimates:", error);
+    res.status(500).json({ message: "Failed to fetch estimates", success: false });
+  }
+};
+
+
+
 
 // Get estimate by ID
 export const getEstimateById = async (req, res) => {
@@ -140,11 +271,22 @@ export const getEstimateById = async (req, res) => {
     }
 };
 
+export const getEstimatesByPatientId = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const estimatesCount = await Estimate.countDocuments({patientId:id});
+        res.status(200).json({ estimatesCount, success: true });
+    } catch (error) {
+        console.error('Error fetching estimates:', error);
+        res.status(500).json({ message: 'Failed to fetch estimates', success: false });
+    }
+};
+
 // Update estimate by ID
 export const updateEstimate = async (req, res) => {
     try {
         const { id } = req.params;
-        let { estimatePlan,appointmentId, userId, centerId ,followups} = req.body;
+        let { estimatePlan,appointmentId,patientId, userId, centerId ,followups} = req.body;
 
         // Function to process audio (convert Base64 to Buffer)
         const processAudio = (base64Audio) => {
@@ -158,8 +300,8 @@ export const updateEstimate = async (req, res) => {
             const base64Data = base64Image.split(';base64,').pop();
             const buffer = Buffer.from(base64Data, 'base64');
             const compressedBuffer = await sharp(buffer)
-                .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
-                .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+                .resize({ width: 1600, withoutEnlargement: true }) // resize only if larger
+                .jpeg({ quality: 95 }) // higher quality
                 .toBuffer();
             return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
         };
@@ -205,7 +347,7 @@ export const updateEstimate = async (req, res) => {
         estimatePlan = await processEstimatePlan(estimatePlan);
         
  
-        const updatedData = { estimatePlan ,appointmentId, ...userId && { userId }, ...centerId && { centerId },followups };
+        const updatedData = { estimatePlan ,appointmentId,patientId, ...userId && { userId }, ...centerId && { centerId },followups };
         const estimate = await Estimate.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
 
         if (!estimate) {

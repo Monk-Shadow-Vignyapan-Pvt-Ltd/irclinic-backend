@@ -47,6 +47,10 @@ const appointmentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: false,
     },
+    quicknoteId : {
+      type: mongoose.Schema.Types.ObjectId,
+      required: false,
+    },
     isCancelled:{
       type: Boolean,
       required: false,

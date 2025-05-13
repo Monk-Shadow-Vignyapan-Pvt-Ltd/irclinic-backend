@@ -29,9 +29,9 @@ export const addQuicknote = async (req, res) => {
         // Handle file upload (audio)
         let audio = null;
         let audioType = null;
-        if (req.file) {
-            audio = req.file.buffer; // Store audio as Buffer
-            audioType = req.file.mimetype; // Store MIME type
+        if (req.files?.audio?.length > 0) {
+            audio = req.files.audio[0].buffer;
+            audioType = req.files.audio[0].mimetype;
         }
 
         const compressAllImages = async (images) => {
@@ -287,20 +287,17 @@ export const updateQuicknote = async (req, res) => {
             return res.status(400).json({ message: "Notes and quicknoteType are required", success: false });
         }
 
-        const quicknote = await Quicknote.findById(id);
-        if (!quicknote) {
-            return res.status(404).json({ message: "Quicknote not found", success: false });
-        }
+       // const quicknote = await Quicknote.findById(id);
+      
 
         // Handle audio update
-        let audio = quicknote.audio;
-        let audioType = quicknote.audioType;
-        if (req.file) {
-            audio = req.file.buffer;
-            audioType = req.file.mimetype;
+         let audio = null;
+        let audioType = null;
+        if (req.files?.audio?.length > 0) {
+            audio = req.files.audio[0].buffer;
+            audioType = req.files.audio[0].mimetype;
         }
 
-        // Handle image compression
         const compressAllImages = async (images) => {
             if (!images || !Array.isArray(images)) return [];
 
@@ -308,8 +305,8 @@ export const updateQuicknote = async (req, res) => {
                 images.map(async (file) => {
                     try {
                         const compressedBuffer = await sharp(file.buffer)
-                            .resize({ width: 1600, withoutEnlargement: true })
-                            .jpeg({ quality: 95 })
+                            .resize({ width: 1600, withoutEnlargement: true }) // resize only if larger
+                            .jpeg({ quality: 95 }) // higher quality
                             .toBuffer();
                         return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
                     } catch (err) {
@@ -319,20 +316,19 @@ export const updateQuicknote = async (req, res) => {
                 })
             ).then(compressed => compressed.filter(Boolean));
         };
+          
+          const compressedImages = await compressAllImages(req.files?.images || []);
 
-        const compressedImages = await compressAllImages(req.files?.images || []);
-
-        // Update fields
-        quicknote.notes = notes;
-        quicknote.quicknoteType = quicknoteType;
-        quicknote.isAppointment = isAppointment;
-        quicknote.centerId = centerId;
-        quicknote.userId = userId;
-        quicknote.audio = audio;
-        quicknote.audioType = audioType;
-        quicknote.images = compressedImages;
-
-        await quicknote.save();
+         const quicknote = await Quicknote.findByIdAndUpdate(id, {
+            notes,
+            quicknoteType,
+            isAppointment,
+            centerId,
+            userId,
+            audio,
+            images:compressedImages,
+            audioType,
+        }, { new: true, runValidators: true });
         io.emit("quickNoteAddUpdate", { success: true });
 
         // Handle notifications again if Outside

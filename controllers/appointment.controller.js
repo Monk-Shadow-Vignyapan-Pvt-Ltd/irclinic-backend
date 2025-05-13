@@ -14,6 +14,7 @@ import { Procedure } from '../models/procedure.model.js';
 import axios from "axios";
 import cron from "node-cron";
 import moment from "moment";
+import { Quicknote } from "../models/quicknote.model.js";
 
 
 dotenv.config();
@@ -29,7 +30,7 @@ if (!admin.apps.length) {
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp } = req.body;
+        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -46,7 +47,7 @@ export const addAppointment = async (req, res) => {
             start,
             end,
             reason,
-            reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,
+            reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId,
             isCancelled, cancelby, cancelReason,
             userId: userId || null,
             status: status || "Scheduled",
@@ -226,12 +227,43 @@ export const getAppointmentsByPatientId = async (req, res) => {
                     const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
                     const invoicePlan = invoice.invoicePlan;
                     const invoiceDate = invoice.createdAt;
-                    return { ...appointment.toObject(), invoicePlan,invoiceDate }; // Convert Mongoose document to plain object
+                     if(appointment.quicknoteId){
+                    const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
+                    const quicknoteWithAudio = {
+                        ...qn._doc,
+                        audio: qn.audio ? qn.audio.toString("base64") : null,
+                    };
+                    const quicknoteDate = qn.createdAt;
+                    return { ...appointment.toObject(),invoicePlan,invoiceDate , quicknote:quicknoteWithAudio,quicknoteDate }; // Convert Mongoose document to plain object
+                    }else{
+                       return { ...appointment.toObject(), invoicePlan,invoiceDate }; // Convert Mongoose document to plain object
+                    }
+                   
                 } else if (appointment.estimateId) {
                     const estimate = await Estimate.findOne({ _id: appointment.estimateId });
                     const estimatePlan = estimate.estimatePlan;
                     const estimateDate = estimate.createdAt;
-                    return { ...appointment.toObject(), estimatePlan,estimateDate }; // Convert Mongoose document to plain object
+                    if(appointment.quicknoteId){
+                    const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
+                    const quicknoteWithAudio = {
+                        ...qn._doc,
+                        audio: qn.audio ? qn.audio.toString("base64") : null,
+                    };
+                    const quicknoteDate = qn.createdAt;
+                    return { ...appointment.toObject(),estimatePlan,estimateDate  , quicknote:quicknoteWithAudio,quicknoteDate }; // Convert Mongoose document to plain object
+                    }else{
+                       return { ...appointment.toObject(), estimatePlan,estimateDate }; // Convert Mongoose document to plain object
+                    }
+                   
+                    
+                } else if(appointment.quicknoteId){
+                    const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
+                    const quicknoteWithAudio = {
+                        ...qn._doc,
+                        audio: qn.audio ? qn.audio.toString("base64") : null,
+                    };
+                    const quicknoteDate = qn.createdAt;
+                    return { ...appointment.toObject(), quicknote:quicknoteWithAudio,quicknoteDate }; // Convert Mongoose document to plain object
                 }
                 return appointment.toObject(); // If no invoiceId, return appointment as-is
             })

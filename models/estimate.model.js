@@ -7,6 +7,10 @@ const estimateSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           required: false,
         },
+    patientId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: false,
+        },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

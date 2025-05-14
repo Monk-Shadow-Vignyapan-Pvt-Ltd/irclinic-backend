@@ -20,7 +20,7 @@ if (!admin.apps.length) {
 
 export const addVendorInvoice = async (req, res) => {
   try {
-    const { invoiceImage, approveStatus, vendorId, userId, centerId } = req.body;
+    const { invoiceImage, approveStatus, vendorId,totalAmount,stockoutIds, userId, centerId } = req.body;
 
     if (!invoiceImage || !invoiceImage.startsWith('data:image')) {
       return res.status(400).json({ message: 'Invalid image data', success: false });
@@ -40,14 +40,15 @@ export const addVendorInvoice = async (req, res) => {
     let compressedBuffer;
 
     // Use sharp to compress and preserve format
-    const image = sharp(buffer).resize(800, 600, { fit: 'inside' });
+    
+    const image = sharp(buffer).resize({ width: 1600, withoutEnlargement: true }) ;
 
     if (format === 'jpeg' || format === 'jpg') {
-      compressedBuffer = await image.jpeg({ quality: 80 }).toBuffer();
+      compressedBuffer = await image.jpeg({ quality: 95 }).toBuffer();
     } else if (format === 'png') {
-      compressedBuffer = await image.png({ compressionLevel: 8 }).toBuffer();
+      compressedBuffer = await image.png({ compressionLevel: 9 }).toBuffer();
     } else if (format === 'webp') {
-      compressedBuffer = await image.webp({ quality: 80 }).toBuffer();
+      compressedBuffer = await image.webp({ quality: 95 }).toBuffer();
     } else {
       return res.status(400).json({ message: 'Unsupported image format', success: false });
     }
@@ -57,6 +58,7 @@ export const addVendorInvoice = async (req, res) => {
     const newInvoice = new VendorInvoice({
       invoiceImage: compressedBase64,
       approveStatus,
+      totalAmount,stockoutIds,
       vendorId,
       userId,
       centerId,
@@ -81,8 +83,8 @@ export const addVendorInvoice = async (req, res) => {
                       ];
     
                     const notificationMessage = {
-                               title: `New Invoice Created By Vendor`,
-                               body: ` ${users.find(user => user._id.toString() === userId.toString()).username}`,
+                               title: `New Invoice Created By Vendor : ${users.find(user => user._id.toString() === userId.toString()).username}`,
+                               body: `Total : ${totalAmount}`,
                                 type: "Vendor Invoices",
                                 date: new Date(),
                                 invoiceId: newInvoice._id,
@@ -265,7 +267,7 @@ export const getVendorInvoicesByVendorId = async (req, res) => {
 export const updateVendorInvoice = async (req, res) => {
   try {
     const { id } = req.params;
-    const { invoiceImage, approveStatus, vendorId, userId, centerId } = req.body;
+    const { invoiceImage, approveStatus,totalAmount,stockoutIds, vendorId, userId, centerId } = req.body;
     if (!invoiceImage || !invoiceImage.startsWith('data:image')) {
         return res.status(400).json({ message: 'Invalid image data', success: false });
       }
@@ -284,23 +286,24 @@ export const updateVendorInvoice = async (req, res) => {
       let compressedBuffer;
   
       // Use sharp to compress and preserve format
-      const image = sharp(buffer).resize(800, 600, { fit: 'inside' });
-  
-      if (format === 'jpeg' || format === 'jpg') {
-        compressedBuffer = await image.jpeg({ quality: 80 }).toBuffer();
-      } else if (format === 'png') {
-        compressedBuffer = await image.png({ compressionLevel: 8 }).toBuffer();
-      } else if (format === 'webp') {
-        compressedBuffer = await image.webp({ quality: 80 }).toBuffer();
-      } else {
-        return res.status(400).json({ message: 'Unsupported image format', success: false });
-      }
+      const image = sharp(buffer).resize({ width: 1600, withoutEnlargement: true }) ;
+
+    if (format === 'jpeg' || format === 'jpg') {
+      compressedBuffer = await image.jpeg({ quality: 95 }).toBuffer();
+    } else if (format === 'png') {
+      compressedBuffer = await image.png({ compressionLevel: 9 }).toBuffer();
+    } else if (format === 'webp') {
+      compressedBuffer = await image.webp({ quality: 95 }).toBuffer();
+    } else {
+      return res.status(400).json({ message: 'Unsupported image format', success: false });
+    }
   
       const compressedBase64 = `data:${mimeType};base64,${compressedBuffer.toString('base64')}`;
 
     const updatedData = {
       invoiceImage:compressedBase64,
       approveStatus,
+      totalAmount,stockoutIds,
       vendorId,
       userId,
       centerId,
@@ -332,8 +335,8 @@ export const updateVendorInvoice = async (req, res) => {
                       ];
     
                     const notificationMessage = {
-                               title: `Invoice Updated By Vendor`,
-                               body: ` ${users.find(user => user._id.toString() === userId.toString()).username}`,
+                               title: `Invoice Updated By Vendor : ${users.find(user => user._id.toString() === userId.toString()).username}`,
+                               body: `Total : ${totalAmount}`,
                                 type: "Vendor Invoices",
                                 date: new Date(),
                                 invoiceId: updatedInvoice._id,

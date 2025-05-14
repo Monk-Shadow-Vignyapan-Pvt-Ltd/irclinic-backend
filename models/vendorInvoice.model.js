@@ -8,6 +8,12 @@ const vendorInvoiceSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         required: true,
       },
+    totalAmount:{
+       type: Number, required: true
+    },
+    stockoutIds:{
+      type: mongoose.Schema.Types.Mixed, required: false
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

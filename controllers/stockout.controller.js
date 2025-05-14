@@ -234,12 +234,42 @@ export const getStockoutsByVendorId = async (req, res) => {
     }
 };
 
+export const getAllStockoutsByVendorId = async (req, res) => {
+    try {
+        const { id: vendorId } = req.params;
+        const { centerId, } = req.query;
+
+        if (!centerId) {
+            return res.status(400).json({ message: 'centerId is required', success: false });
+        }
+
+        // Find matching stockouts
+        const stockouts = await Stockout.find({
+            vendorId,
+            centerId,
+            $or: [
+                { invoiceId: { $exists: false } },
+                { invoiceId: null }
+            ]
+            });
+
+       
+
+        return res.status(200).json({
+            stockouts
+        });
+    } catch (error) {
+        console.error('Error fetching stockouts:', error);
+        res.status(500).json({ message: 'Failed to fetch stockouts', success: false });
+    }
+};
+
 
 
 export const updateStockout = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others, centerId ,appointmentType,hospitalId} = req.body;
+        const { vendorId,inventoryId, totalStock,others,invoiceId, centerId ,appointmentType,hospitalId} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -247,6 +277,7 @@ export const updateStockout = async (req, res) => {
             ...(inventoryId && { inventoryId }),
              totalStock,
              others ,
+             invoiceId,
             ...(centerId && { centerId }),
             appointmentType,hospitalId
         };

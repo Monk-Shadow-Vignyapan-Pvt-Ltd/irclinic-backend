@@ -351,7 +351,7 @@ export const updateQuicknote = async (req, res) => {
             ];
 
             const notificationMessage = {
-                title: `Quicknote Updated, Type: ${quicknoteType}`,
+                title: `Quick Appointment Updated, Type: ${quicknoteType}`,
                 body: `${notes}`,
                 type: "Quick Appointment",
                 date: new Date(),

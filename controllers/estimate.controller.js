@@ -395,7 +395,7 @@ export const dashboardEstimates = async (req, res) => {
 
                 if (estimate.patientId) {
                     const patient = await Patient.findById(estimate.patientId);
-                    estimate.patientName = patient?.patientName || null;
+                    estimateObj.patientName = patient?.patientName || null;
                 }
 
                 return estimateObj;

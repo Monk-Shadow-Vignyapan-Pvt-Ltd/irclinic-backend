@@ -380,7 +380,7 @@ export const dashboardEstimates = async (req, res) => {
     try {
         const { id } = req.params;
         const totalEstimates = await Estimate.countDocuments({ centerId: id });
-        const lastFiveEstimates = await Estimate.find({ centerId: id }, { _id: 1 ,appointmentId:1,estimatePlan:1,patientId:1})
+        const lastFiveEstimates = await Estimate.find({ centerId: id })
             .sort({ createdAt: -1 })
             .limit(5);
 

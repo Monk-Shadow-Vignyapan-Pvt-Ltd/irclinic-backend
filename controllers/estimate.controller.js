@@ -384,21 +384,23 @@ export const dashboardEstimates = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5);
 
-        const enhancedEstimates = await Promise.all(
-      lastFiveEstimates.map(async (estimate) => {
-        if (estimate.appointmentId) {
-          const appointment = await Appointment.findById(estimate.appointmentId);
-          estimate.patientName = appointment?.title || null;
-        }
+            const enhancedEstimates = await Promise.all(
+            lastFiveEstimates.map(async (estimate) => {
+                const estimateObj = estimate.toObject();
 
-        if (estimate.patientId) {
-          const patient = await Patient.findById(estimate.patientId);
-          estimate.patientName = patient?.patientName || null;
-        }
+                if (estimate.appointmentId) {
+                    const appointment = await Appointment.findById(estimate.appointmentId);
+                    estimateObj.patientName = appointment?.title || null;
+                }
 
-        return estimate;
-      })
-    );
+                if (estimate.patientId) {
+                    const patient = await Patient.findById(estimate.patientId);
+                    estimate.patientName = patient?.patientName || null;
+                }
+
+                return estimateObj;
+            })
+        );
 
         res.status(200).json({ totalEstimates, estimates: enhancedEstimates });
     } catch (error) {

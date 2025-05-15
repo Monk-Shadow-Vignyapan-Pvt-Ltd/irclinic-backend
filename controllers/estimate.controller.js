@@ -385,14 +385,20 @@ export const dashboardEstimates = async (req, res) => {
             .limit(5);
 
         const enhancedEstimates = await Promise.all(
-            lastFiveEstimates.map(async (estimate) => {
-                    if (estimate.appointmentId) {
-                        const appointment = await Appointment.findOne({ _id: estimate.appointmentId });
-                        return { ...estimate.toObject(), appointment }; // Convert Mongoose document to plain object
-                    }
-                    return estimate.toObject(); 
-                })
-            );
+      lastFiveEstimates.map(async (estimate) => {
+        if (estimate.appointmentId) {
+          const appointment = await Appointment.findById(estimate.appointmentId);
+          estimate.patientName = appointment?.title || null;
+        }
+
+        if (estimate.patientId) {
+          const patient = await Patient.findById(estimate.patientId);
+          estimate.patientName = patient?.patientName || null;
+        }
+
+        return estimate;
+      })
+    );
 
         res.status(200).json({ totalEstimates, estimates: enhancedEstimates });
     } catch (error) {

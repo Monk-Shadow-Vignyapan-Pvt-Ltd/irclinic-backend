@@ -7,10 +7,10 @@ const diseaseSchema = new mongoose.Schema({
       type: String, // Store image as base64 or use a URL reference
       required: false,
     },
-    diseaseImage: {
-        type: String, // Store image as base64 or use a URL reference
-        required: true,
-      },
+    // diseaseImage: {
+    //     type: String, // Store image as base64 or use a URL reference
+    //     required: true,
+    //   },
       diseaseURL: { type: String, required: true ,unique: true },
        oldUrls: { 
 
@@ -25,10 +25,10 @@ const diseaseSchema = new mongoose.Schema({
          type: String,
          required: false,
        },
-    rank:{
-      type: String, // Store image as base64 or use a URL reference
-      required: true,    
-    },
+    // rank:{
+    //   type: String, // Store image as base64 or use a URL reference
+    //   required: true,    
+    // },
     userId:{
         type: mongoose.Schema.Types.ObjectId, 
           required:false

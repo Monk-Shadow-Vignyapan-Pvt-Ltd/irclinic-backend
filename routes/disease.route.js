@@ -8,7 +8,7 @@ import {
   getDiseaseByUrl,
   deleteDisease,
   updateDisease,
-  updateDiseaseRank,
+  // updateDiseaseRank,
 } from "../controllers/disease.controller.js";
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.route("/getDiseasesFrontend").get(getDiseasesFrontend);
 router.route("/getDiseaseName").get(getDiseaseName);
 router.route("/getDiseaseById/:id").put(getDiseaseById);
 router.route("/updateDisease/:id").post(updateDisease);
-router.route("/updateDiseaseRank").post(updateDiseaseRank);
+// router.route("/updateDiseaseRank").post(updateDiseaseRank);
 router.route("/deleteDisease/:id").delete(deleteDisease);
 
 export default router;

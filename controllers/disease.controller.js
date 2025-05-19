@@ -10,45 +10,45 @@ export const addDisease = async (req, res) => {
       diseaseName,
       diseaseDescription,
       parentID,
-      rank,
-      imageBase64,
+      // rank,
+      // imageBase64,
       userId,
       diseaseURL,
       seoTitle,
       seoDescription,
     } = req.body;
     // Validate base64 image data
-    if (!imageBase64 || !imageBase64.startsWith("data:image")) {
-      return res
-        .status(400)
-        .json({ message: "Invalid image data", success: false });
-    }
+    // if (!imageBase64 || !imageBase64.startsWith("data:image")) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "Invalid image data", success: false });
+    // }
 
-    const base64Data = imageBase64.split(";base64,").pop();
-    const buffer = Buffer.from(base64Data, "base64");
+    // const base64Data = imageBase64.split(";base64,").pop();
+    // const buffer = Buffer.from(base64Data, "base64");
 
     // Resize and compress the image using sharp
-    const compressedBuffer = await sharp(buffer)
-      .resize(800, 600, { fit: "inside" }) // Resize to 800x600 max, maintaining aspect ratio
-      .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
-      .toBuffer();
+    // const compressedBuffer = await sharp(buffer)
+    //   .resize(800, 600, { fit: "inside" }) // Resize to 800x600 max, maintaining aspect ratio
+    //   .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+    //   .toBuffer();
 
-    // Convert back to Base64 for storage (optional)
-    const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString(
-      "base64"
-    )}`;
+    // // Convert back to Base64 for storage (optional)
+    // const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString(
+    //   "base64"
+    // )}`;
 
     // Save the disease details in MongoDB
     const disease = new Disease({
       diseaseName: req.body.name,
-      diseaseImage: compressedBase64, // Store the base64 string in MongoDB
+      // diseaseImage: compressedBase64, // Store the base64 string in MongoDB
       diseaseDescription: req.body.description,
       parentID: req.body.parentID,
       userId: req.body.userId,
       diseaseURL,
       seoTitle,
       seoDescription,
-      rank,
+      // rank,
     });
 
     await disease.save();
@@ -64,7 +64,7 @@ export const addDisease = async (req, res) => {
 // Get all disease
 export const getDiseases = async (req, res) => {
   const disease = await Disease.find().select(
-    "diseaseName diseaseDescription parentID rank diseaseImage diseaseURL seoTitle seoDescription"
+    "diseaseName diseaseDescription parentID  diseaseURL seoTitle seoDescription"
   );
 
   try {
@@ -112,7 +112,7 @@ export const getDiseasesFrontend = async (req, res) => {
           diseaseName: 1,
           diseaseDescription: 1,
           parentID: 1,
-          diseaseImage: 1,
+          // diseaseImage: 1,
           diseaseURL: 1,
           seoTitle: 1,
           seoDescription: 1,
@@ -201,8 +201,8 @@ export const updateDisease = async (req, res) => {
     const { id } = req.params;
     const {
       diseaseName,
-      imageBase64,
-      rank,
+      // imageBase64,
+      // rank,
       diseaseDescription,
       parentID,
       userId,
@@ -229,37 +229,37 @@ export const updateDisease = async (req, res) => {
     }
 
     // Validate base64 image data
-    if (imageBase64 && !imageBase64.startsWith("data:image")) {
-      return res
-        .status(400)
-        .json({ message: "Invalid image data", success: false });
-    }
+    // if (imageBase64 && !imageBase64.startsWith("data:image")) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "Invalid image data", success: false });
+    // }
 
-    const base64Data = imageBase64.split(";base64,").pop();
-    const buffer = Buffer.from(base64Data, "base64");
+    // const base64Data = imageBase64.split(";base64,").pop();
+    // const buffer = Buffer.from(base64Data, "base64");
 
     // Resize and compress the image using sharp
-    const compressedBuffer = await sharp(buffer)
-      .resize(800, 600, { fit: "inside" }) // Resize to 800x600 max, maintaining aspect ratio
-      .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
-      .toBuffer();
+    // const compressedBuffer = await sharp(buffer)
+    //   .resize(800, 600, { fit: "inside" }) // Resize to 800x600 max, maintaining aspect ratio
+    //   .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+    //   .toBuffer();
 
     // Convert back to Base64 for storage (optional)
-    const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString(
-      "base64"
-    )}`;
+    // const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString(
+    //   "base64"
+    // )}`;
 
     const updatedData = {
       diseaseName: req.body.name,
       diseaseDescription: req.body.description,
       userId: req.body.userId,
       parentID: req.body.parentID,
-      rank,
+      // rank,
       diseaseURL,
       oldUrls,
       seoTitle,
       seoDescription,
-      ...(compressedBase64 && { diseaseImage: compressedBase64 }), // Only update image if new image is provided
+      // ...(compressedBase64 && { diseaseImage: compressedBase64 }), // Only update image if new image is provided
     };
 
     const disease = await Disease.findByIdAndUpdate(id, updatedData, {
@@ -295,52 +295,52 @@ export const deleteDisease = async (req, res) => {
   }
 };
 
-export const updateDiseaseRank = async (req, res) => {
-  try {
-    const { id, direction } = req.body; // direction: 'up' or 'down'
+// export const updateDiseaseRank = async (req, res) => {
+//   try {
+//     const { id, direction } = req.body; // direction: 'up' or 'down'
 
-    const disease = await Disease.findById(id);
-    if (!disease) {
-      return res
-        .status(404)
-        .json({ message: "disease not found", success: false });
-    }
+//     const disease = await Disease.findById(id);
+//     if (!disease) {
+//       return res
+//         .status(404)
+//         .json({ message: "disease not found", success: false });
+//     }
 
-    // Determine the target rank for the move
-    let targetRank;
-    if (direction === "up") {
-      targetRank = Number(disease.rank) - 1;
-    } else if (direction === "down") {
-      targetRank = Number(disease.rank) + 1;
-    }
+//     // Determine the target rank for the move
+//     let targetRank;
+//     if (direction === "up") {
+//       targetRank = Number(disease.rank) - 1;
+//     } else if (direction === "down") {
+//       targetRank = Number(disease.rank) + 1;
+//     }
 
-    // Get the disease to swap ranks with based on the target rank
-    const targetDisease = await Disease.findOne({ rank: targetRank });
+//     // Get the disease to swap ranks with based on the target rank
+//     const targetDisease = await Disease.findOne({ rank: targetRank });
 
-    // Log if no disease is found for the target rank
-    if (!targetDisease) {
-      return res.status(400).json({
-        message: "Cannot move further in the specified direction",
-        success: false,
-      });
-    }
+//     // Log if no disease is found for the target rank
+//     if (!targetDisease) {
+//       return res.status(400).json({
+//         message: "Cannot move further in the specified direction",
+//         success: false,
+//       });
+//     }
 
-    // Swap the ranks between the two disease
-    [disease.rank, targetDisease.rank] = [targetDisease.rank, disease.rank];
+//     // Swap the ranks between the two disease
+//     [disease.rank, targetDisease.rank] = [targetDisease.rank, disease.rank];
 
-    // Save both disease with the new ranks
-    await disease.save();
-    await targetDisease.save();
+//     // Save both disease with the new ranks
+//     await disease.save();
+//     await targetDisease.save();
 
-    res
-      .status(200)
-      .json({ message: "Rank updated successfully", success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Error updating rank",
-      success: false,
-      error: error.message,
-    });
-  }
-};
+//     res
+//       .status(200)
+//       .json({ message: "Rank updated successfully", success: true });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       message: "Error updating rank",
+//       success: false,
+//       error: error.message,
+//     });
+//   }
+// };

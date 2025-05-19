@@ -63,36 +63,20 @@ export const addDisease = async (req, res) => {
 
 // Get all disease
 export const getDiseases = async (req, res) => {
-  const disease = await Disease.find().select(
+  const diseases = await Disease.find().select(
     "diseaseName diseaseDescription parentID  diseaseURL seoTitle seoDescription"
   );
 
   try {
-    if (!disease) {
+    if (!diseases) {
       return res
         .status(404)
-        .json({ message: "No disease found", success: false });
+        .json({ message: "No diseases found", success: false });
     }
-    const reversedDisease = disease.reverse();
-    const page = parseInt(req.query.page) || 1;
-
-    // Define the number of items per page
-    const limit = 12;
-
-    // Calculate the start and end indices for pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-
-    // Paginate the reversed movies array
-    const paginatedDisease = reversedDisease.slice(startIndex, endIndex);
+    
     res.status(200).json({
-      diseases: paginatedDisease,
-      success: true,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(disease.length / limit),
-        totaldisease: disease.length,
-      },
+      diseases: diseases,
+      success: true
     });
   } catch (error) {
     console.log(error);

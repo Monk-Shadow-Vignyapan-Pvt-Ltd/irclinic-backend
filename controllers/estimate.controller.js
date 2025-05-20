@@ -170,11 +170,22 @@ export const getPaginatedEstimates = async (req, res) => {
     };
 
 
-    if (search && (patientIds.length || appointmentIds.length)) {
-      matchStage.$or = [
-        ...(patientIds.length ? [{ patientId: { $in: patientIds } }] : []),
-        ...(appointmentIds.length ? [{ appointmentId: { $in: appointmentIds } }] : []),
-      ];
+    const orConditions = [];
+
+    if (patientIds.length) {
+    orConditions.push({ patientId: { $in: patientIds } });
+    }
+    if (appointmentIds.length) {
+    orConditions.push({ appointmentId: { $in: appointmentIds } });
+    }
+    if (search) {
+    orConditions.push({
+        "estimatePlan.hospital.name": { $regex: search, $options: "i" },
+    });
+    }
+
+    if (orConditions.length) {
+    matchStage.$or = orConditions;
     }
 
     const pipeline = [

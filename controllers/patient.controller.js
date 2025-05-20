@@ -1,4 +1,6 @@
 import { Patient } from '../models/patient.model.js'; // Update the path as per your project structure
+import { Appointment } from '../models/appointment.model.js';
+import { Estimate } from '../models/estimate.model.js';
 
 // Add a new patient
 export const addPatient = async (req, res) => {
@@ -249,17 +251,48 @@ export const searchOPDPatients = async (req, res) => {
             ]
         });
 
-        if (!patients) {
+        const estimates = await Estimate.find({
+            centerId: id,
+            $or: [
+                { "estimatePlan.hospital.name": regex }, 
+            ]
+        });
+
+        // Extract all estimateId values
+        const estimateIds = estimates.map(est => est._id);
+
+        // If no estimates found, short-circuit
+        if (!estimateIds.length) {
+            return res.status(404).json({ message: 'No matching estimates found', success: false });
+        }
+
+        // Find appointments with those estimateIds
+        const appointments = await Appointment.find({
+            centerId: id,
+            estimateId: { $in: estimateIds }
+        });
+
+        const patientIds = appointments.map(apt => apt.patientId);
+
+         const hospitalPatients = await Patient.find({
+            centerId: id,
+            patientType:"OPD",
+            _id: { $in: patientIds }
+        });
+
+        const filterPatients = [...patients,...hospitalPatients];
+
+        if (!filterPatients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
 
         return res.status(200).json({
-            patients: patients,
+            patients: filterPatients,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(patients.length / 12),
-                totalPatients: patients.length,
+                totalPages: Math.ceil(filterPatients.length / 12),
+                totalPatients: filterPatients.length,
             },
         });
     } catch (error) {
@@ -291,20 +324,52 @@ export const searchOutSidePatients = async (req, res) => {
                 { address: regex },
                 { "reference.label": regex },
                 { "area.label": regex },
+                { "visitHistory.hospital.label": regex }, 
             ]
         });
 
-        if (!patients) {
+        const estimates = await Estimate.find({
+            centerId: id,
+            $or: [
+                { "estimatePlan.hospital.name": regex }, 
+            ]
+        });
+
+        // Extract all estimateId values
+        const estimateIds = estimates.map(est => est._id);
+
+        // If no estimates found, short-circuit
+        if (!estimateIds.length) {
+            return res.status(404).json({ message: 'No matching estimates found', success: false });
+        }
+
+        // Find appointments with those estimateIds
+        const appointments = await Appointment.find({
+            centerId: id,
+            estimateId: { $in: estimateIds }
+        });
+
+        const patientIds = appointments.map(apt => apt.patientId);
+
+         const hospitalPatients = await Patient.find({
+            centerId: id,
+            patientType:"Outside",
+            _id: { $in: patientIds }
+        });
+
+        const filterPatients = [...patients,...hospitalPatients];
+
+        if (!filterPatients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
 
         return res.status(200).json({
-            patients: patients,
+            patients: filterPatients,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(patients.length / 12),
-                totalPatients: patients.length,
+                totalPages: Math.ceil(filterPatients.length / 12),
+                totalPatients: filterPatients.length,
             },
         });
     } catch (error) {

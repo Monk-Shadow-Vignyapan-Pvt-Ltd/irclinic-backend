@@ -262,9 +262,9 @@ export const searchOPDPatients = async (req, res) => {
         const estimateIds = estimates.map(est => est._id);
 
         // If no estimates found, short-circuit
-        if (!estimateIds.length) {
-            return res.status(404).json({ message: 'No matching estimates found', success: false });
-        }
+        // if (!estimateIds.length) {
+        //     return res.status(404).json({ message: 'No matching estimates found', success: false });
+        // }
 
         // Find appointments with those estimateIds
         const appointments = await Appointment.find({
@@ -339,9 +339,9 @@ export const searchOutSidePatients = async (req, res) => {
         const estimateIds = estimates.map(est => est._id);
 
         // If no estimates found, short-circuit
-        if (!estimateIds.length) {
-            return res.status(404).json({ message: 'No matching estimates found', success: false });
-        }
+        // if (!estimateIds.length) {
+        //     return res.status(404).json({ message: 'No matching estimates found', success: false });
+        // }
 
         // Find appointments with those estimateIds
         const appointments = await Appointment.find({

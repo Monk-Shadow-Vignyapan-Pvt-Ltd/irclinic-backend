@@ -155,45 +155,59 @@ export const dashboardInvoices = async (req, res) => {
 };
 
 export const searchInvoices = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { search } = req.query;
-        if (!search) {
-            return res.status(400).json({ message: 'Search query is required', success: false });
-        }
+  try {
+    const { id } = req.params;
+    const { search, page = 1 } = req.query;
+    const limit = 12;
+    const skip = (page - 1) * limit;
 
-        const regex = new RegExp(search, 'i'); // Case-insensitive search
-
-        const invoices = await Invoice.find(
-            {centerId: id }
-        //     {
-        //     $or: [
-        //         { invoiceName: regex },
-        //         { invoiceEmail: regex },
-        //         { invoiceAddress: regex },
-        //         { adminPhoneNo: regex },
-        //         { accountPhoneNo: regex },
-        //         { city: regex },
-        //         { state: regex }
-        //     ]
-        // }
-    );
-
-        if (!invoices) {
-            return res.status(404).json({ message: 'No invoices found', success: false });
-        }
-
-        return res.status(200).json({
-            invoices: invoices,
-            success: true,
-            pagination: {
-                currentPage: 1,
-                totalPages: Math.ceil(invoices.length / 12),
-                totalInvoices: invoices.length,
-            },
-        });
-    } catch (error) {
-        console.error('Error searching invoices:', error);
-        res.status(500).json({ message: 'Failed to search invoices', success: false });
+    if (!search) {
+      return res.status(400).json({ message: 'Search query is required', success: false });
     }
+
+    const regex = new RegExp(search, 'i');
+
+    const matchedAppointments = await Appointment.find({
+      title: { $regex: regex }
+    }).select('_id');
+
+    const appointmentIds = matchedAppointments.map(a => a._id);
+
+    const query = {
+      centerId: id,
+      $or: [
+        { appointmentId: { $in: appointmentIds } }
+      ]
+    };
+
+    const invoices = await Invoice.find(query);
+
+
+    if (!invoices) {
+      return res.status(404).json({ message: 'No invoices found', success: false });
+    }
+
+    const enhancedInvoices = await Promise.all(
+                    invoices.map(async (invoice) => {
+                        if (invoice.appointmentId) {
+                            const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
+                            return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
+                        }
+                        return invoice.toObject(); // If no invoiceId, return appointment as-is
+                    })
+                );
+
+    return res.status(200).json({
+      invoices:enhancedInvoices,
+      success: true,
+      pagination: {
+        currentPage: 1,
+        totalPages: Math.ceil(invoices.length / limit),
+        totalInvoices:invoices.length
+      }
+    });
+  } catch (error) {
+    console.error('Error searching invoices:', error);
+    res.status(500).json({ message: 'Failed to search invoices', success: false });
+  }
 };

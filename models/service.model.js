@@ -19,6 +19,34 @@ const serviceSchema = new mongoose.Schema({
         type: String, // Store image as base64 or use a URL reference
         required: false,
     },
+    proceduresPerformedTotal: {
+        type: String, 
+        required: false,
+    },
+    successRatePercentage: {
+        type: String, 
+        required: false,
+    },
+    yearsExperienceTotal: {
+        type: String, 
+        required: false,
+    },
+    patientSatisfactionRatePercentage: {
+        type: String, 
+        required: false,
+    },
+    educationalVideoTitle: {
+        type: String, 
+        required: false,
+    },
+    educationalVideoDescription: {
+        type: String, 
+        required: false,
+    },
+    educationalVideoUrl: {
+        type: String, 
+        required: false,
+    },
     whyChoose: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
         required: false

@@ -123,7 +123,7 @@ export const updateCenter = async (req, res) => {
         
                 // Initialize oldUrls array and add the previous serviceUrl if it's different
                 let oldUrls = existingCenter.oldUrls || [];
-                if (existingCenter.centerSeoUrl && existingService.centerSeoUrl !== centerSeoUrl && !oldUrls.includes(existingCenter.centerSeoUrl)) {
+                if (existingCenter.centerSeoUrl && existingCenter.centerSeoUrl !== centerSeoUrl && !oldUrls.includes(existingCenter.centerSeoUrl)) {
                     oldUrls.push(existingCenter.centerSeoUrl);
                 }
 

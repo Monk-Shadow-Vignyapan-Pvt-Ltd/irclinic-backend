@@ -3,6 +3,8 @@ import { ServiceRanking } from '../models/service_ranking.model.js';
 import { ServiceSearch } from '../models/service_search.model.js';
 import { SubService } from '../models/sub_service.model.js';
 import sharp from 'sharp';
+import { Invoice } from '../models/invoice.model.js';
+import { Estimate } from '../models/estimate.model.js';
 
 // Add a new service
 export const addService = async (req, res) => {
@@ -242,7 +244,16 @@ export const getServiceByUrl = async (req, res) => {
         const serviceUrl = req.params.id;
         const service = await Service.findOne({serviceUrl}).populate('procedureId'); // Populating category data
         if (!service) return res.status(404).json({ message: "Service not found!", success: false });
-        return res.status(200).json({ service, success: true });
+        const procedureValues = service.procedureId.map(p => p.value);
+
+            // Get count of invoices that include any of the procedure values
+            const invoicecount = await Invoice.countDocuments({
+            "invoicePlan.value": { $in: procedureValues }
+            });
+            const estimatecount = await Estimate.countDocuments({
+            "estimatePlan.value": { $in: procedureValues }
+            });
+        return res.status(200).json({ service,count:invoicecount + estimatecount, success: true });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: 'Failed to fetch service', success: false });

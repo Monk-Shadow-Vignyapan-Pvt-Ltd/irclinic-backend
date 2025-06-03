@@ -2,6 +2,7 @@ import { Disease } from "../models/disease.model.js";
 import cloudinary from "../utils/cloudinary.js";
 import getDataUri from "../utils/datauri.js";
 import sharp from "sharp";
+import { Service } from '../models/service.model.js';
 
 // Add a new disease
 export const addDisease = async (req, res) => {
@@ -89,7 +90,7 @@ export const getDiseases = async (req, res) => {
 export const getDiseasesFrontend = async (req, res) => {
   try {
     const diseases = await Disease.aggregate([
-      { $match: { parentID: { $nin: [null, ""] } } }, // Only children
+      { $match: { $or: [ { parentID: null }, { parentID: "" } ] } }, // Only parents
       { $sample: { size: 8 } }, // Random 8 diseases
       {
         $project: {
@@ -170,7 +171,30 @@ export const getDiseaseByUrl = async (req, res) => {
       return res
         .status(404)
         .json({ message: "Disease not found!", success: false });
-    return res.status(200).json({ disease, success: true });
+
+    let parentDisease = null;
+    if (disease.parentID) {
+      parentDisease = await Disease.findOne({diseaseName:disease.parentID});
+    }
+
+
+      
+    const diseaseIdsToMatch = [disease._id.toString()];
+    if (parentDisease) {
+      diseaseIdsToMatch.push(parentDisease._id.toString());
+    }
+
+    // Find services where diseaseId array includes ANY of these IDs
+    const services = await Service.find({
+      diseaseId: {
+        $elemMatch: {
+          value: { $in: diseaseIdsToMatch },
+        },
+      },
+    }).select(
+      'serviceName serviceUrl serviceDescription serviceImage serviceEnabled'
+    );
+    return res.status(200).json({ disease,services, success: true });
   } catch (error) {
     console.log(error);
     res

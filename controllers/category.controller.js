@@ -2,6 +2,7 @@ import { Category } from '../models/category.model.js';
 import cloudinary from "../utils/cloudinary.js";
 import getDataUri from "../utils/datauri.js";
 import sharp from 'sharp';
+import { Service } from '../models/service.model.js';
 
 // Add a new category
 export const addCategory = async (req, res) => {
@@ -63,6 +64,20 @@ export const getCategoryById = async (req, res) => {
         const category = await Category.findById(categoryId);
         if (!category) return res.status(404).json({ message: "Category not found!", success: false });
         return res.status(200).json({ category, success: true });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch category', success: false });
+    }
+};
+
+export const getCategoryByUrl = async (req, res) => {
+    try {
+        const categoryUrl = req.params.id;
+        const category = await Category.findOne({categoryUrl});
+        if (!category) return res.status(404).json({ message: "Category not found!", success: false });
+        const services = await Service.find({ categoryId: category._id })
+                .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled');
+        return res.status(200).json({ category,services, success: true });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: 'Failed to fetch category', success: false });

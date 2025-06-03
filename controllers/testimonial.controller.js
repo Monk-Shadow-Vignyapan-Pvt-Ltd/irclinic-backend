@@ -54,15 +54,37 @@ export const addTestimonial = async (req, res) => {
 
 // Get all testimonials
 export const getTestimonials = async (req, res) => {
-    try {
-        const testimonials = await Testimonial.find().select('-image'); ;
-        if (!testimonials) return res.status(404).json({ message: "Testimonials not found", success: false });
-        return res.status(200).json({ testimonials });
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: 'Failed to fetch testimonials', success: false });
+  try {
+    // Fetch all testimonials, excluding image field
+    const testimonials = await Testimonial.find().select('-image');
+    if (!testimonials) {
+      return res.status(404).json({ message: "Testimonials not found", success: false });
     }
+
+    // Process testimonials to add serviceNames for those with showForAll: false
+    const enrichedTestimonials = await Promise.all(
+      testimonials.map(async (testimonial) => {
+        if (testimonial.showForAll) return testimonial;
+
+        // Fetch all services with matching IDs
+        const services = await Service.find({ _id: { $in: testimonial.serviceId } }).select('serviceName');
+        
+        // Attach service names
+        const serviceNames = services.map(service => service.serviceName);
+        return {
+          ...testimonial.toObject(),
+          serviceNames,
+        };
+      })
+    );
+
+    return res.status(200).json({ testimonials: enrichedTestimonials });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Failed to fetch testimonials', success: false });
+  }
 };
+
 
 // Get testimonial by ID
 export const getTestimonialById = async (req, res) => {

@@ -473,6 +473,10 @@ export const updateAppointment = async (req, res) => {
               
              
             }
+            if(appointment.invoiceId){
+                await sendPatientInvoice(patient,appointment.invoiceId);
+            }
+            
     }
         res.status(200).json({ appointment, success: true });
     } catch (error) {
@@ -707,6 +711,46 @@ const formattedTime = appointmentDate.format('hh:mm A');
       paramsFallbackValue: {
         FirstName: "user"
       }
+    };
+
+  try {
+      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
+};
+
+const sendPatientInvoice = async (patient, invoiceId) => {
+  const invoice = await Invoice.findById(invoiceId);
+
+  if (invoice.createdAt.getTime() !== invoice.updatedAt.getTime()) {
+    console.log(`Invoice ${invoice._id} is an update, skipping WhatsApp message.`);
+    return;
+  }
+
+
+  const payload = {
+      apiKey: process.env.AISENSY_API_KEY,
+      campaignName: "Patient Invoice Send",  // ✅ Must match your campaign in Aisensy
+      subCampaignName: patient._id.toString(), // ✅ Unique per message
+      destination: `+91${patient.phoneNo}`,
+      userName: "IR Clinic",
+      templateParams: [
+        patientName,
+        
+      ],
+      source: "new-landing-page form",
+      paramsFallbackValue: {
+        FirstName: "user"
+      },
+      media: [
+      {
+        type: "document",
+        url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+        filename: `Invoice_${invoice._id}.pdf`
+      }
+    ]
     };
 
   try {

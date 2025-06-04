@@ -1,5 +1,5 @@
 import express from "express";
-import { addInvoice, getInvoices, getInvoiceById, deleteInvoice, updateInvoice, dashboardInvoices,searchInvoices} from "../controllers/invoice.controller.js";
+import { addInvoice, getInvoices, getInvoiceById, deleteInvoice, updateInvoice, dashboardInvoices,searchInvoices,getInvoiceUrl} from "../controllers/invoice.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -12,5 +12,6 @@ router.route("/updateInvoice/:id").post( updateInvoice);
 router.route("/deleteInvoice/:id").delete(deleteInvoice);
 router.route("/dashboardInvoices/:id").get( dashboardInvoices);
 router.route("/searchInvoices/:id").post( searchInvoices);
+router.route("/getInvoiceUrl/:id").get( getInvoiceUrl);
 
 export default router;

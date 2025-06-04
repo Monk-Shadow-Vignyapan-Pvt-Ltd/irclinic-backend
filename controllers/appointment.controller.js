@@ -737,20 +737,26 @@ const sendPatientInvoice = async (patient, invoiceId) => {
       destination: `+91${patient.phoneNo}`,
       userName: "IR Clinic",
       templateParams: [
-        patientName,
+        patient.patientName,
         
       ],
       source: "new-landing-page form",
       paramsFallbackValue: {
         FirstName: "user"
       },
-      media: [
-      {
-        type: "document",
-        url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
-        filename: `Invoice_${invoice._id}.pdf`
-      }
-    ]
+       media: {
+      url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+      filename: `Invoice_${invoice._id}.pdf`
+      },
+    //   media: [
+    //   {
+    //     type: "document",
+    //    // url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+    //    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    //    // filename: `Invoice_${invoice._id}.pdf`
+    //     filename: "Dummy_Invoice.pdf"
+    //   }
+    // ]
     };
 
   try {

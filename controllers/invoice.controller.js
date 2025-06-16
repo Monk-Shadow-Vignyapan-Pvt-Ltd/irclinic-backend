@@ -4,6 +4,7 @@ import { Patient } from '../models/patient.model.js';
 import { Center } from '../models/center.model.js';
 import { chromium } from 'playwright';
 import moment from 'moment';
+import mongoose from 'mongoose';
 
 // Add a new invoice
 export const addInvoice = async (req, res) => {

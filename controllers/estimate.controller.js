@@ -143,10 +143,11 @@ export const getPaginatedEstimates = async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const search = req.query.search || "";
     const status = req.query.status || "";
+    const startDate = req.query.startDate; // Format: 'YYYY-MM-DD'
+    const endDate = req.query.endDate;     // Format: 'YYYY-MM-DD'
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    // Search IDs
     let patientIds = [];
     let appointmentIds = [];
 
@@ -164,75 +165,65 @@ export const getPaginatedEstimates = async (req, res) => {
       appointmentIds = matchedAppointments.map(a => a._id);
     }
 
-    // Build aggregation pipeline
     const matchStage = {
       centerId: new mongoose.Types.ObjectId(id),
     };
 
+    // 📅 Add date range condition
+    if (startDate && endDate) {
+      matchStage.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (startDate) {
+      matchStage.createdAt = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      matchStage.createdAt = { $lte: new Date(endDate) };
+    }
 
     const orConditions = [];
 
     if (patientIds.length) {
-    orConditions.push({ patientId: { $in: patientIds } });
+      orConditions.push({ patientId: { $in: patientIds } });
     }
     if (appointmentIds.length) {
-    orConditions.push({ appointmentId: { $in: appointmentIds } });
+      orConditions.push({ appointmentId: { $in: appointmentIds } });
     }
     if (search) {
-    orConditions.push({
+      orConditions.push({
         "estimatePlan.hospital.name": { $regex: search, $options: "i" },
-    });
+      });
     }
 
     if (orConditions.length) {
-    matchStage.$or = orConditions;
+      matchStage.$or = orConditions;
     }
 
-    const pipeline = [
+    const basePipeline = [
       { $match: matchStage },
       ...(status
         ? [
-            {
-              $addFields: {
-                lastFollowup: { $arrayElemAt: ["$followups", -1] },
-              },
-            },
-            {
-              $match: {
-                "lastFollowup.followStatus": { $eq: status },
-              },
-            },
+            { $addFields: { lastFollowup: { $arrayElemAt: ["$followups", -1] } } },
+            { $match: { "lastFollowup.followStatus": status } },
           ]
         : []),
+    ];
+
+    const estimates = await Estimate.aggregate([
+      ...basePipeline,
       { $sort: { _id: -1 } },
       { $skip: skip },
       { $limit: limit },
-    ];
+    ]);
 
     const [totalEstimatesResult] = await Estimate.aggregate([
-      { $match: matchStage },
-      ...(status
-        ? [
-            {
-              $addFields: {
-                lastFollowup: { $arrayElemAt: ["$followups", -1] },
-              },
-            },
-            {
-              $match: {
-                "lastFollowup.followStatus": { $eq: status },
-              },
-            },
-          ]
-        : []),
+      ...basePipeline,
       { $count: "total" },
     ]);
 
     const totalEstimates = totalEstimatesResult?.total || 0;
 
-    const estimates = await Estimate.aggregate(pipeline);
-
-    // Enrich with patient/appointment names
+    // 🔁 Enrich with patient/appointment names
     const enhancedEstimates = await Promise.all(
       estimates.map(async (estimate) => {
         if (estimate.appointmentId) {
@@ -253,7 +244,7 @@ export const getPaginatedEstimates = async (req, res) => {
       estimates: enhancedEstimates,
       success: true,
       pagination: {
-        currentPage: Number(page),
+        currentPage: page,
         totalPages: Math.ceil(totalEstimates / limit),
         totalEstimates,
       },
@@ -263,6 +254,7 @@ export const getPaginatedEstimates = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch estimates", success: false });
   }
 };
+
 
 
 

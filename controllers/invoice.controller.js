@@ -74,6 +74,111 @@ export const getInvoices = async (req, res) => {
     }
 };
 
+export const getPaginatedInvoices = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const search = req.query.search || "";
+    const startDate = req.query.startDate; // Format: 'YYYY-MM-DD'
+    const endDate = req.query.endDate;     // Format: 'YYYY-MM-DD'
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    let patientIds = [];
+    let appointmentIds = [];
+
+    if (search) {
+      const matchedPatients = await Patient.find({
+        patientName: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      patientIds = matchedPatients.map(p => p._id);
+
+      const matchedAppointments = await Appointment.find({
+        title: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      appointmentIds = matchedAppointments.map(a => a._id);
+    }
+
+    const matchStage = {
+      centerId: new mongoose.Types.ObjectId(id),
+    };
+
+    // 📅 Add date range condition
+    if (startDate && endDate) {
+      matchStage.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (startDate) {
+      matchStage.createdAt = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      matchStage.createdAt = { $lte: new Date(endDate) };
+    }
+
+    const orConditions = [];
+
+    if (patientIds.length) {
+      orConditions.push({ patientId: { $in: patientIds } });
+    }
+    if (appointmentIds.length) {
+      orConditions.push({ appointmentId: { $in: appointmentIds } });
+    }
+
+    if (orConditions.length) {
+      matchStage.$or = orConditions;
+    }
+
+    const basePipeline = [{ $match: matchStage }];
+
+    const invoices = await Invoice.aggregate([
+      ...basePipeline,
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+    ]);
+
+    const [totalInvoicesResult] = await Invoice.aggregate([
+      ...basePipeline,
+      { $count: "total" },
+    ]);
+
+    const totalInvoices = totalInvoicesResult?.total || 0;
+
+    // 🔁 Enrich with patient/appointment names
+    const enhancedInvoices = await Promise.all(
+      invoices.map(async (invoice) => {
+        if (invoice.appointmentId) {
+          const appointment = await Appointment.findById(invoice.appointmentId);
+          invoice.patientName = appointment?.title || null;
+        }
+
+        if (invoice.patientId) {
+          const patient = await Patient.findById(invoice.patientId);
+          invoice.patientName = patient?.patientName || null;
+        }
+
+        return invoice;
+      })
+    );
+
+    res.status(200).json({
+      invoices: enhancedInvoices,
+      success: true,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalInvoices / limit),
+        totalInvoices,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    res.status(500).json({ message: "Failed to fetch invoices", success: false });
+  }
+};
+
+
 // Get invoice by ID
 export const getInvoiceById = async (req, res) => {
     try {

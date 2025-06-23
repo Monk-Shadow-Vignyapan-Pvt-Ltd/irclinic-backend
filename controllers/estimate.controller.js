@@ -3,6 +3,7 @@ import {Appointment} from '../models/appointment.model.js' ;
 import { Patient } from '../models/patient.model.js'; 
 import sharp from 'sharp';
 import mongoose from 'mongoose';
+import ExcelJS from 'exceljs';
 
 // Add a new estimate
 export const addEstimate = async (req, res) => {
@@ -137,6 +138,110 @@ export const getEstimates = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch estimates', success: false });
     }
 };
+
+export const getEstimatesExcel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const filter = {};
+
+    const matchStage = {
+      centerId: new mongoose.Types.ObjectId(id),
+    };
+
+    // 📅 Add date range condition
+    const istOffset = 5.5 * 60 * 60000; // 5.5 hours in milliseconds
+
+    if (startDate && endDate) {
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+
+      matchStage.createdAt = {
+        $gte: start,
+        $lte: end,
+      };
+    } else if (startDate) {
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      matchStage.createdAt = { $gte: start };
+    } else if (endDate) {
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+      matchStage.createdAt = { $lte: end };
+    }
+
+    const basePipeline = [{ $match: matchStage }];
+
+   const estimates = await Estimate.aggregate([
+      ...basePipeline,
+      { $sort: { _id: -1 } },
+      
+    ]);
+
+    // 🔁 Enrich with patient/appointment names
+    const enhancedEstimates = await Promise.all(
+      estimates.map(async (estimate) => {
+        if (estimate.appointmentId) {
+          const appointment = await Appointment.findById(estimate.appointmentId);
+          estimate.patientName = appointment?.title || null;
+        }
+
+        if (estimate.patientId) {
+          const patient = await Patient.findById(estimate.patientId);
+          estimate.patientName = patient?.patientName || null;
+        }
+
+        return estimate;
+      })
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Invoices');
+
+    worksheet.columns = [
+      { header: 'Est. DATE', key: 'createdAt', width: 20 },
+      { header: 'PATIENT NAME', key: 'patientName', width: 30 },
+      { header: 'HOSPITAL NAME', key: 'hospitalName', width: 30 },
+      { header: 'GRAND TOTAL', key: 'grandTotal', width: 30 },
+       { header: 'TOTAL DISCOUNT', key: 'totalDiscount', width: 30 },
+      { header: 'Total AMOUNT', key: 'totalAmount', width: 15 },
+       { header: 'STATUS', key: 'status', width: 15 },
+    ];
+
+    for (const invoice of enhancedEstimates) {
+
+      worksheet.addRow({
+        createdAt: invoice?.createdAt
+        ? new Date(invoice.createdAt).toLocaleDateString('en-GB').replace(/\//g, '-')
+        : '',
+        patientName: invoice?.patientName || 'N/A',
+        hospitalName: invoice?.estimatePlan?.length > 0 && invoice.estimatePlan[0]?.hospital
+        ? invoice.estimatePlan[0].hospital.name
+        : "",
+        grandTotal:invoice?.estimatePlan.reduce((total, section) => total + (section.qty * section.cost), 0),
+        totalDiscount: invoice?.estimatePlan.reduce((total, section) => total + section.discountAmount, 0),
+        totalAmount:  invoice?.estimatePlan.reduce((total, section) => total + section.procedureTotal, 0),
+        status:invoice.followups[invoice.followups.length - 1].followStatus
+      });
+    }
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=estimates${startDate || 'all'}_to_${endDate || 'all'}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error('Excel Export Error:', err);
+    res.status(500).json({ message: 'Failed to export orders', success: false });
+  }
+};
+
 export const getPaginatedEstimates = async (req, res) => {
   try {
     const { id } = req.params;
@@ -170,16 +275,23 @@ export const getPaginatedEstimates = async (req, res) => {
     };
 
     // 📅 Add date range condition
-    if (startDate && endDate) {
+     const istOffset = 5.5 * 60 * 60000; // 5.5 hours in milliseconds
+        if (startDate && endDate) {
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+
       matchStage.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
+        $gte: start,
+        $lte: end,
       };
     } else if (startDate) {
-      matchStage.createdAt = { $gte: new Date(startDate) };
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      matchStage.createdAt = { $gte: start };
     } else if (endDate) {
-      matchStage.createdAt = { $lte: new Date(endDate) };
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+      matchStage.createdAt = { $lte: end };
     }
+
 
     const orConditions = [];
 

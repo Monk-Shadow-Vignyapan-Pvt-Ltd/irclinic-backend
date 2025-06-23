@@ -1,78 +1,182 @@
 import { Invoice } from '../models/invoice.model.js'; // Update the path as per your project structure
-import {Appointment} from '../models/appointment.model.js' ;
+import { Appointment } from '../models/appointment.model.js';
 import { Patient } from '../models/patient.model.js';
 import { Center } from '../models/center.model.js';
 import { chromium } from 'playwright';
 import moment from 'moment';
 import mongoose from 'mongoose';
+import ExcelJS from 'exceljs';
 
 // Add a new invoice
 export const addInvoice = async (req, res) => {
-    try {
-        const { invoicePlan, appointmentId,userId,centerId } = req.body;
+  try {
+    const { invoicePlan, appointmentId, userId, centerId } = req.body;
 
-        // Validate required fields
-        if (!invoicePlan) {
-            return res.status(400).json({ message: 'Invoice plan is required', success: false });
-        }
-
-        // Create a new invoice
-        const invoice = new Invoice({
-            invoicePlan,
-            appointmentId,
-            userId,
-            centerId
-        });
-
-        await invoice.save();
-        res.status(201).json({ invoice, success: true });
-    } catch (error) {
-        console.error('Error adding invoice:', error);
-        res.status(500).json({ message: 'Failed to add invoice', success: false });
+    // Validate required fields
+    if (!invoicePlan) {
+      return res.status(400).json({ message: 'Invoice plan is required', success: false });
     }
+
+    // Create a new invoice
+    const invoice = new Invoice({
+      invoicePlan,
+      appointmentId,
+      userId,
+      centerId
+    });
+
+    await invoice.save();
+    res.status(201).json({ invoice, success: true });
+  } catch (error) {
+    console.error('Error adding invoice:', error);
+    res.status(500).json({ message: 'Failed to add invoice', success: false });
+  }
 };
 
 // Get all invoices
 export const getInvoices = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const invoices = await Invoice.find({ centerId: id });
-        if (!invoices ) {
-            return res.status(404).json({ message: 'No invoices found', success: false });
-        }
-        const enhancedInvoices = await Promise.all(
-                    invoices.map(async (invoice) => {
-                        if (invoice.appointmentId) {
-                            const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
-                            return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
-                        }
-                        return invoice.toObject(); // If no invoiceId, return appointment as-is
-                    })
-                );
-        const reversedinvoices = enhancedInvoices.reverse();
-        const page = parseInt(req.query.page) || 1;
-
-        // Define the number of items per page
-        const limit = 12;
-
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
-
-        // Paginate the reversed movies array
-        const paginatedinvoices = reversedinvoices.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            invoices:paginatedinvoices, 
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(invoices.length / limit),
-            totalinvoices: invoices.length,
-        },});
-    } catch (error) {
-        console.error('Error fetching invoices:', error);
-        res.status(500).json({ message: 'Failed to fetch invoices', success: false });
+  try {
+    const { id } = req.params;
+    const invoices = await Invoice.find({ centerId: id });
+    if (!invoices) {
+      return res.status(404).json({ message: 'No invoices found', success: false });
     }
+    const enhancedInvoices = await Promise.all(
+      invoices.map(async (invoice) => {
+        if (invoice.appointmentId) {
+          const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
+          return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
+        }
+        return invoice.toObject(); // If no invoiceId, return appointment as-is
+      })
+    );
+    const reversedinvoices = enhancedInvoices.reverse();
+    const page = parseInt(req.query.page) || 1;
+
+    // Define the number of items per page
+    const limit = 12;
+
+    // Calculate the start and end indices for pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    // Paginate the reversed movies array
+    const paginatedinvoices = reversedinvoices.slice(startIndex, endIndex);
+    return res.status(200).json({
+      invoices: paginatedinvoices,
+      success: true,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(invoices.length / limit),
+        totalinvoices: invoices.length,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching invoices:', error);
+    res.status(500).json({ message: 'Failed to fetch invoices', success: false });
+  }
+};
+
+export const getInvoicesExcel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const filter = {};
+
+    const matchStage = {
+      centerId: new mongoose.Types.ObjectId(id),
+    };
+
+    // 📅 Add date range condition
+    const istOffset = 5.5 * 60 * 60000; // 5.5 hours in milliseconds
+
+    if (startDate && endDate) {
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+
+      matchStage.createdAt = {
+        $gte: start,
+        $lte: end,
+      };
+    } else if (startDate) {
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      matchStage.createdAt = { $gte: start };
+    } else if (endDate) {
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+      matchStage.createdAt = { $lte: end };
+    }
+
+    const basePipeline = [{ $match: matchStage }];
+
+    const invoices = await Invoice.aggregate([
+      ...basePipeline,
+      { $sort: { _id: -1 } },
+    ]);
+
+    // 🔁 Enrich with patient/appointment names
+    const enhancedInvoices = await Promise.all(
+      invoices.map(async (invoice) => {
+        if (invoice.appointmentId) {
+          const appointment = await Appointment.findById(invoice.appointmentId);
+          invoice.patientName = appointment?.title || null;
+        }
+
+        if (invoice.patientId) {
+          const patient = await Patient.findById(invoice.patientId);
+          invoice.patientName = patient?.patientName || null;
+        }
+
+        return invoice;
+      })
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Invoices');
+
+    worksheet.columns = [
+      { header: 'INV. DATE', key: 'createdAt', width: 20 },
+      { header: 'BILL NO.', key: 'receiptNo', width: 25 },
+      { header: 'PATIENT NAME', key: 'patientName', width: 30 },
+      { header: 'TOTAL AMOUNT', key: 'totalAmount', width: 30 },
+      { header: 'TOTAL DISCOUNT', key: 'totalDiscount', width: 30 },
+      { header: 'PAYABLE AMOUNT', key: 'payableAmount', width: 30 },
+      { header: 'CASH AMOUNT', key: 'cashAmount', width: 15 },
+      { header: 'ONLINE AMOUNT', key: 'onlineAmount', width: 20 },
+    ];
+
+    for (const invoice of enhancedInvoices) {
+
+      worksheet.addRow({
+        createdAt: invoice?.createdAt
+          ? new Date(invoice.createdAt).toLocaleDateString('en-GB').replace(/\//g, '-')
+          : '',
+        receiptNo: invoice?.invoicePlan[0].receiptNo,
+        patientName: invoice?.patientName || 'N/A',
+        totalAmount: invoice?.invoicePlan.reduce((total, section) => total + (section.qty * section.cost), 0),
+        totalDiscount: invoice?.invoicePlan[0].totalDiscount != null ? invoice?.invoicePlan[0].totalDiscount : invoice?.invoicePlan.reduce((total, section) => total + section.discountAmount, 0),
+        payableAmount: (invoice?.invoicePlan[0].totalDiscount != null ? (invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0) - invoice?.invoicePlan[0].totalDiscount) : invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0)),
+        cashAmount: invoice?.invoicePlan[0].cashAmount ? invoice?.invoicePlan[0].cashAmount : 0,
+        onlineAmount: invoice?.invoicePlan[0].onlineAmount ? invoice?.invoicePlan[0].onlineAmount : 0
+      });
+    }
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=invoices${startDate || 'all'}_to_${endDate || 'all'}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (err) {
+    console.error('Excel Export Error:', err);
+    res.status(500).json({ message: 'Failed to export orders', success: false });
+  }
 };
 
 export const getPaginatedInvoices = async (req, res) => {
@@ -107,16 +211,24 @@ export const getPaginatedInvoices = async (req, res) => {
     };
 
     // 📅 Add date range condition
+    const istOffset = 5.5 * 60 * 60000; // 5.5 hours in milliseconds
+
     if (startDate && endDate) {
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+
       matchStage.createdAt = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
+        $gte: start,
+        $lte: end,
       };
     } else if (startDate) {
-      matchStage.createdAt = { $gte: new Date(startDate) };
+      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
+      matchStage.createdAt = { $gte: start };
     } else if (endDate) {
-      matchStage.createdAt = { $lte: new Date(endDate) };
+      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+      matchStage.createdAt = { $lte: end };
     }
+
 
     const orConditions = [];
 
@@ -182,86 +294,144 @@ export const getPaginatedInvoices = async (req, res) => {
 
 // Get invoice by ID
 export const getInvoiceById = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const invoice = await Invoice.findById(id);
-        if (!invoice) {
-            return res.status(404).json({ message: 'Invoice not found', success: false });
-        }
-        res.status(200).json({ invoice, success: true });
-    } catch (error) {
-        console.error('Error fetching invoice:', error);
-        res.status(500).json({ message: 'Failed to fetch invoice', success: false });
+  try {
+    const { id } = req.params;
+    const invoice = await Invoice.findById(id);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found', success: false });
     }
+    res.status(200).json({ invoice, success: true });
+  } catch (error) {
+    console.error('Error fetching invoice:', error);
+    res.status(500).json({ message: 'Failed to fetch invoice', success: false });
+  }
 };
 
 // Update invoice by ID
 export const updateInvoice = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { invoicePlan,appointmentId, userId,centerId } = req.body;
+  try {
+    const { id } = req.params;
+    const { invoicePlan, appointmentId, userId, centerId } = req.body;
 
-        // Build updated data
-        const updatedData = {
-            ...(invoicePlan && { invoicePlan }),
-            appointmentId,
-            ...(userId && { userId }),
-            centerId
-        };
+    // Build updated data
+    const updatedData = {
+      ...(invoicePlan && { invoicePlan }),
+      appointmentId,
+      ...(userId && { userId }),
+      centerId
+    };
 
-        const invoice = await Invoice.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
-        if (!invoice) {
-            return res.status(404).json({ message: 'Invoice not found', success: false });
-        }
-        res.status(200).json({ invoice, success: true });
-    } catch (error) {
-        console.error('Error updating invoice:', error);
-        res.status(400).json({ message: 'Failed to update invoice', success: false });
+    const invoice = await Invoice.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found', success: false });
     }
+    res.status(200).json({ invoice, success: true });
+  } catch (error) {
+    console.error('Error updating invoice:', error);
+    res.status(400).json({ message: 'Failed to update invoice', success: false });
+  }
 };
 
 // Delete invoice by ID
 export const deleteInvoice = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const invoice = await Invoice.findByIdAndDelete(id);
-        if (!invoice) {
-            return res.status(404).json({ message: 'Invoice not found', success: false });
-        }
-        res.status(200).json({ invoice, success: true });
-    } catch (error) {
-        console.error('Error deleting invoice:', error);
-        res.status(500).json({ message: 'Failed to delete invoice', success: false });
+  try {
+    const { id } = req.params;
+    const invoice = await Invoice.findByIdAndDelete(id);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found', success: false });
     }
+    res.status(200).json({ invoice, success: true });
+  } catch (error) {
+    console.error('Error deleting invoice:', error);
+    res.status(500).json({ message: 'Failed to delete invoice', success: false });
+  }
+};
+
+// Get the last invoice for a center
+export const getLastInvoice = async (req, res) => {
+  try {
+    const { id } = req.params; // centerId
+
+    // Find the most recent invoice for the center
+    const invoice = await Invoice.findOne({ centerId: id })
+      .sort({ createdAt: -1 }) // Sort by creation date in descending order
+      .limit(1); // Get only the most recent one
+
+    if (!invoice) {
+      return res.status(404).json({
+        message: 'No invoices found for this center',
+        success: false
+      });
+    }
+
+    res.status(200).json({
+      invoice,
+      success: true
+    });
+  } catch (error) {
+    console.error('Error fetching last invoice:', error);
+    res.status(500).json({
+      message: 'Failed to fetch last invoice',
+      success: false
+    });
+  }
 };
 
 export const dashboardInvoices = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const totalInvoices = await Invoice.countDocuments({ centerId: id }); // Get total count
+  try {
+    const { id } = req.params;
+    const totalInvoices = await Invoice.countDocuments({ centerId: id }); // Get total count
 
-        const lastFiveInvoices = await Invoice.find({ centerId: id }, {  _id: 1 ,appointmentId:1,invoicePlan:1}) 
-            .sort({ createdAt: -1 }) // Sort by creation date (descending)
-            .limit(5); // Get last 5 Invoices
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60000; // 5.5 hours in ms
+    const todayStartIST = new Date(new Date(now.setHours(0, 0, 0, 0)) - istOffset);
+    const todayEndIST = new Date(new Date(now.setHours(23, 59, 59, 999)) - istOffset);
 
-        const enhancedInvoices = await Promise.all(
-            lastFiveInvoices.map(async (invoice) => {
-                    if (invoice.appointmentId) {
-                        const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
-                        return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
-                    }
-                    return invoice.toObject(); // If no invoiceId, return appointment as-is
-                })
-            );
+    const todaysInvoices = await Invoice.find({
+      centerId: id,
+      createdAt: { $gte: todayStartIST, $lte: todayEndIST }
+    }, { _id: 1, appointmentId: 1, invoicePlan: 1 })
+      .sort({ createdAt: -1 })
 
-        return res.status(200).json({ 
-            totalInvoices, 
-            invoices: enhancedInvoices
-        });
-    } catch (error) {
-        console.error('Error fetching Invoices:', error);
-        res.status(500).json({ message: 'Failed to fetch Invoices', success: false });
-    }
+    let cashAmountTotal = 0;
+    let onlineAmountTotal = 0;
+
+    const countOfInvoices = await Promise.all(
+      todaysInvoices.map(async (invoice) => {
+        const cashAmount = invoice.invoicePlan?.[0]?.cashAmount || 0;
+        const onlineAmount = invoice.invoicePlan?.[0]?.onlineAmount || 0;
+
+        // Accumulate totals
+        cashAmountTotal += cashAmount;
+        onlineAmountTotal += onlineAmount;
+      })
+    );
+
+
+    const lastFiveInvoices = await Invoice.find({ centerId: id }, { _id: 1, appointmentId: 1, invoicePlan: 1 })
+      .sort({ createdAt: -1 }) // Sort by creation date (descending)
+      .limit(5); // Get last 5 Invoices
+
+    const enhancedInvoices = await Promise.all(
+      lastFiveInvoices.map(async (invoice) => {
+        if (invoice.appointmentId) {
+          const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
+          return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
+        }
+        return invoice.toObject(); // If no invoiceId, return appointment as-is
+      })
+    );
+
+    return res.status(200).json({
+      totalInvoices,
+      invoices: enhancedInvoices,
+      cashAmountTotal,
+      onlineAmountTotal
+    });
+  } catch (error) {
+    console.error('Error fetching Invoices:', error);
+    res.status(500).json({ message: 'Failed to fetch Invoices', success: false });
+  }
 };
 
 export const searchInvoices = async (req, res) => {
@@ -298,22 +468,22 @@ export const searchInvoices = async (req, res) => {
     }
 
     const enhancedInvoices = await Promise.all(
-                    invoices.map(async (invoice) => {
-                        if (invoice.appointmentId) {
-                            const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
-                            return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
-                        }
-                        return invoice.toObject(); // If no invoiceId, return appointment as-is
-                    })
-                );
+      invoices.map(async (invoice) => {
+        if (invoice.appointmentId) {
+          const appointment = await Appointment.findOne({ _id: invoice.appointmentId });
+          return { ...invoice.toObject(), appointment }; // Convert Mongoose document to plain object
+        }
+        return invoice.toObject(); // If no invoiceId, return appointment as-is
+      })
+    );
 
     return res.status(200).json({
-      invoices:enhancedInvoices,
+      invoices: enhancedInvoices,
       success: true,
       pagination: {
         currentPage: 1,
         totalPages: Math.ceil(invoices.length / limit),
-        totalInvoices:invoices.length
+        totalInvoices: invoices.length
       }
     });
   } catch (error) {
@@ -344,14 +514,13 @@ export const getInvoiceUrl = async (req, res) => {
     <td class="px-2 py-1 border-b border-r-2">${section.qty}</td>
     <td class="px-2 py-1 border-b border-r-2">X</td>
     <td class="px-2 py-1 border-b border-r-2">${section.cost}</td>
-    <td class="px-2 py-1 border-b border-r-2">${section.discount} ${section.discountType || ''}</td>
     <td class="px-2 py-1 border-b">${section.procedureTotal.toFixed(2)}</td>
   </tr>
 `).join('');
 
-const grandTotal = invoice.invoicePlan.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
-const totalDiscount = invoice.invoicePlan.reduce((t, i) => t + i.discountAmount, 0).toFixed(2);
-const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0).toFixed(2);
+    // const grandTotal = invoice.invoicePlan.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
+    // const totalDiscount = invoice.invoicePlan.reduce((t, i) => t + i.discountAmount, 0).toFixed(2);
+    // const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0).toFixed(2);
 
     const invoiceHTML = `
 <!DOCTYPE html>
@@ -367,7 +536,9 @@ const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0)
 </head>
 <body>
   <header class="flex justify-between items-center border-b pb-4 mb-6">
-    <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/57b030fed4d07d3a5a5d9e2e444d3f8ecd2d777e" class="w-48" />
+    <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/57b030fed4d07d3a5a5d9e2e444d3f8ecd2d777e" alt="IR Clinic Logo"
+            class="object-contain  max-w-full"
+            style="width: 300px !important; height:120px !important" />
     <div class="text-right">
       <h1 class="text-xl font-bold">IR CLINIC</h1>
       <address class="text-sm not-italic" style="width: 300px !important;">
@@ -379,10 +550,12 @@ const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0)
 
   <div class="content"  style="margin-top: 30px !important;">
                             <div style="gap: 20px;">
-                               
+                               <div style="flex: 1; min-width: 250px;">
                                     <p><strong>Patient Name:</strong> ${patient.patientName || ""}</p>
-                                
-                               
+                                    </div>
+                                    <div style="flex: 1; min-width: 250px;">
+                                        <p><strong> Bill No:</strong> ${invoice.invoicePlan[0].receiptNo || ""} </p>
+                                    </div>
                             </div>
             
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
@@ -398,11 +571,7 @@ const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0)
                                 <div style="flex: 1; min-width: 250px;">
                                     <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
                                 </div>
-                                ${patient.reference ? `
-                                <div style="flex: 1; min-width: 250px;">
-                                    <p><strong>Reference By:</strong> ${patient.reference.label}</p>
-                                </div>
-                                ` : ""}
+                                
                             </div>
 
                             <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px;">
@@ -430,7 +599,6 @@ const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0)
         <th class="px-2 py-1 border-b border-r-2">QTY</th>
         <th class="px-2 py-1 border-b border-r-2">X</th>
         <th class="px-2 py-1 border-b border-r-2">COST</th>
-        <th class="px-2 py-1 border-b border-r-2">DISCOUNT</th>
         <th class="px-2 py-1 border-b">TOTAL</th>
       </tr>
     </thead>
@@ -439,29 +607,80 @@ const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0)
       ${invoiceRows}
     </tbody>
     <tfoot>
-      <tr>
-        <td class="py-2" colspan="2">&nbsp;</td>
-        <td colspan="2" class="text-right font-bold py-2">Grand Total (INR)</td>
-        <td class="py-2">${grandTotal}</td>
-        <td class="py-2">${totalDiscount}</td>
-        <td class=" py-2">${finalTotal}</td>
-        <td class="py-2">&nbsp;</td>
-      </tr>
-       <tr>
-        <td class="py-1" colspan="4">&nbsp;</td>
-        <td colspan="2" class="text-right font-bold py-1">Due Amount (INR):</td>
-        <td class=" py-1">0.00</td>
-      </tr>
-      <tr>
-        <td class="py-1" colspan="4">&nbsp;</td>
-        <td colspan="2" class="text-right font-bold py-1">Due Received (INR):</td>
-        <td class=" py-1">0.00</td>
-      </tr>
-      <tr>
-        <td class="py-1" colspan="4">&nbsp;</td>
-        <td colspan="2" class="text-right font-bold py-1">Paid Amount (INR):</td>
-        <td class=" py-1">${finalTotal}</td>
-      </tr>
+                                                                                                     <tr >
+                                                                                                        <td  colSpan="4" className='py-1'>&nbsp;</td>
+                                                                                                        <td className="text-right font-bold py-1">
+                                                                                                            Total Amount: 
+                                                                                                        </td>
+                                                                                                        <td>
+                                                                                                            <div className="flex items-center gap-2 py-1 px-1">
+
+                                                                                                                ${invoice?.invoicePlan.reduce((total, section) => total + (section.qty * section.cost), 0).toFixed(2)}
+                                                                                                                <label className="text-sm font-semibold">INR </label>
+                                                                                                            </div>
+
+                                                                                                        </td>
+                                                                                                    </tr>
+
+                                                                                                    <tr >
+                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
+                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                        Total Discount: 
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+
+                                                                                                           ${invoice?.invoicePlan[0].totalDiscount != null ?invoice?.invoicePlan[0].totalDiscount.toFixed(2) : invoice?.invoicePlan.reduce((total, section) => total + section.discountAmount, 0).toFixed(2)}
+                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                        </div>
+
+                                                                                                    </td>
+                                                                                                </tr>
+
+                                                                                                <tr >
+                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
+                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                        Payable Amount: 
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+
+                                                                                                           ${(invoice?.invoicePlan[0].totalDiscount != null ? (invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0) - invoice?.invoicePlan[0].totalDiscount):invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0)).toFixed(2)}
+                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                        </div>
+
+                                                                                                    </td>
+                                                                                                </tr>
+
+                                                                                                <tr >
+                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
+                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                        Cash Amount: 
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+
+                                                                                                           ${(invoice?.invoicePlan[0].cashAmount ? invoice?.invoicePlan[0].cashAmount:0).toFixed(2)}
+                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                        </div>
+
+                                                                                                    </td>
+                                                                                                </tr>
+
+                                                                                                <tr >
+                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
+                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                        Online Amount: 
+                                                                                                    </td>
+                                                                                                    <td>
+                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+
+                                                                                                           ${(invoice?.invoicePlan[0].onlineAmount ? invoice?.invoicePlan[0].onlineAmount:0).toFixed(2)}
+                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                        </div>
+
+                                                                                                    </td>
+                                                                                                </tr>
       
     </tfoot>
   </table>

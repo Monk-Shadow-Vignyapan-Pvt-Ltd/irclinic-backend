@@ -630,11 +630,11 @@ export const getInvoiceUrl = async (req, res) => {
     <tfoot>
                                                                                                      <tr >
                                                                                                         <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                        <td style="width:130px !important;" class="text-left font-bold py-1">
+                                                                                                        <td style="width:140px !important;" class="text-left font-bold py-1">
                                                                                                             Total Amount: 
                                                                                                         </td>
                                                                                                         <td>
-                                                                                                            <div class="flex items-center gap-2 py-1 px-1">
+                                                                                                            <div class="text-right justify-end flex items-center gap-2 py-1 px-1">
 
                                                                                                                 ${invoice?.invoicePlan.reduce((total, section) => total + (section.qty * section.cost), 0).toFixed(2)}
                                                                                                                 <label class="text-sm font-semibold">INR </label>
@@ -645,11 +645,11 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                     <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
+                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
                                                                                                         Total Discount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="text-right justify-end flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${invoice?.invoicePlan[0].totalDiscount != null ?invoice?.invoicePlan[0].totalDiscount.toFixed(2) : invoice?.invoicePlan.reduce((total, section) => total + section.discountAmount, 0).toFixed(2)}
                                                                                                             <label class="text-sm font-semibold">INR </label>
@@ -660,11 +660,11 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
+                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
                                                                                                         Payable Amount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="text-right justify-end flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${(invoice?.invoicePlan[0].totalDiscount != null ? (invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0) - invoice?.invoicePlan[0].totalDiscount):invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0)).toFixed(2)}
                                                                                                             <label class="text-sm font-semibold">INR </label>
@@ -675,11 +675,11 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
+                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
                                                                                                         Cash Amount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="text-right justify-end flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${(invoice?.invoicePlan[0].cashAmount ? invoice?.invoicePlan[0].cashAmount:0).toFixed(2)}
                                                                                                             <label class="text-sm font-semibold">INR </label>
@@ -690,11 +690,11 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
+                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
                                                                                                         Online Amount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="text-right justify-end flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${(invoice?.invoicePlan[0].onlineAmount ? invoice?.invoicePlan[0].onlineAmount:0).toFixed(2)}
                                                                                                             <label class="text-sm font-semibold">INR </label>

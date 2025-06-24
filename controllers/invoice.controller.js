@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import moment from 'moment';
 import mongoose from 'mongoose';
 import ExcelJS from 'exceljs';
+import { User } from '../models/user.model.js';
 
 // Add a new invoice
 export const addInvoice = async (req, res) => {
@@ -511,7 +512,9 @@ export const getInvoiceUrl = async (req, res) => {
     const patient = await Patient.findById(appointment.patientId);
     if (!patient) return res.status(404).send('Patient not found');
 
-    const center = await Center.findById(appointment.centerId);
+    const center = await Center.findById(invoice.centerId);
+
+    const user = await User.findById(invoice.userId);
 
     const invoiceRows = invoice.invoicePlan.map((section, index) => `
   <tr>
@@ -556,39 +559,39 @@ export const getInvoiceUrl = async (req, res) => {
 
   <div class="content"  style="margin-top: 30px !important;">
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                               <div style="flex: 1; min-width: 450px;">
+                               <div style="flex: 1; min-width: 400px;">
                                     <p><strong>Patient Name:</strong> ${patient.patientName || ""}</p>
                                     </div>
-                                    <div style="flex: 1; min-width: 200px;">
+                                    <div style="flex: 1; min-width: 250px;">
                                         <p><strong> Bill No:</strong> ${invoice.invoicePlan[0].receiptNo || ""} </p>
                                     </div>
                             </div>
             
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                                <div style="flex: 1; min-width: 450px;">
+                                <div style="flex: 1; min-width: 400px;">
                                     <p><strong>Patient ID:</strong> ${patient.caseId || ""}</p>
                                 </div>
-                                <div style="flex: 1; min-width: 200px;">
+                                <div style="flex: 1; min-width: 250px;">
                                     <p><strong>Age/Gender:</strong> ${patient.age || ""}/${(patient.gender || "").toUpperCase()}</p>
                                 </div>
                             </div>
             
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                                <div style="flex: 1; min-width: 450px;">
+                                <div style="flex: 1; min-width: 400px;">
                                     <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
                                 </div>
-                                <div style="flex: 1; min-width: 200px;">
+                                <div style="flex: 1; min-width: 250px;">
                                         <p><strong>Date:</strong> ${moment(invoice.updatedAt).format('DD/MM/YYYY')}</p>
                                     </div>
                                 
                             </div>
 
                             <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px;">
-                                <div style="flex: 1; min-width: 450px;">
+                                <div style="flex: 1; min-width: 400px;">
                                     <p><strong>Address:</strong> ${patient.address || ""}</p>
                                 </div>
                                 ${patient.reference ? `
-                                <div style="flex: 1; min-width: 200px;">
+                                <div style="flex: 1; min-width: 250px;">
                                     <p><strong>Reference By:</strong> ${patient.reference.label}</p>
                                 </div>
                                 ` : ""}
@@ -698,18 +701,27 @@ export const getInvoiceUrl = async (req, res) => {
   </table>
   
 </div>
- <div style="margin-top: 50px !important;" class="flex flex-wrap gap-4 items-center text-center px-2 py-1.5 w-full bg-[#AAE1E6] border-[#2DAFBE] max-md:max-w-full">
+ <div style="margin-top: 30px !important;" class="flex flex-wrap gap-4 items-center text-center px-2 py-1.5 w-full bg-[#AAE1E6] border-[#2DAFBE] max-md:max-w-full">
                             <section class="flex flex-col justify-center items-end py-1 px-10 mt-4 w-full text-xs font-bold text-center max-md:max-w-full">
                             <div>For IR CLINIC</div>
                             <div class="flex mt-2 bg-zinc-50 min-h-[80px] w-[90px]" />
                             <div class="mt-6">Signature</div>
-                        </section><section class="mt-2 w-full text-xs max-md:max-w-full">
+                        </section><section class=" w-full text-xs max-md:max-w-full">
                        
                         <p class="gap-4 self-stretch text-left px-2 mt-4 w-full max-md:max-w-full">
                             Received with thanks
                         </p>
-                         <p class="gap-4 self-stretch text-left px-2 mt-4 w-full max-md:max-w-full">
+                        ${user && user.username ? `<p class="gap-4 self-stretch text-left px-2 mt-2 w-full max-md:max-w-full">
+                           <span class="font-semibold">User : </span>${user.username}
+                        </p>` : ""}
+                         <p class="gap-4 self-stretch text-left px-2 mt-1 w-full max-md:max-w-full">
+                           <span class="font-semibold">Note </span>
+                         </p>
+                         <p class="gap-4 self-stretch text-left px-2  w-full max-md:max-w-full">
                             Subject To ${center.centerName.split(" ")[0]} Jurisdiction
+                        </p>
+                        <p class="gap-4 self-stretch text-left px-2 pr-4  w-full max-md:max-w-full">
+                           This Service is Exempt from GST by virtue of Serial No. 82(1) of Service Tax Exemptions to be continued in GST as decided by GST Council ofIndia
                         </p>
                         </section>
                         </div>

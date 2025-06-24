@@ -246,6 +246,12 @@ export const getPaginatedInvoices = async (req, res) => {
       });
     }
 
+    if (search) {
+      orConditions.push({
+        "invoicePlan.receiptNo": { $regex: search, $options: "i" },
+      });
+    }
+
     if (orConditions.length) {
       matchStage.$or = orConditions;
     }

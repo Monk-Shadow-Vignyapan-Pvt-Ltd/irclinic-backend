@@ -747,7 +747,7 @@ const sendPatientInvoice = async (patient, invoiceId) => {
       },
        media: {
       url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
-      filename: `Invoice_${invoice._id}.pdf`
+      filename: `Invoice_${invoice.invoicePlan[0].receiptNo}.pdf`
       },
     //   media: [
     //   {

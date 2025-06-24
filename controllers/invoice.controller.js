@@ -590,7 +590,7 @@ export const getInvoiceUrl = async (req, res) => {
                                 <div style="flex: 1; min-width: 400px;">
                                     <p><strong>Address:</strong> ${patient.address || ""}</p>
                                 </div>
-                                ${patient.reference ? `
+                                ${patient.reference && patient.reference.label ? `
                                 <div style="flex: 1; min-width: 250px;">
                                     <p><strong>Reference By:</strong> ${patient.reference.label}</p>
                                 </div>

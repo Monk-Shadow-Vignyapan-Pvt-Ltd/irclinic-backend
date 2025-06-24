@@ -545,11 +545,11 @@ export const getInvoiceUrl = async (req, res) => {
     <img src="https://cdn.builder.io/api/v1/image/assets/TEMP/57b030fed4d07d3a5a5d9e2e444d3f8ecd2d777e" alt="IR Clinic Logo"
             class="object-contain  max-w-full"
             style="width: 300px !important; height:120px !important" />
-    <div class="text-right">
+    <div class="text-right min-w-[200px] max-w-sm">
       <h1 class="text-xl font-bold">IR CLINIC</h1>
-      <address class="text-sm not-italic" style="width: 300px !important;">
+      <address class="text-sm not-italic" style="width: 300px !important; ">
         ${center.centerAddress}<br />
-        PH: ${center.adminPhoneNo}
+        PH: +91 ${center.adminPhoneNo}
       </address>
     </div>
   </header>
@@ -577,6 +577,9 @@ export const getInvoiceUrl = async (req, res) => {
                                 <div style="flex: 1; min-width: 450px;">
                                     <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
                                 </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                        <p><strong>Date:</strong> ${moment(invoice.updatedAt).format('DD/MM/YYYY')}</p>
+                                    </div>
                                 
                             </div>
 
@@ -584,11 +587,14 @@ export const getInvoiceUrl = async (req, res) => {
                                 <div style="flex: 1; min-width: 450px;">
                                     <p><strong>Address:</strong> ${patient.address || ""}</p>
                                 </div>
+                                ${patient.reference ? `
+                                <div style="flex: 1; min-width: 200px;">
+                                    <p><strong>Reference By:</strong> ${patient.reference.label}</p>
+                                </div>
+                                ` : ""}
                                 
                                 
-                                    <div style="flex: 1; min-width: 200px;">
-                                        <p><strong>Date:</strong> ${moment(invoice.updatedAt).format('DD/MM/YYYY')}</p>
-                                    </div>
+                                    
                                 
                                 
                             </div>
@@ -701,6 +707,9 @@ export const getInvoiceUrl = async (req, res) => {
                        
                         <p class="gap-4 self-stretch text-left px-2 mt-4 w-full max-md:max-w-full">
                             Received with thanks
+                        </p>
+                         <p class="gap-4 self-stretch text-left px-2 mt-4 w-full max-md:max-w-full">
+                            Subject To ${center.centerName.split(" ")[0]} Jurisdiction
                         </p>
                         </section>
                         </div>

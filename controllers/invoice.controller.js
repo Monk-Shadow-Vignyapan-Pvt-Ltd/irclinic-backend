@@ -239,6 +239,12 @@ export const getPaginatedInvoices = async (req, res) => {
       orConditions.push({ appointmentId: { $in: appointmentIds } });
     }
 
+    if (search) {
+      orConditions.push({
+        "invoicePlan.procedureName": { $regex: search, $options: "i" },
+      });
+    }
+
     if (orConditions.length) {
       matchStage.$or = orConditions;
     }
@@ -549,38 +555,38 @@ export const getInvoiceUrl = async (req, res) => {
   </header>
 
   <div class="content"  style="margin-top: 30px !important;">
-                            <div style="gap: 20px;">
-                               <div style="flex: 1; min-width: 250px;">
+                            <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                               <div style="flex: 1; min-width: 450px;">
                                     <p><strong>Patient Name:</strong> ${patient.patientName || ""}</p>
                                     </div>
-                                    <div style="flex: 1; min-width: 250px;">
+                                    <div style="flex: 1; min-width: 200px;">
                                         <p><strong> Bill No:</strong> ${invoice.invoicePlan[0].receiptNo || ""} </p>
                                     </div>
                             </div>
             
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                                <div style="flex: 1; min-width: 250px;">
+                                <div style="flex: 1; min-width: 450px;">
                                     <p><strong>Patient ID:</strong> ${patient.caseId || ""}</p>
                                 </div>
-                                <div style="flex: 1; min-width: 250px;">
+                                <div style="flex: 1; min-width: 200px;">
                                     <p><strong>Age/Gender:</strong> ${patient.age || ""}/${(patient.gender || "").toUpperCase()}</p>
                                 </div>
                             </div>
             
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                                <div style="flex: 1; min-width: 250px;">
+                                <div style="flex: 1; min-width: 450px;">
                                     <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
                                 </div>
                                 
                             </div>
 
                             <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px;">
-                                <div style="flex: 1; min-width: 250px;">
+                                <div style="flex: 1; min-width: 450px;">
                                     <p><strong>Address:</strong> ${patient.address || ""}</p>
                                 </div>
                                 
                                 
-                                    <div style="flex: 1; min-width: 250px;">
+                                    <div style="flex: 1; min-width: 200px;">
                                         <p><strong>Date:</strong> ${moment(invoice.updatedAt).format('DD/MM/YYYY')}</p>
                                     </div>
                                 
@@ -608,75 +614,75 @@ export const getInvoiceUrl = async (req, res) => {
     </tbody>
     <tfoot>
                                                                                                      <tr >
-                                                                                                        <td  colSpan="4" className='py-1'>&nbsp;</td>
-                                                                                                        <td className="text-right font-bold py-1">
+                                                                                                        <td  colSpan="4" class='py-1'>&nbsp;</td>
+                                                                                                        <td class="text-right font-bold py-1">
                                                                                                             Total Amount: 
                                                                                                         </td>
                                                                                                         <td>
-                                                                                                            <div className="flex items-center gap-2 py-1 px-1">
+                                                                                                            <div class="flex items-center gap-2 py-1 px-1">
 
                                                                                                                 ${invoice?.invoicePlan.reduce((total, section) => total + (section.qty * section.cost), 0).toFixed(2)}
-                                                                                                                <label className="text-sm font-semibold">INR </label>
+                                                                                                                <label class="text-sm font-semibold">INR </label>
                                                                                                             </div>
 
                                                                                                         </td>
                                                                                                     </tr>
 
                                                                                                     <tr >
-                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
-                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
+                                                                                                    <td class="text-right font-bold py-1">
                                                                                                         Total Discount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${invoice?.invoicePlan[0].totalDiscount != null ?invoice?.invoicePlan[0].totalDiscount.toFixed(2) : invoice?.invoicePlan.reduce((total, section) => total + section.discountAmount, 0).toFixed(2)}
-                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                            <label class="text-sm font-semibold">INR </label>
                                                                                                         </div>
 
                                                                                                     </td>
                                                                                                 </tr>
 
                                                                                                 <tr >
-                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
-                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
+                                                                                                    <td class="text-right font-bold py-1">
                                                                                                         Payable Amount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${(invoice?.invoicePlan[0].totalDiscount != null ? (invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0) - invoice?.invoicePlan[0].totalDiscount):invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0)).toFixed(2)}
-                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                            <label class="text-sm font-semibold">INR </label>
                                                                                                         </div>
 
                                                                                                     </td>
                                                                                                 </tr>
 
                                                                                                 <tr >
-                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
-                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
+                                                                                                    <td class="text-right font-bold py-1">
                                                                                                         Cash Amount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${(invoice?.invoicePlan[0].cashAmount ? invoice?.invoicePlan[0].cashAmount:0).toFixed(2)}
-                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                            <label class="text-sm font-semibold">INR </label>
                                                                                                         </div>
 
                                                                                                     </td>
                                                                                                 </tr>
 
                                                                                                 <tr >
-                                                                                                    <td  colSpan="4" className='py-1'>&nbsp;</td>
-                                                                                                    <td className="text-right font-bold py-1">
+                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
+                                                                                                    <td class="text-right font-bold py-1">
                                                                                                         Online Amount: 
                                                                                                     </td>
                                                                                                     <td>
-                                                                                                        <div className="flex items-center gap-2 py-1 px-1">
+                                                                                                        <div class="flex items-center gap-2 py-1 px-1">
 
                                                                                                            ${(invoice?.invoicePlan[0].onlineAmount ? invoice?.invoicePlan[0].onlineAmount:0).toFixed(2)}
-                                                                                                            <label className="text-sm font-semibold">INR </label>
+                                                                                                            <label class="text-sm font-semibold">INR </label>
                                                                                                         </div>
 
                                                                                                     </td>
@@ -686,9 +692,17 @@ export const getInvoiceUrl = async (req, res) => {
   </table>
   
 </div>
- <div style="margin-top: 50px !important;" class="flex flex-wrap gap-4 items-center text-center px-2 py-1.5 w-full bg-[#AAE1E6] border-t border-b border-[#2DAFBE] max-md:max-w-full">
-                            <div class="self-stretch my-auto w-[90px]">Mode of Payment :</div>
-                            <div class="self-stretch my-auto w-[90px]">Online / Cash</div>
+ <div style="margin-top: 50px !important;" class="flex flex-wrap gap-4 items-center text-center px-2 py-1.5 w-full bg-[#AAE1E6] border-[#2DAFBE] max-md:max-w-full">
+                            <section class="flex flex-col justify-center items-end py-1 px-10 mt-4 w-full text-xs font-bold text-center max-md:max-w-full">
+                            <div>For IR CLINIC</div>
+                            <div class="flex mt-2 bg-zinc-50 min-h-[80px] w-[90px]" />
+                            <div class="mt-6">Signature</div>
+                        </section><section class="mt-2 w-full text-xs max-md:max-w-full">
+                       
+                        <p class="gap-4 self-stretch text-left px-2 mt-4 w-full max-md:max-w-full">
+                            Received with thanks
+                        </p>
+                        </section>
                         </div>
 </body>
 </html>

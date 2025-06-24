@@ -301,6 +301,13 @@ export const getPaginatedEstimates = async (req, res) => {
     if (appointmentIds.length) {
       orConditions.push({ appointmentId: { $in: appointmentIds } });
     }
+
+    if (search) {
+      orConditions.push({
+        "estimatePlan.procedureName": { $regex: search, $options: "i" },
+      });
+    }
+
     if (search) {
       orConditions.push({
         "estimatePlan.hospital.name": { $regex: search, $options: "i" },

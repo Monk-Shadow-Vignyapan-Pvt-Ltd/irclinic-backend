@@ -630,7 +630,7 @@ export const getInvoiceUrl = async (req, res) => {
     <tfoot>
                                                                                                      <tr >
                                                                                                         <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                        <td class="text-right font-bold py-1">
+                                                                                                        <td style="width:130px !important;" class="text-left font-bold py-1">
                                                                                                             Total Amount: 
                                                                                                         </td>
                                                                                                         <td>
@@ -645,7 +645,7 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                     <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td class="text-right font-bold py-1">
+                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
                                                                                                         Total Discount: 
                                                                                                     </td>
                                                                                                     <td>
@@ -660,7 +660,7 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td class="text-right font-bold py-1">
+                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
                                                                                                         Payable Amount: 
                                                                                                     </td>
                                                                                                     <td>
@@ -675,7 +675,7 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td class="text-right font-bold py-1">
+                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
                                                                                                         Cash Amount: 
                                                                                                     </td>
                                                                                                     <td>
@@ -690,7 +690,7 @@ export const getInvoiceUrl = async (req, res) => {
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td class="text-right font-bold py-1">
+                                                                                                    <td style="width:130px !important;" class="text-left font-bold py-1">
                                                                                                         Online Amount: 
                                                                                                     </td>
                                                                                                     <td>

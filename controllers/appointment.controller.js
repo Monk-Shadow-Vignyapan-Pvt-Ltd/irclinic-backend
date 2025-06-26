@@ -468,6 +468,7 @@ export const updateAppointment = async (req, res) => {
         }
     }else{
       const patient = await Patient.findById(patientId)
+       const center = await Center.findById(centerId);
             if (reportsChanged && patient.reference) {
               
                 await sendRefAppointmentImpression(patient,reports); 
@@ -475,7 +476,7 @@ export const updateAppointment = async (req, res) => {
              
             }
             if(appointment.invoiceId){
-                await sendPatientInvoice(patient,appointment.invoiceId);
+                await sendPatientInvoice(patient,appointment.invoiceId,center);
             }
             
     }
@@ -574,7 +575,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
 
     const payload = {
         apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Appointment Confirmation",  // ✅ Must match your campaign in Aisensy
+        campaignName: "Appointment Confirmation2",  // ✅ Must match your campaign in Aisensy
         subCampaignName: appointment._id.toString(), // ✅ Unique per message
         destination: `+91${patient.phoneNo}`,
         userName: "IR Clinic",
@@ -621,7 +622,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
 
   const payload = {
       apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Appointment Confirmation Reference",  // ✅ Must match your campaign in Aisensy
+      campaignName: "Appointment Confirmation Reference1",  // ✅ Must match your campaign in Aisensy
       subCampaignName: appointment._id.toString(), // ✅ Unique per message
       destination: `+91${patient.reference.referencePhoneNo}`,
       userName: "IR Clinic",
@@ -697,7 +698,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
 
   const payload = {
       apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Follow Up Impression Reference",  // ✅ Must match your campaign in Aisensy
+      campaignName: "Follow Up Impression Reference1",  // ✅ Must match your campaign in Aisensy
       subCampaignName: patient._id.toString(), // ✅ Unique per message
       destination: `+91${patient.reference.referencePhoneNo}`,
       userName: "IR Clinic",
@@ -722,8 +723,10 @@ const formattedTime = appointmentDate.format('hh:mm A');
   }
 };
 
-const sendPatientInvoice = async (patient, invoiceId) => {
+const sendPatientInvoice = async (patient, invoiceId,center) => {
   const invoice = await Invoice.findById(invoiceId);
+
+  const link = center.centerName.split(" ")[0] === "Surat" ? "bit.ly/4kXqoYu" : center.centerName.split(" ")[0] === "Vadodara" ? "https://bit.ly/4nizdh5" : center.centerName.split(" ")[0] === "Bhopal" ? "https://bit.ly/4lsZd83" : "bit.ly/4kXqoYu"
 
   if (invoice.createdAt.getTime() !== invoice.updatedAt.getTime()) {
     console.log(`Invoice ${invoice._id} is an update, skipping WhatsApp message.`);
@@ -733,13 +736,13 @@ const sendPatientInvoice = async (patient, invoiceId) => {
 
   const payload = {
       apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Patient Invoice Send",  // ✅ Must match your campaign in Aisensy
+      campaignName: "Patient Invoice Send1",  // ✅ Must match your campaign in Aisensy
       subCampaignName: patient._id.toString(), // ✅ Unique per message
       destination: `+91${patient.phoneNo}`,
       userName: "IR Clinic",
       templateParams: [
         patient.patientName,
-        
+        link
       ],
       source: "new-landing-page form",
       paramsFallbackValue: {
@@ -834,7 +837,7 @@ const sendWhatsApp = async (payload) => {
   
       const payload = {
         apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Missing Appointments",
+        campaignName: "Missing Appointments1",
         destination: `+91${patient.phoneNo}`,
         userName: "IR Clinic",
         templateParams: [

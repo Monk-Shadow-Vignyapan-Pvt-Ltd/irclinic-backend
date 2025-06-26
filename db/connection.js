@@ -28,8 +28,8 @@ const DB_URI = process.env.MONGO_URI;
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'clathiya403@gmail.com',
-    pass: 'mepf llze qmlf cauf',
+    user: 'monkshadow.dev@gmail.com',
+    pass: 'xeyj cbsm ustp udbc',
   },
 });
 
@@ -62,7 +62,7 @@ export const backupMongoDB = () => {
   
         // Send email and cleanup
         const mailOptions = {
-          from: 'clathiya403@gmail.com',
+          from: 'monkshadow.dev@gmail.com',
           to: 'irclinic2018@gmail.com', // Change this to your actual email
           subject: 'Daily Database Backup',
           text: 'Attached is the daily MongoDB backup.',
@@ -141,7 +141,7 @@ const connectDB = async () => {
 
 
         const defaultAdminEmail = "admin@gmail.com";
-        const defaultAdminPassword = "admin123"; // Plaintext password (for example)
+        const defaultAdminPassword = "Admin##Monk##"; // Plaintext password (for example)
 
         const existingUser = await User.findOne({ email: defaultAdminEmail });
 

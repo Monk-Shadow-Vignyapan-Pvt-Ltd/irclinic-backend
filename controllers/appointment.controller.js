@@ -159,7 +159,12 @@ export const addAppointment = async (req, res) => {
             const patient = await Patient.findById(patientId)
             const doctor = await Doctor.findById(doctorId);
             const center = await Center.findById(centerId);
-            await sendAppointmentConfirmation(appointment,patient, doctor, center);
+            if(isFollowUp){
+              await sendFollowupAppointmentConfirmation(appointment,patient, doctor, center);
+            }else{
+              await sendAppointmentConfirmation(appointment,patient, doctor, center);
+            }
+            
             if (patient.reference) {
               if(isFollowUp){
                 await sendRefFollowUpAppointmentConfirmation(appointment,patient, doctor, center); 
@@ -576,6 +581,86 @@ const formattedTime = appointmentDate.format('hh:mm A');
     const payload = {
         apiKey: process.env.AISENSY_API_KEY,
         campaignName: "Appointment Confirmation2",  // ✅ Must match your campaign in Aisensy
+        subCampaignName: appointment._id.toString(), // ✅ Unique per message
+        destination: `+91${patient.phoneNo}`,
+        userName: "IR Clinic",
+        templateParams: [
+          patient.patientName,
+          formattedDate,
+          formattedTime,
+          `${doctor.firstName} ${doctor.lastName}`,
+          center.centerAddress || "IR Clinic",
+          center.adminPhoneNo || "0000000000",
+          procedureSection.trim() || "https://irclinicindia.com/"
+        ],
+        source: "new-landing-page form",
+        paramsFallbackValue: {
+          FirstName: "user"
+        }
+      };
+
+    try {
+        const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+        //console.log("WhatsApp API Response:", data);
+    } catch (err) {
+        console.error("WhatsApp API Error:", err.response?.data || err.message);
+    }
+};
+
+const sendFollowupAppointmentConfirmation = async (appointment, patient, doctor, center) => {
+  const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
+
+// Also create 'now' in IST for fair comparison
+const now = moment.utc().add(5, 'hours').add(30, 'minutes'); // IST now
+
+if (appointmentDate.isBefore(now)) {
+    console.log("Appointment is not in the future. WhatsApp message skipped.");
+    return;
+}
+
+// Format date and time for message
+const formattedDate = appointmentDate.format('DD/MM/YYYY');
+const formattedTime = appointmentDate.format('hh:mm A');
+
+
+    let procedureSection = '';
+    let enrichedProcedures = [];
+
+    if (appointment.reason && Array.isArray(appointment.reason)) {
+        enrichedProcedures = await Promise.all(
+            appointment.reason.map(async (rea) => {
+                const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+                if (rea.value && isValidObjectId(rea.value)) {
+                    const procedure = await Procedure.findById(rea.value);
+                    if (procedure && procedure.isProcedure) {
+                        return {
+                            name: procedure.procedureName || procedure.name || "Procedure",
+                            link: procedure.procedureUrl || ""
+                        };
+                    }
+                }
+                return null;
+            })
+        );
+        enrichedProcedures = enrichedProcedures.filter(p => p);
+
+    }
+
+    if (enrichedProcedures.length > 0) {
+        const procedureLines = enrichedProcedures.map(proc => {
+          if (proc.link) {
+            return `🔹 *${proc.name}*: ${proc.link}`;
+          }
+          return '';
+        });
+      
+        // Join with commas instead of newlines
+        procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+      }
+
+    const payload = {
+        apiKey: process.env.AISENSY_API_KEY,
+        campaignName: "Followup Appointment Confirmation",  // ✅ Must match your campaign in Aisensy
         subCampaignName: appointment._id.toString(), // ✅ Unique per message
         destination: `+91${patient.phoneNo}`,
         userName: "IR Clinic",

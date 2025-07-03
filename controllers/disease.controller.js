@@ -74,7 +74,7 @@ export const getDiseases = async (req, res) => {
         .status(404)
         .json({ message: "No diseases found", success: false });
     }
-    
+
     res.status(200).json({
       diseases: diseases,
       success: true
@@ -87,10 +87,54 @@ export const getDiseases = async (req, res) => {
   }
 };
 
+export const searchDiseases = async (req, res) => {
+  try {
+    const { search } = req.query;
+    if (!search) {
+      return res.status(400).json({ message: 'Search query is required', success: false });
+    }
+
+    const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+    const disease = await Disease.find({
+      $or: [
+        { diseaseName: regex },
+      ]
+    });
+
+    if (!disease) {
+      return res.status(404).json({ message: 'No disease found', success: false });
+    }
+    const page = parseInt(req.query.page) || 1;
+
+    // Define the number of items per page
+    const limit = 12;
+
+    // Calculate the start and end indices for pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    // Paginate the reversed movies array
+    const paginatedDiease = disease.slice(startIndex, endIndex);
+    res.status(200).json({
+      diseases: paginatedDiease,
+      success: true,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(disease.length / limit),
+        totalDiseases: disease.length,
+      }
+    });
+  } catch (error) {
+    console.error('Error searching diseases:', error);
+    res.status(500).json({ message: 'Failed to search diseases', success: false });
+  }
+};
+
 export const getDiseasesFrontend = async (req, res) => {
   try {
     const diseases = await Disease.aggregate([
-      { $match: { $or: [ { parentID: null }, { parentID: "" } ] } }, // Only parents
+      { $match: { $or: [{ parentID: null }, { parentID: "" }] } }, // Only parents
       { $sample: { size: 8 } }, // Random 8 diseases
       {
         $project: {
@@ -174,11 +218,11 @@ export const getDiseaseByUrl = async (req, res) => {
 
     let parentDisease = null;
     if (disease.parentID) {
-      parentDisease = await Disease.findOne({diseaseName:disease.parentID});
+      parentDisease = await Disease.findOne({ diseaseName: disease.parentID });
     }
 
 
-      
+
     const diseaseIdsToMatch = [disease._id.toString()];
     if (parentDisease) {
       diseaseIdsToMatch.push(parentDisease._id.toString());
@@ -194,7 +238,7 @@ export const getDiseaseByUrl = async (req, res) => {
     }).select(
       'serviceName serviceUrl serviceDescription serviceImage serviceEnabled'
     );
-    return res.status(200).json({ disease,services, success: true });
+    return res.status(200).json({ disease, services, success: true });
   } catch (error) {
     console.log(error);
     res

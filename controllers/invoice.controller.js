@@ -583,9 +583,13 @@ export const getInvoiceUrl = async (req, res) => {
                             </div>
             
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                                 ${patient.reference && patient.reference.label ? `
                                 <div style="flex: 1; min-width: 400px;">
-                                    <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
+                                    <p><strong>Reference By:</strong> ${patient.reference.label}</p>
                                 </div>
+                                ` :   `<div style="flex: 1; min-width: 400px;">
+                                    <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
+                                </div>`  }
                                 <div style="flex: 1; min-width: 250px;">
                                         <p><strong>Date:</strong> ${moment(invoice.updatedAt).format('DD/MM/YYYY')}</p>
                                     </div>
@@ -598,7 +602,7 @@ export const getInvoiceUrl = async (req, res) => {
                                 </div>
                                 ${patient.reference && patient.reference.label ? `
                                 <div style="flex: 1; min-width: 250px;">
-                                    <p><strong>Reference By:</strong> ${patient.reference.label}</p>
+                                    <p><strong>Mobile No:</strong> ${patient.phoneNo || ""}</p>
                                 </div>
                                 ` : ""}
                                 

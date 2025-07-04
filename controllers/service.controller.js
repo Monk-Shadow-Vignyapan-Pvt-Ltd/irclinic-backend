@@ -165,7 +165,7 @@ export const getServiceName = async (req, res) => {
             _id: { $in: rankedServiceIds },
             serviceEnabled: true
         })
-            .select("serviceName serviceEnabled")
+            .select("serviceName serviceEnabled serviceUrl")
             .limit(9);
 
         if (!services || services.length === 0)

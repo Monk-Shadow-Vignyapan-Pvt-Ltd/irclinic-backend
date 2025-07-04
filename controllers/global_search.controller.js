@@ -14,22 +14,22 @@ export const globalSearch = async (req, res) => {
     // Define the collections, their searchable fields, and fields to include in the result
     const collectionsToSearch = {
       services: {
-        searchableFields: ["serviceName", "serviceDescription"],
+        searchableFields: ["serviceName", "serviceDescription", "serviceUrl"],
         resultFields: ["_id", "serviceName", "serviceDescription"],
         filter: { serviceEnabled: true },
       },
       categories: {
-        searchableFields: ["categoryName", "categoryDescription",],
+        searchableFields: ["categoryName", "categoryDescription", "categoryUrl"],
         resultFields: ["_id", "categoryName", "categoryDescription",],
         filter: { subServiceEnabled: true },
       },
       diseases: {
-        searchableFields: ["diseaseName", "diseaseDescription"],
+        searchableFields: ["diseaseName", "diseaseDescription", "diseaseURL"],
         resultFields: ["_id", "diseaseName", "diseaseDescription"],
         filter: { serviceEnabled: true },
       },
       blogs: {
-        searchableFields: ["blogTitle", "blogDescription", "content"],
+        searchableFields: ["blogTitle", "blogDescription", "content", "blogUrl"],
         resultFields: ["_id", "blogTitle", "blogDescription",],
         filter: {},
       },

@@ -49,8 +49,7 @@ export const addCategory = async (req, res) => {
 export const getCategoryName = async (req, res) => {
     try {
         const categories = await Category.find()
-            .select("categoryName")
-            .limit(8);
+            .select("categoryName");
         if (!categories || categories.length === 0)
             return res
                 .status(404)

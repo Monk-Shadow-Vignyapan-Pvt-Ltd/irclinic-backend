@@ -151,14 +151,34 @@ export const getServices = async (req, res) => {
 
 export const getServiceName = async (req, res) => {
     try {
-        const services = await Service.find({ serviceEnabled: true }).select(
-            "serviceName serviceEnabled"
-        ).limit(8);
+        // Get the ranking document
+        const serviceRanking = await ServiceRanking.findOne().select('ranking');
+        if (!serviceRanking || !serviceRanking.ranking || serviceRanking.ranking.length === 0) {
+            return res.status(404).json({ message: "No ranked services found", success: false });
+        }
+
+        // Extract ranked service IDs
+        const rankedServiceIds = serviceRanking.ranking.map(item => item.value);
+
+        // Fetch only ranked and enabled services
+        const services = await Service.find({
+            _id: { $in: rankedServiceIds },
+            serviceEnabled: true
+        })
+            .select("serviceName serviceEnabled")
+            .limit(9);
+
         if (!services || services.length === 0)
             return res
                 .status(404)
                 .json({ message: "services not found", success: false });
-        return res.status(200).json({ services });
+
+        // Sort services according to ranking order
+        const sortedServices = rankedServiceIds
+            .map(id => services.find(service => service._id.toString() === id))
+            .filter(Boolean);
+
+        return res.status(200).json({ services: sortedServices });
     } catch (error) {
         console.log(error);
         res

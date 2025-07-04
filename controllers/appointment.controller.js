@@ -166,11 +166,11 @@ export const addAppointment = async (req, res) => {
             }
             
             if (patient.reference) {
-              if(isFollowUp){
-                await sendRefFollowUpAppointmentConfirmation(appointment,patient, doctor, center); 
-              }else{
+              // if(isFollowUp){
+              //   await sendRefFollowUpAppointmentConfirmation(appointment,patient, doctor, center); 
+              // }else{
                 await sendRefAppointmentConfirmation(appointment,patient, doctor, center); 
-              }
+             // }
              
             }
         }

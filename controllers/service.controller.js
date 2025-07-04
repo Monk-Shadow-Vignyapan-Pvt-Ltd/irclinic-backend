@@ -9,12 +9,12 @@ import { Estimate } from '../models/estimate.model.js';
 // Add a new service
 export const addService = async (req, res) => {
     try {
-        let { serviceName, serviceDescription, serviceImage,serviceType,
-            proceduresPerformedTotal,successRatePercentage,yearsExperienceTotal,patientSatisfactionRatePercentage,educationalVideoTitle,educationalVideoDescription,educationalVideoUrl,
-            whyChoose,whyChooseName, howWorks,howWorksName,beforeAfterGallary = [], others, procedureId,categoryId, diseaseId, serviceEnabled,serviceUrl,seoTitle,seoDescription, userId} = req.body;
-        
+        let { serviceName, serviceDescription, serviceImage, serviceType,
+            proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
+            whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription, userId } = req.body;
+
         // Validate base64 image data
-        if (!serviceImage || !serviceImage.startsWith('data:image') ) {
+        if (!serviceImage || !serviceImage.startsWith('data:image')) {
             return res.status(400).json({ message: 'Invalid image data', success: false });
         }
 
@@ -37,13 +37,13 @@ export const addService = async (req, res) => {
             if (!Array.isArray(gallery)) {
                 throw new Error('Input must be an array');
             }
-        
+
             const compressedGallery = await Promise.all(
                 gallery.map(async (item) => {
                     if (!item.before.startsWith('data:image') || !item.after.startsWith('data:image')) {
                         throw new Error(`Invalid image in gallery item with id: ${item.id}`);
                     }
-        
+
                     return {
                         ...item,
                         before: await compressImage(item.before),
@@ -51,7 +51,7 @@ export const addService = async (req, res) => {
                     };
                 })
             );
-        
+
             return compressedGallery;
         };
         beforeAfterGallary = await compressGalleryImages(beforeAfterGallary);
@@ -90,9 +90,9 @@ export const addService = async (req, res) => {
         const service = new Service({
             serviceName,
             serviceDescription,
-            serviceImage:compressedServiceBase64, // Store the base64 image data
+            serviceImage: compressedServiceBase64, // Store the base64 image data
             serviceType,
-            proceduresPerformedTotal,successRatePercentage,yearsExperienceTotal,patientSatisfactionRatePercentage,educationalVideoTitle,educationalVideoDescription,educationalVideoUrl,
+            proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
             whyChoose,
             whyChooseName,
             howWorks,
@@ -104,7 +104,7 @@ export const addService = async (req, res) => {
             diseaseId,
             serviceEnabled,
             serviceUrl,
-            seoTitle,seoDescription,
+            seoTitle, seoDescription,
             userId
         });
 
@@ -134,15 +134,36 @@ export const getServices = async (req, res) => {
 
         // Paginate the reversed movies array
         const paginatedservices = reversedservices.slice(startIndex, endIndex);
-        res.status(200).json({ services:paginatedservices, 
-            success: true ,
+        res.status(200).json({
+            services: paginatedservices,
+            success: true,
             pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(services.length / limit),
-            totalServices: services.length,} });
+                currentPage: page,
+                totalPages: Math.ceil(services.length / limit),
+                totalServices: services.length,
+            }
+        });
     } catch (error) {
         console.error('Error fetching services:', error);
         res.status(500).json({ message: 'Failed to fetch services', success: false });
+    }
+};
+
+export const getServiceName = async (req, res) => {
+    try {
+        const services = await Service.find({ serviceEnabled: true }).select(
+            "serviceName serviceEnabled"
+        ).limit(8);
+        if (!services || services.length === 0)
+            return res
+                .status(404)
+                .json({ message: "services not found", success: false });
+        return res.status(200).json({ services });
+    } catch (error) {
+        console.log(error);
+        res
+            .status(500)
+            .json({ message: "Failed to fetch services", success: false });
     }
 };
 
@@ -169,8 +190,8 @@ export const getEnabledServices = async (req, res) => {
         // Paginate the reversed array
         const paginatedServices = reversedServices.slice(startIndex, endIndex);
 
-        res.status(200).json({ 
-            services: paginatedServices, 
+        res.status(200).json({
+            services: paginatedServices,
             success: true,
             pagination: {
                 currentPage: page,
@@ -214,12 +235,15 @@ export const searchServices = async (req, res) => {
 
         // Paginate the reversed movies array
         const paginatedservices = services.slice(startIndex, endIndex);
-        res.status(200).json({ services:paginatedservices, 
-            success: true ,
+        res.status(200).json({
+            services: paginatedservices,
+            success: true,
             pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(services.length / limit),
-            totalServices: services.length,} });
+                currentPage: page,
+                totalPages: Math.ceil(services.length / limit),
+                totalServices: services.length,
+            }
+        });
     } catch (error) {
         console.error('Error searching services:', error);
         res.status(500).json({ message: 'Failed to search services', success: false });
@@ -242,18 +266,18 @@ export const getServiceById = async (req, res) => {
 export const getServiceByUrl = async (req, res) => {
     try {
         const serviceUrl = req.params.id;
-        const service = await Service.findOne({serviceUrl}).populate('procedureId'); // Populating category data
+        const service = await Service.findOne({ serviceUrl }).populate('procedureId'); // Populating category data
         if (!service) return res.status(404).json({ message: "Service not found!", success: false });
         const procedureValues = service.procedureId.map(p => p.value);
 
-            // Get count of invoices that include any of the procedure values
-            const invoicecount = await Invoice.countDocuments({
+        // Get count of invoices that include any of the procedure values
+        const invoicecount = await Invoice.countDocuments({
             "invoicePlan.value": { $in: procedureValues }
-            });
-            const estimatecount = await Estimate.countDocuments({
+        });
+        const estimatecount = await Estimate.countDocuments({
             "estimatePlan.value": { $in: procedureValues }
-            });
-        return res.status(200).json({ service,count:invoicecount + estimatecount, success: true });
+        });
+        return res.status(200).json({ service, count: invoicecount + estimatecount, success: true });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: 'Failed to fetch service', success: false });
@@ -264,7 +288,7 @@ export const getServicesByCategory = async (req, res) => {
     try {
         const { id } = req.params; // Extract the service ID from the request parameters
         const services = await Service.find({ procedureId: id })
-        .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled'); // Correctly query by serviceId
+            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled'); // Correctly query by serviceId
         if (!services) {
             return res.status(404).json({ message: "services not found!", success: false });
         }
@@ -279,10 +303,10 @@ export const getServicesByCategory = async (req, res) => {
 export const updateService = async (req, res) => {
     try {
         const { id } = req.params;
-        let { serviceName, serviceDescription, serviceImage,serviceType,
-            proceduresPerformedTotal,successRatePercentage,yearsExperienceTotal,patientSatisfactionRatePercentage,educationalVideoTitle,educationalVideoDescription,educationalVideoUrl,
-            whyChoose,whyChooseName, howWorks,howWorksName,beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled,serviceUrl,seoTitle,seoDescription,userId } = req.body;
-         
+        let { serviceName, serviceDescription, serviceImage, serviceType,
+            proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
+            whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription, userId } = req.body;
+
         const existingService = await Service.findById(id);
         if (!existingService) {
             return res.status(404).json({ message: "Service not found!", success: false });
@@ -316,13 +340,13 @@ export const updateService = async (req, res) => {
             if (!Array.isArray(gallery)) {
                 throw new Error('Input must be an array');
             }
-        
+
             const compressedGallery = await Promise.all(
                 gallery.map(async (item) => {
                     if (!item.before.startsWith('data:image') || !item.after.startsWith('data:image')) {
                         throw new Error(`Invalid image in gallery item with id: ${item.id}`);
                     }
-        
+
                     return {
                         ...item,
                         before: await compressImage(item.before),
@@ -330,11 +354,11 @@ export const updateService = async (req, res) => {
                     };
                 })
             );
-        
+
             return compressedGallery;
         };
         beforeAfterGallary = await compressGalleryImages(beforeAfterGallary);
-            // Compress all images in the gallery
+        // Compress all images in the gallery
         const compressAllImages = async (others) => {
             if (!Array.isArray(others)) return []; // Return empty array if others is not valid
 
@@ -371,7 +395,7 @@ export const updateService = async (req, res) => {
             serviceDescription,
             ...(compressedServiceBase64 && { serviceImage: compressedServiceBase64 }), // Only update image if new image is provided
             serviceType,
-            proceduresPerformedTotal,successRatePercentage,yearsExperienceTotal,patientSatisfactionRatePercentage,educationalVideoTitle,educationalVideoDescription,educationalVideoUrl,
+            proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
             whyChoose,
             whyChooseName,
             howWorks,
@@ -382,9 +406,9 @@ export const updateService = async (req, res) => {
             categoryId,
             diseaseId,
             serviceEnabled,
-            serviceUrl,seoTitle,seoDescription,
+            serviceUrl, seoTitle, seoDescription,
             userId,
-            oldUrls 
+            oldUrls
         };
 
         const service = await Service.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
@@ -403,27 +427,27 @@ export const onOffService = async (req, res) => {
 
         const existingService = await Service.findById(id)
 
-        
+
         const updatedData = {
-            serviceName :existingService.serviceName,
-            serviceDescription:existingService.serviceDescription,
-            serviceImage:existingService.serviceImage, // Only update image if new image is provided
-            serviceType:existingService.serviceType,
-            whyChoose:existingService.whyChoose,
-            whyChooseName:existingService.whyChooseName,
-            howWorks:existingService.howWorks,
-            howWorksName:existingService.howWorksName,
-            beforeAfterGallary:existingService.beforeAfterGallary,
-            others:existingService.others,
-            procedureId:existingService.procedureId,
-            categoryId:existingService.categoryId,
-            diseaseId:existingService.diseaseId,
-            serviceEnabled:serviceEnabled,
-            serviceUrl:existingService.serviceUrl,
-            seoTitle:existingService.seoTitle,
-            seoDescription:existingService.seoDescription,
-            userId:existingService.userId,
-            oldUrls:existingService.oldUrls
+            serviceName: existingService.serviceName,
+            serviceDescription: existingService.serviceDescription,
+            serviceImage: existingService.serviceImage, // Only update image if new image is provided
+            serviceType: existingService.serviceType,
+            whyChoose: existingService.whyChoose,
+            whyChooseName: existingService.whyChooseName,
+            howWorks: existingService.howWorks,
+            howWorksName: existingService.howWorksName,
+            beforeAfterGallary: existingService.beforeAfterGallary,
+            others: existingService.others,
+            procedureId: existingService.procedureId,
+            categoryId: existingService.categoryId,
+            diseaseId: existingService.diseaseId,
+            serviceEnabled: serviceEnabled,
+            serviceUrl: existingService.serviceUrl,
+            seoTitle: existingService.seoTitle,
+            seoDescription: existingService.seoDescription,
+            userId: existingService.userId,
+            oldUrls: existingService.oldUrls
         };
 
         const service = await Service.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
@@ -452,8 +476,8 @@ export const deleteService = async (req, res) => {
 export const getServicesFrontend = async (req, res) => {
     try {
         const services = await Service.find()
-        .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
-        .populate('procedureId'); // Populating category data
+            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
+            .populate('procedureId'); // Populating category data
         if (!services) return res.status(404).json({ message: "Services not found", success: false });
         return res.status(200).json({ services });
     } catch (error) {
@@ -465,7 +489,7 @@ export const getServicesFrontend = async (req, res) => {
 export const getServicesBeforeAfter = async (req, res) => {
     try {
         const services = await Service.find()
-        .select('serviceName beforeAfterGallary serviceEnabled');
+            .select('serviceName beforeAfterGallary serviceEnabled');
         if (!services) return res.status(404).json({ message: "Services not found", success: false });
         return res.status(200).json({ services });
     } catch (error) {
@@ -477,11 +501,12 @@ export const getServicesBeforeAfter = async (req, res) => {
 // Clone service by ID
 function createUrl(name) {
     return name
-      .trim()                        // Remove extra spaces
-      .toLowerCase()                 // Convert to lowercase
-      .replace(/\s+/g, '-')          // Replace spaces with hyphens
-      .replace(/[^a-z0-9-]/g, '');   // Remove special characters except hyphens
-  }
+        .trim()                        // Remove extra spaces
+        .toLowerCase()                 // Convert to lowercase
+        .replace(/\s+/g, '-')          // Replace spaces with hyphens
+        .replace(/[^a-z0-9-]/g, '');   // Remove special characters except hyphens
+}
+
 export const cloneService = async (req, res) => {
     try {
         const { id } = req.params;
@@ -524,12 +549,12 @@ export const cloneService = async (req, res) => {
 
 export const addServiceRanking = async (req, res) => {
     try {
-        let { ranking,userId} = req.body;
+        let { ranking, userId } = req.body;
         const serviceRanking = await ServiceRanking.findOneAndUpdate(
-                  {}, 
-                  { ranking,userId}, 
-                  { new: true, upsert: true }
-                );
+            {},
+            { ranking, userId },
+            { new: true, upsert: true }
+        );
 
         await serviceRanking.save();
         res.status(201).json({ serviceRanking, success: true });
@@ -540,14 +565,14 @@ export const addServiceRanking = async (req, res) => {
 };
 
 export const getServiceRanking = async (req, res) => {
-  try {
-      const serviceRankings = await ServiceRanking.find();
-      if (!serviceRankings) return res.status(404).json({ message: "Service Rankings not found", success: false });
-      return res.status(200).json({ serviceRankings });
-  } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: 'Failed to fetch service Rankings', success: false });
-  }
+    try {
+        const serviceRankings = await ServiceRanking.find();
+        if (!serviceRankings) return res.status(404).json({ message: "Service Rankings not found", success: false });
+        return res.status(200).json({ serviceRankings });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch service Rankings', success: false });
+    }
 };
 
 export const getServicesAfterRanking = async (req, res) => {
@@ -563,12 +588,12 @@ export const getServicesAfterRanking = async (req, res) => {
 
         // Fetch services that match the ranked IDs
         const mainservices = await Service.find({ _id: { $in: rankedServiceIds } })
-        .select('serviceName serviceUrl serviceDescription serviceImage');
+            .select('serviceName serviceUrl serviceDescription serviceImage');
 
         const subservices = await SubService.find({ _id: { $in: rankedServiceIds } })
-        .select('subServiceName subServiceUrl subServiceDescription subServiceImage');
+            .select('subServiceName subServiceUrl subServiceDescription subServiceImage');
 
-        const services = [...mainservices,...subservices];
+        const services = [...mainservices, ...subservices];
 
         if (!services || services.length === 0) {
             return res.status(404).json({ message: "Ranked services not found", success: false });
@@ -586,12 +611,12 @@ export const getServicesAfterRanking = async (req, res) => {
 
 export const addServiceInSearch = async (req, res) => {
     try {
-        let { ranking,userId} = req.body;
+        let { ranking, userId } = req.body;
         const serviceRanking = await ServiceSearch.findOneAndUpdate(
-                  {}, 
-                  { ranking,userId}, 
-                  { new: true, upsert: true }
-                );
+            {},
+            { ranking, userId },
+            { new: true, upsert: true }
+        );
 
         await serviceRanking.save();
         res.status(201).json({ serviceRanking, success: true });
@@ -602,14 +627,14 @@ export const addServiceInSearch = async (req, res) => {
 };
 
 export const getServiceInSearch = async (req, res) => {
-  try {
-      const serviceRankings = await ServiceSearch.find();
-      if (!serviceRankings) return res.status(404).json({ message: "Service Rankings not found", success: false });
-      return res.status(200).json({ serviceRankings });
-  } catch (error) {
-      console.log(error);
-      res.status(500).json({ message: 'Failed to fetch service Rankings', success: false });
-  }
+    try {
+        const serviceRankings = await ServiceSearch.find();
+        if (!serviceRankings) return res.status(404).json({ message: "Service Rankings not found", success: false });
+        return res.status(200).json({ serviceRankings });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch service Rankings', success: false });
+    }
 };
 
 export const getServicesAfterInSearch = async (req, res) => {
@@ -625,12 +650,12 @@ export const getServicesAfterInSearch = async (req, res) => {
 
         // Fetch services that match the ranked IDs
         const mainservices = await Service.find({ _id: { $in: rankedServiceIds } })
-        .select('serviceName serviceUrl serviceDescription serviceImage');
+            .select('serviceName serviceUrl serviceDescription serviceImage');
 
         const subservices = await SubService.find({ _id: { $in: rankedServiceIds } })
-        .select('subServiceName subServiceUrl subServiceDescription subServiceImage');
+            .select('subServiceName subServiceUrl subServiceDescription subServiceImage');
 
-        const services = [...mainservices,...subservices];
+        const services = [...mainservices, ...subservices];
 
         if (!services || services.length === 0) {
             return res.status(404).json({ message: "Ranked services not found", success: false });

@@ -7,8 +7,8 @@ import { Service } from '../models/service.model.js';
 // Add a new category
 export const addCategory = async (req, res) => {
     try {
-        const { categoryName,categoryDescription,rank, imageBase64,userId, categoryUrl,
-            seoTitle,seoDescription, } = req.body;
+        const { categoryName, categoryDescription, rank, imageBase64, userId, categoryUrl,
+            seoTitle, seoDescription, } = req.body;
         // Validate base64 image data
         if (!imageBase64 || !imageBase64.startsWith('data:image')) {
             return res.status(400).json({ message: 'Invalid image data', success: false });
@@ -28,12 +28,12 @@ export const addCategory = async (req, res) => {
 
         // Save the category details in MongoDB
         const category = new Category({
-            categoryName:req.body.name,
+            categoryName: req.body.name,
             categoryImage: compressedBase64, // Store the base64 string in MongoDB
-            categoryDescription:req.body.description,
-            userId:req.body.userId,
+            categoryDescription: req.body.description,
+            userId: req.body.userId,
             categoryUrl,
-            seoTitle,seoDescription,
+            seoTitle, seoDescription,
             rank
         });
 
@@ -42,6 +42,25 @@ export const addCategory = async (req, res) => {
     } catch (error) {
         console.error('Error uploading category:', error);
         res.status(500).json({ message: 'Failed to upload category', success: false });
+    }
+};
+
+
+export const getCategoryName = async (req, res) => {
+    try {
+        const categories = await Category.find()
+            .select("categoryName")
+            .limit(8);
+        if (!categories || categories.length === 0)
+            return res
+                .status(404)
+                .json({ message: "Categories not found", success: false });
+        return res.status(200).json({ categories });
+    } catch (error) {
+        console.log(error);
+        res
+            .status(500)
+            .json({ message: "Failed to fetch categories", success: false });
     }
 };
 
@@ -73,11 +92,11 @@ export const getCategoryById = async (req, res) => {
 export const getCategoryByUrl = async (req, res) => {
     try {
         const categoryUrl = req.params.id;
-        const category = await Category.findOne({categoryUrl});
+        const category = await Category.findOne({ categoryUrl });
         if (!category) return res.status(404).json({ message: "Category not found!", success: false });
         const services = await Service.find({ categoryId: category._id })
-                .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled');
-        return res.status(200).json({ category,services, success: true });
+            .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled');
+        return res.status(200).json({ category, services, success: true });
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: 'Failed to fetch category', success: false });
@@ -88,19 +107,19 @@ export const getCategoryByUrl = async (req, res) => {
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { categoryName, imageBase64,rank, categoryDescription,userId,categoryUrl,
-            seoTitle,seoDescription, } = req.body;
+        const { categoryName, imageBase64, rank, categoryDescription, userId, categoryUrl,
+            seoTitle, seoDescription, } = req.body;
 
         const existingCategory = await Category.findById(id);
-                if (!existingCategory) {
-                    return res.status(404).json({ message: "Category not found!", success: false });
-                }
-        
-                // Initialize oldUrls array and add the previous serviceUrl if it's different
-                let oldUrls = existingCategory.oldUrls || [];
-                if (existingCategory.categoryUrl && existingCategory.categoryUrl !== categoryUrl && !oldUrls.includes(existingCategory.categoryUrl)) {
-                    oldUrls.push(existingCategory.categoryUrl);
-                }
+        if (!existingCategory) {
+            return res.status(404).json({ message: "Category not found!", success: false });
+        }
+
+        // Initialize oldUrls array and add the previous serviceUrl if it's different
+        let oldUrls = existingCategory.oldUrls || [];
+        if (existingCategory.categoryUrl && existingCategory.categoryUrl !== categoryUrl && !oldUrls.includes(existingCategory.categoryUrl)) {
+            oldUrls.push(existingCategory.categoryUrl);
+        }
 
         // Validate base64 image data
         if (imageBase64 && !imageBase64.startsWith('data:image')) {
@@ -120,13 +139,13 @@ export const updateCategory = async (req, res) => {
         const compressedBase64 = `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
 
         const updatedData = {
-            categoryName:req.body.name,
-            categoryDescription:req.body.description,
-            userId:req.body.userId,
+            categoryName: req.body.name,
+            categoryDescription: req.body.description,
+            userId: req.body.userId,
             rank,
             categoryUrl,
             oldUrls,
-            seoTitle,seoDescription,
+            seoTitle, seoDescription,
             ...(compressedBase64 && { categoryImage: compressedBase64 }) // Only update image if new image is provided
         };
 

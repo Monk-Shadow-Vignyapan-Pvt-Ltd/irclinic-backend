@@ -614,7 +614,7 @@ const cashAmountRow = invoice.invoicePlan[0].cashAmount > 0 ? `
     </div>
   </header>
 
-  <div class="content"  style="margin-top: 30px !important;">
+  <div class="content text-sm"  style="margin-top: 30px !important;">
                             <div style="display: flex; flex-wrap: wrap; gap: 20px;">
                                <div style="flex: 1; min-width: 400px;">
                                     <p><strong>Patient Name:</strong> ${patient.patientName || ""}</p>

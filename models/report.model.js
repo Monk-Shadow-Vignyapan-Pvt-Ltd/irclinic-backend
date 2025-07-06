@@ -5,6 +5,7 @@ const reportSchema = new mongoose.Schema({
     description: { type: String, required: false },
     impression: { type: String, required: false },
     advice: { type: String, required: false },
+    followup: { type: String, required: false },
     userId:{
         type: mongoose.Schema.Types.ObjectId, 
           required:false

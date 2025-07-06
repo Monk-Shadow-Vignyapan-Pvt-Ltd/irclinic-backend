@@ -229,22 +229,33 @@ export const getAppointmentsByPatientId = async (req, res) => {
         const enhancedAppointments = await Promise.all(
             appointments.map(async (appointment) => {
                 if (appointment.invoiceId) {
-                    const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
-                    const invoicePlan = invoice.invoicePlan;
-                    const invoiceDate = invoice.createdAt;
-                    const invoiceUserId = invoice.userId;
-                     if(appointment.quicknoteId){
-                    const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
-                    const quicknoteWithAudio = {
-                        ...qn._doc,
-                        audio: qn.audio ? qn.audio.toString("base64") : null,
-                    };
-                    const quicknoteDate = qn.createdAt;
-                    return { ...appointment.toObject(),invoicePlan,invoiceDate ,invoiceUserId, quicknote:quicknoteWithAudio,quicknoteDate }; // Convert Mongoose document to plain object
-                    }else{
-                       return { ...appointment.toObject(), invoicePlan,invoiceDate,invoiceUserId }; // Convert Mongoose document to plain object
+                    let invoices = [];
+                    if (Array.isArray(appointment.invoiceId)) {
+                        invoices = await Invoice.find({ _id: { $in: appointment.invoiceId } });
+                    } else {
+                        const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
+                        if (invoice) {
+                            invoices.push(invoice);
+                        }
                     }
-                   
+
+                    const invoicesData = invoices.map(inv => ({
+                        invoicePlan: inv.invoicePlan,
+                        invoiceDate: inv.createdAt,
+                        invoiceUserId: inv.userId
+                    }));
+
+                    if(appointment.quicknoteId){
+                        const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
+                        const quicknoteWithAudio = {
+                            ...qn._doc,
+                            audio: qn.audio ? qn.audio.toString("base64") : null,
+                        };
+                        const quicknoteDate = qn.createdAt;
+                        return { ...appointment.toObject(), invoices: invoicesData, quicknote: quicknoteWithAudio, quicknoteDate }; // Convert Mongoose document to plain object
+                    } else {
+                        return { ...appointment.toObject(), invoices: invoicesData }; // Convert Mongoose document to plain object
+                    }
                 } else if (appointment.estimateId) {
                     const estimate = await Estimate.findOne({ _id: appointment.estimateId });
                     const estimatePlan = estimate.estimatePlan;
@@ -343,6 +354,10 @@ export const updateAppointment = async (req, res) => {
 
         const existingAppointment = await Appointment.findById(id);
 
+        if (!existingAppointment) {
+            return res.status(404).json({ message: 'Appointment not found', success: false });
+        }
+
         let reportsChanged = false;
         if ((!existingAppointment.reports || existingAppointment.reports.length === 0) && reports && reports.length > 0) {
           reportsChanged = true;
@@ -362,9 +377,6 @@ export const updateAppointment = async (req, res) => {
       }
 
         const appointment = await Appointment.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
-        if (!appointment) {
-            return res.status(404).json({ message: 'Appointment not found', success: false });
-        }
 
         io.emit("appointmentAddUpdate",  { success: true }  );
 
@@ -480,8 +492,15 @@ export const updateAppointment = async (req, res) => {
               
              
             }
-            if(appointment.invoiceId){
-                await sendPatientInvoice(patient,appointment.invoiceId,center);
+            const newInvoiceIds = Array.isArray(invoiceId) ? invoiceId : (invoiceId ? [invoiceId] : []);
+            const existingInvoiceIds = Array.isArray(existingAppointment.invoiceId) ? existingAppointment.invoiceId : (existingAppointment.invoiceId ? [existingAppointment.invoiceId] : []);
+
+            const newlyAddedInvoiceIds = newInvoiceIds.filter(newId =>
+                !existingInvoiceIds.some(existingId => existingId.toString() === newId.toString())
+            );
+
+            for (const invId of newlyAddedInvoiceIds) {
+                await sendPatientInvoice(patient, invId, center);
             }
             
     }
@@ -855,6 +874,7 @@ const sendPatientInvoice = async (patient, invoiceId,center) => {
       console.error("WhatsApp API Error:", err.response?.data || err.message);
   }
 };
+
 
 
 const sendWhatsApp = async (payload) => {

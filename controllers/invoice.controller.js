@@ -533,6 +533,57 @@ export const getInvoiceUrl = async (req, res) => {
   </tr>
 `).join('');
 
+ const totalDiscount = invoice.invoicePlan[0].totalDiscount != null 
+      ? invoice.invoicePlan[0].totalDiscount
+      : invoice.invoicePlan.reduce((t, i) => t + i.discountAmount, 0);
+    
+
+    // Conditional rows
+    const discountRow = totalDiscount > 0 ? `
+      <tr>
+        <td colSpan="4" class="py-1">&nbsp;</td>
+        <td style="width:140px !important;" class="text-left font-bold py-1">
+          Total Discount: 
+        </td>
+        <td>
+          <div class="text-right pr-10 justify-end flex items-center gap-2 py-1 px-1">
+            ${totalDiscount.toFixed(2)}
+            <label class="text-sm font-semibold">INR</label>
+          </div>
+        </td>
+      </tr>
+    ` : '';
+
+const cashAmountRow = invoice.invoicePlan[0].cashAmount > 0 ? `
+      <tr>
+        <td colSpan="4" class="py-1">&nbsp;</td>
+        <td style="width:140px !important;" class="text-left font-bold py-1">
+          Cash Amount: 
+        </td>
+        <td>
+          <div class="text-right pr-10 justify-end flex items-center gap-2 py-1 px-1">
+            ${invoice.invoicePlan[0].cashAmount.toFixed(2)}
+            <label class="text-sm font-semibold">INR</label>
+          </div>
+        </td>
+      </tr>
+    ` : '';
+
+    const onlineAmountRow = invoice.invoicePlan[0].onlineAmount > 0 ? `
+      <tr>
+        <td colSpan="4" class="py-1">&nbsp;</td>
+        <td style="width:140px !important;" class="text-left font-bold py-1">
+          Online Amount: 
+        </td>
+        <td>
+          <div class="text-right pr-10 justify-end flex items-center gap-2 py-1 px-1">
+            ${invoice.invoicePlan[0].onlineAmount.toFixed(2)}
+            <label class="text-sm font-semibold">INR</label>
+          </div>
+        </td>
+      </tr>
+    ` : '';
+
     // const grandTotal = invoice.invoicePlan.reduce((t, i) => t + (i.qty * i.cost), 0).toFixed(2);
     // const totalDiscount = invoice.invoicePlan.reduce((t, i) => t + i.discountAmount, 0).toFixed(2);
     // const finalTotal = invoice.invoicePlan.reduce((t, i) => t + i.procedureTotal, 0).toFixed(2);
@@ -647,20 +698,7 @@ export const getInvoiceUrl = async (req, res) => {
                                                                                                         </td>
                                                                                                     </tr>
 
-                                                                                                    <tr >
-                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
-                                                                                                        Total Discount: 
-                                                                                                    </td>
-                                                                                                    <td>
-                                                                                                        <div class="text-right pr-10 justify-end flex items-center gap-2 py-1 px-1">
-
-                                                                                                           ${invoice?.invoicePlan[0].totalDiscount != null ?invoice?.invoicePlan[0].totalDiscount.toFixed(2) : invoice?.invoicePlan.reduce((total, section) => total + section.discountAmount, 0).toFixed(2)}
-                                                                                                            <label class="text-sm font-semibold">INR </label>
-                                                                                                        </div>
-
-                                                                                                    </td>
-                                                                                                </tr>
+                                                                                                   ${discountRow}
 
                                                                                                 <tr >
                                                                                                     <td  colSpan="4" class='py-1'>&nbsp;</td>
@@ -677,35 +715,8 @@ export const getInvoiceUrl = async (req, res) => {
                                                                                                     </td>
                                                                                                 </tr>
 
-                                                                                                <tr >
-                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
-                                                                                                        Cash Amount: 
-                                                                                                    </td>
-                                                                                                    <td>
-                                                                                                        <div class="text-right pr-10 justify-end flex items-center gap-2 py-1 px-1">
-
-                                                                                                           ${(invoice?.invoicePlan[0].cashAmount ? invoice?.invoicePlan[0].cashAmount:0).toFixed(2)}
-                                                                                                            <label class="text-sm font-semibold">INR </label>
-                                                                                                        </div>
-
-                                                                                                    </td>
-                                                                                                </tr>
-
-                                                                                                <tr >
-                                                                                                    <td  colSpan="4" class='py-1'>&nbsp;</td>
-                                                                                                    <td style="width:140px !important;" class="text-left font-bold py-1">
-                                                                                                        Online Amount: 
-                                                                                                    </td>
-                                                                                                    <td>
-                                                                                                        <div class="text-right pr-10 justify-end flex items-center gap-2 py-1 px-1">
-
-                                                                                                           ${(invoice?.invoicePlan[0].onlineAmount ? invoice?.invoicePlan[0].onlineAmount:0).toFixed(2)}
-                                                                                                            <label class="text-sm font-semibold">INR </label>
-                                                                                                        </div>
-
-                                                                                                    </td>
-                                                                                                </tr>
+                                                                                                 ${cashAmountRow}
+                                                                                                 ${onlineAmountRow}
       
     </tfoot>
   </table>

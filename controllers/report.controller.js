@@ -3,7 +3,7 @@ import { Report } from '../models/report.model.js'; // Update the path as per yo
 // Add a new report
 export const addReport = async (req, res) => {
     try {
-        const { reportTitle, description, impression, advice, userId ,centerId} = req.body;
+        const { reportTitle, description, impression, advice,followup, userId ,centerId} = req.body;
 
         // Validate required fields
         if (!reportTitle  ) {
@@ -16,6 +16,7 @@ export const addReport = async (req, res) => {
             description,
             impression,
             advice,
+            followup,
             userId,
             centerId
         });
@@ -98,7 +99,7 @@ export const getReportById = async (req, res) => {
 export const updateReport = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reportTitle, description, impression, advice, userId ,centerId} = req.body;
+        const { reportTitle, description, impression, advice,followup, userId ,centerId} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -106,6 +107,7 @@ export const updateReport = async (req, res) => {
             ...(description && { description }),
             ...(impression && { impression }),
             ...(advice && { advice }),
+            ...(followup && { followup }),
             ...(userId && { userId }),
             centerId
         };
@@ -173,6 +175,7 @@ export const searchReports = async (req, res) => {
                 { description: regex },
                 { impression: regex },
                 { advice: regex },
+                { followup: regex },
             ]
         });
 

@@ -40,7 +40,7 @@ const appointmentSchema = new mongoose.Schema(
     investigationReports : { type: mongoose.Schema.Types.Mixed, required: false },
     progressNotes : { type: mongoose.Schema.Types.Mixed, required: false },
     invoiceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed,
       required: false,
     },
     estimateId: {

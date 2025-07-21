@@ -9,7 +9,7 @@ import { Estimate } from '../models/estimate.model.js';
 // Add a new service
 export const addService = async (req, res) => {
     try {
-        let { serviceName, serviceDescription, serviceImage, serviceType,
+        let { serviceName, serviceDescription, symptomId, serviceImage, serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
             whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription, userId } = req.body;
 
@@ -90,6 +90,7 @@ export const addService = async (req, res) => {
         const service = new Service({
             serviceName,
             serviceDescription,
+            symptomId,
             serviceImage: compressedServiceBase64, // Store the base64 image data
             serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
@@ -118,7 +119,7 @@ export const addService = async (req, res) => {
 
 export const getServices = async (req, res) => {
     try {
-        const services = await Service.find().select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled').populate('procedureId');
+        const services = await Service.find().select('serviceName serviceUrl symptomId serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled').populate('procedureId');
         if (!services) {
             return res.status(404).json({ message: 'No services found', success: false });
         }
@@ -191,7 +192,7 @@ export const getEnabledServices = async (req, res) => {
     try {
         // Fetch only enabled services
         const services = await Service.find({ serviceEnabled: true })
-            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
+            .select('serviceName serviceUrl serviceDescription  symptomId serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
             .populate('procedureId');
 
         if (!services.length) {
@@ -308,7 +309,7 @@ export const getServicesByCategory = async (req, res) => {
     try {
         const { id } = req.params; // Extract the service ID from the request parameters
         const services = await Service.find({ procedureId: id })
-            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled'); // Correctly query by serviceId
+            .select('serviceName serviceUrl serviceDescription  symptomId serviceImage procedureId categoryId diseaseId serviceType serviceEnabled'); // Correctly query by serviceId
         if (!services) {
             return res.status(404).json({ message: "services not found!", success: false });
         }
@@ -323,7 +324,7 @@ export const getServicesByCategory = async (req, res) => {
 export const updateService = async (req, res) => {
     try {
         const { id } = req.params;
-        let { serviceName, serviceDescription, serviceImage, serviceType,
+        let { serviceName, serviceDescription, symptomId, serviceImage, serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
             whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription, userId } = req.body;
 
@@ -413,6 +414,7 @@ export const updateService = async (req, res) => {
         const updatedData = {
             serviceName,
             serviceDescription,
+            symptomId,
             ...(compressedServiceBase64 && { serviceImage: compressedServiceBase64 }), // Only update image if new image is provided
             serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
@@ -451,6 +453,7 @@ export const onOffService = async (req, res) => {
         const updatedData = {
             serviceName: existingService.serviceName,
             serviceDescription: existingService.serviceDescription,
+            symptomId: existingService.symptomId,
             serviceImage: existingService.serviceImage, // Only update image if new image is provided
             serviceType: existingService.serviceType,
             whyChoose: existingService.whyChoose,
@@ -496,7 +499,7 @@ export const deleteService = async (req, res) => {
 export const getServicesFrontend = async (req, res) => {
     try {
         const services = await Service.find()
-            .select('serviceName serviceUrl serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
+            .select('serviceName serviceUrl  symptomId serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled')
             .populate('procedureId'); // Populating category data
         if (!services) return res.status(404).json({ message: "Services not found", success: false });
         return res.status(200).json({ services });

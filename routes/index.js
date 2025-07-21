@@ -39,6 +39,7 @@ import adminDoctorRoute from "./admin_doctor.route.js";
 import areaRoute from "./area.route.js";
 import vendorInvoiceRoute from "./vendorInvoice.route.js";
 import globalSearchRoute from "./global_search.route.js";
+import symptomRoute from "./symptom.route.js";
 
 const routes = {
   adminDoctorRoute,
@@ -65,6 +66,7 @@ const routes = {
   stockinRoute,
   reportRoute,
   procedureRoute,
+  symptomRoute,
   invoiceRoute,
   activityRoute,
   activityTypeRoute,

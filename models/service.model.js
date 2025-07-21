@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const serviceSchema = new mongoose.Schema({
-    serviceName: { type: String, required: true ,unique: true },
+    serviceName: { type: String, required: true, unique: true },
     serviceDescription: { type: String, required: true },
     serviceImage: {
         type: String, // Store image as base64 or use a URL reference
@@ -20,47 +20,47 @@ const serviceSchema = new mongoose.Schema({
         required: false,
     },
     proceduresPerformedTotal: {
-        type: String, 
+        type: String,
         required: false,
     },
     successRatePercentage: {
-        type: String, 
+        type: String,
         required: false,
     },
     yearsExperienceTotal: {
-        type: String, 
+        type: String,
         required: false,
     },
     patientSatisfactionRatePercentage: {
-        type: String, 
+        type: String,
         required: false,
     },
     educationalVideoTitle: {
-        type: String, 
+        type: String,
         required: false,
     },
     educationalVideoDescription: {
-        type: String, 
+        type: String,
         required: false,
     },
     educationalVideoUrl: {
-        type: String, 
+        type: String,
         required: false,
     },
     whyChoose: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
         required: false
     },
-    whyChooseName:{
-        type: String, 
+    whyChooseName: {
+        type: String,
         required: false,
     },
     howWorks: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
         required: false
     },
-    howWorksName:{
-        type: String, 
+    howWorksName: {
+        type: String,
         required: false,
     },
     others: {
@@ -71,40 +71,44 @@ const serviceSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
         required: false
     },
-    procedureId: { 
-        type: mongoose.Schema.Types.Mixed, 
-        required:true
-     },
-    categoryId: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        required:true
-     },
-    diseaseId: { 
-        type: mongoose.Schema.Types.Mixed, 
-        required:true
-     },
-     serviceEnabled:{
-        type:Boolean,
-        required:true
-     },
-     serviceUrl: { type: String, required: true ,unique: true },
-     oldUrls: {
+    procedureId: {
+        type: mongoose.Schema.Types.Mixed,
+        required: true
+    },
+    categoryId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
+    },
+    diseaseId: {
+        type: mongoose.Schema.Types.Mixed,
+        required: true
+    },
+    symptomId: {
+        type: mongoose.Schema.Types.Mixed,
+        required: false
+    },
+    serviceEnabled: {
+        type: Boolean,
+        required: true
+    },
+    serviceUrl: { type: String, required: true, unique: true },
+    oldUrls: {
         type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
         required: false
     },
-     seoTitle:{
+    seoTitle: {
         type: String,
         required: false,
-      },
-     seoDescription: {
+    },
+    seoDescription: {
         type: String,
         required: false,
-      },
-      
-     userId:{
-        type: mongoose.Schema.Types.ObjectId, 
-          required:false
-      }
+    },
+
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: false
+    }
 
 }, { timestamps: true });
 

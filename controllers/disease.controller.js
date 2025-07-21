@@ -10,6 +10,7 @@ export const addDisease = async (req, res) => {
     const {
       diseaseName,
       diseaseDescription,
+      symptomId,
       parentID,
       // rank,
       // imageBase64,
@@ -44,6 +45,7 @@ export const addDisease = async (req, res) => {
       diseaseName: req.body.name,
       // diseaseImage: compressedBase64, // Store the base64 string in MongoDB
       diseaseDescription: req.body.description,
+      symptomId: req.body.symptomId,
       parentID: req.body.parentID,
       userId: req.body.userId,
       diseaseURL,
@@ -65,7 +67,7 @@ export const addDisease = async (req, res) => {
 // Get all disease
 export const getDiseases = async (req, res) => {
   const diseases = await Disease.find().select(
-    "diseaseName diseaseDescription parentID  diseaseURL seoTitle seoDescription"
+    "diseaseName diseaseDescription symptomId parentID  diseaseURL seoTitle seoDescription"
   );
 
   try {
@@ -140,6 +142,7 @@ export const getDiseasesFrontend = async (req, res) => {
         $project: {
           diseaseName: 1,
           diseaseDescription: 1,
+          symptomId: 1,
           parentID: 1,
           // diseaseImage: 1,
           diseaseURL: 1,
@@ -256,6 +259,7 @@ export const updateDisease = async (req, res) => {
       // imageBase64,
       // rank,
       diseaseDescription,
+      symptomId,
       parentID,
       userId,
       diseaseURL,
@@ -304,6 +308,7 @@ export const updateDisease = async (req, res) => {
     const updatedData = {
       diseaseName: req.body.name,
       diseaseDescription: req.body.description,
+      symptomId: req.body.symptomId,
       userId: req.body.userId,
       parentID: req.body.parentID,
       // rank,

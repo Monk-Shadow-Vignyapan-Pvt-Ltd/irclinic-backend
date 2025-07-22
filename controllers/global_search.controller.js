@@ -35,7 +35,7 @@ export const globalSearch = async (req, res) => {
       },
       blogs: {
         searchableFields: ["blogTitle", "blogDescription", "content", "blogUrl"],
-        resultFields: ["_id", "blogTitle", "blogDescription",],
+        resultFields: ["_id", "blogTitle", "blogDescription", "blogUrl"],
         filter: {},
       },
       faqs: {

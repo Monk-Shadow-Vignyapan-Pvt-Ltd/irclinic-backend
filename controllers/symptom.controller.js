@@ -93,7 +93,7 @@ export const searchSymptom = async (req, res) => {
     // Paginate the reversed movies array
     const paginatedSymptom = symptom.slice(startIndex, endIndex);
     res.status(200).json({
-      symptomps: paginatedSymptom,
+      symptom: paginatedSymptom,
       success: true,
       pagination: {
         currentPage: page,
@@ -204,14 +204,14 @@ export const getSymptomByUrl = async (req, res) => {
       symptomIdsToMatch.push(parentSymptom._id.toString());
     }
 
-    const dieases = await Disease.find({
+    const diseases = await Disease.find({
       symptomId: {
         $elemMatch: {
           value: { $in: symptomIdsToMatch },
         },
       },
     }).select(
-      'diseaseName diseaseDescription parentID parentID description rank'
+      'diseaseName diseaseDescription diseaseURL parentID parentID description rank'
     );
 
     const services = await Service.find({
@@ -223,7 +223,7 @@ export const getSymptomByUrl = async (req, res) => {
     }).select(
       'serviceName serviceUrl serviceDescription serviceImage serviceEnabled'
     );
-    return res.status(200).json({ symptom, services, dieases, success: true });
+    return res.status(200).json({ symptom, services, diseases, success: true });
   } catch (error) {
     console.log(error);
     res
@@ -231,6 +231,7 @@ export const getSymptomByUrl = async (req, res) => {
       .json({ message: "Failed to fetch Symptom", success: false });
   }
 };
+
 
 // Update symptom by ID
 export const updateSymptom = async (req, res) => {

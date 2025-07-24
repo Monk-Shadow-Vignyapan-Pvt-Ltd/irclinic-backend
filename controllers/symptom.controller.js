@@ -220,7 +220,7 @@ export const getSymptomByUrl = async (req, res) => {
         },
       },
     }).select(
-      'diseaseName diseaseDescription diseaseURL description rank'
+      'diseaseName diseaseDescription diseaseURL description'
     );
 
     const services = await Service.find({

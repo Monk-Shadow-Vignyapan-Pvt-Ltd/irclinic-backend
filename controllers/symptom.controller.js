@@ -10,7 +10,6 @@ export const addSymptom = async (req, res) => {
     const {
       symptomName,
       symptomDescription,
-      parentID,
       userId,
       symptomURL,
       seoTitle,
@@ -20,7 +19,6 @@ export const addSymptom = async (req, res) => {
     const symptom = new Symptom({
       symptomName: req.body.name,
       symptomDescription: req.body.description,
-      parentID: req.body.parentID,
       userId: req.body.userId,
       symptomURL,
       seoTitle,
@@ -41,25 +39,42 @@ export const addSymptom = async (req, res) => {
 
 export const getSymptoms = async (req, res) => {
   const symptom = await Symptom.find().select(
-    "symptomName symptomDescription parentID  symptomURL seoTitle seoDescription"
+    "symptomName symptomDescription symptomURL seoTitle seoDescription"
   );
-
+  
   try {
     if (!symptom) {
       return res
         .status(404)
-        .json({ message: "No symptom found", success: false });
+        .json({ message: "No Symptom found", success: false });
     }
 
+    const reversedSymptom = symptom.reverse();
+    const page = parseInt(req.query.page) || 1;
+
+    // Define the number of items per page
+    const limit = 12;
+
+    // Calculate the start and end indices for pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+
+    // Paginate the reversed movies array
+    const paginatedSymptom = reversedSymptom.slice(startIndex, endIndex);
     res.status(200).json({
-      symptom: symptom,
-      success: true
+      symptom: paginatedSymptom,
+      success: true,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(symptom.length / limit),
+        totalsymptom: symptom.length,
+      }
     });
   } catch (error) {
     console.log(error);
     res
       .status(500)
-      .json({ message: "Failed to fetch symptom", success: false });
+      .json({ message: "Failed to fetch Symptom", success: false });
   }
 };
 
@@ -110,13 +125,13 @@ export const searchSymptom = async (req, res) => {
 export const getSymptomFrontend = async (req, res) => {
   try {
     const symptom = await Symptom.aggregate([
-      { $match: { $or: [{ parentID: null }, { parentID: "" }] } }, // Only parents
+      // { $match: { $or: [{ parentID: null }, { parentID: "" }] } }, // Only parents
       { $sample: { size: 8 } }, // Random 8 symptom
       {
         $project: {
           symptomName: 1,
           symptomDescription: 1,
-          parentID: 1,
+          // parentID: 1,
           // symptomImage: 1,
           symptomURL: 1,
           seoTitle: 1,
@@ -142,7 +157,6 @@ export const getSymptomFrontend = async (req, res) => {
 
 export const getSymptomName = async (req, res) => {
   try {
-    // Get all symptom where parentID is an empty string
     const symptom = await Symptom.find({}).select(
       "_id symptomName symptomURL"
     );
@@ -193,12 +207,7 @@ export const getSymptomByUrl = async (req, res) => {
         .json({ message: "Symptom not found!", success: false });
 
     let parentSymptom = null;
-    if (symptom.parentID) {
-      parentSymptom = await Symptom.findOne({ symptomName: symptom.parentID });
-    }
-
-
-
+   
     const symptomIdsToMatch = [symptom._id.toString()];
     if (parentSymptom) {
       symptomIdsToMatch.push(parentSymptom._id.toString());
@@ -211,7 +220,7 @@ export const getSymptomByUrl = async (req, res) => {
         },
       },
     }).select(
-      'diseaseName diseaseDescription diseaseURL parentID parentID description rank'
+      'diseaseName diseaseDescription diseaseURL description rank'
     );
 
     const services = await Service.find({
@@ -242,7 +251,6 @@ export const updateSymptom = async (req, res) => {
       // imageBase64,
       // rank,
       symptomDescription,
-      parentID,
       userId,
       symptomURL,
       seoTitle,
@@ -291,7 +299,6 @@ export const updateSymptom = async (req, res) => {
       symptomName: req.body.name,
       symptomDescription: req.body.description,
       userId: req.body.userId,
-      parentID: req.body.parentID,
       // rank,
       symptomURL,
       oldUrls,

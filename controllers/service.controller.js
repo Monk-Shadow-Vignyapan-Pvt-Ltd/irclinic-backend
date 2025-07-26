@@ -18,18 +18,18 @@ export const addService = async (req, res) => {
             return res.status(400).json({ message: 'Invalid image data', success: false });
         }
 
-        const compressImage = async (base64Image) => {
-            const base64Data = base64Image.split(';base64,').pop();
-            const buffer = Buffer.from(base64Data, 'base64');
-            const compressedBuffer = await sharp(buffer)
-                .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
-                .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
-                .toBuffer();
-            return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
-        };
+        // const compressImage = async (base64Image) => {
+        //     const base64Data = base64Image.split(';base64,').pop();
+        //     const buffer = Buffer.from(base64Data, 'base64');
+        //     const compressedBuffer = await sharp(buffer)
+        //         .resize(800, 600, { fit: 'inside' }) // Resize to 800x600 max, maintaining aspect ratio
+        //         .jpeg({ quality: 80 }) // Convert to JPEG with 80% quality
+        //         .toBuffer();
+        //     return `data:image/jpeg;base64,${compressedBuffer.toString('base64')}`;
+        // };
 
         // Compress the main service image
-        const compressedServiceBase64 = await compressImage(serviceImage);
+        // const compressedServiceBase64 = await compressImage(serviceImage);
 
 
         // Compress all images in beforeAfterGallary array, if it exists and is not empty
@@ -91,7 +91,7 @@ export const addService = async (req, res) => {
             serviceName,
             serviceDescription,
             symptomId,
-            serviceImage: compressedServiceBase64, // Store the base64 image data
+            serviceImage, // Store the base64 image data
             serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
             whyChoose,
@@ -354,7 +354,7 @@ export const updateService = async (req, res) => {
         };
 
         // Compress the main service image
-        const compressedServiceBase64 = await compressImage(serviceImage);
+        // const compressedServiceBase64 = await compressImage(serviceImage);
 
         // Compress all images in beforeAfterGallary array, if it exists and is not empty
         const compressGalleryImages = async (gallery) => {
@@ -415,12 +415,13 @@ export const updateService = async (req, res) => {
             serviceName,
             serviceDescription,
             symptomId,
-            ...(compressedServiceBase64 && { serviceImage: compressedServiceBase64 }), // Only update image if new image is provided
+            serviceImage,
+            // ...(compressedServiceBase64 && { serviceImage: compressedServiceBase64 }), // Only update image if new image is provided
             serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
             whyChoose,
             whyChooseName,
-            howWorks,
+            howWorks,   
             howWorksName,
             beforeAfterGallary,
             others,

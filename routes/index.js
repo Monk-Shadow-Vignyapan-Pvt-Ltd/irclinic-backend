@@ -40,10 +40,15 @@ import areaRoute from "./area.route.js";
 import vendorInvoiceRoute from "./vendorInvoice.route.js";
 import globalSearchRoute from "./global_search.route.js";
 import symptomRoute from "./symptom.route.js";
+import bannerRoute from "./banner.route.js";
+import newsletterRoute from "./newsletter.route.js";
+
 
 const routes = {
   adminDoctorRoute,
   doctorRoute,
+  newsletterRoute,
+  bannerRoute,
   tagRoute,
   faqRoute,
   gallaryRoute,

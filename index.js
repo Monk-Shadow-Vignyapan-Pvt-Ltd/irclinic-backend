@@ -63,8 +63,10 @@ app.use(
 app.use("/api/v1/auth", routes.authRoute);
 app.use("/api/v1/adminDoctors", routes.adminDoctorRoute);
 app.use("/api/v1/blogs", routes.blogRoute);
+app.use("/api/v1/banners", routes.bannerRoute);
 app.use("/api/v1/tags", routes.tagRoute);
 app.use("/api/v1/contacts", routes.contactRoute);
+app.use("/api/v1/newsletters", routes.newsletterRoute);
 app.use("/api/v1/galleries", routes.gallaryRoute);
 app.use("/api/v1/doctors", routes.doctorRoute);
 app.use("/api/v1/hospitals", routes.hospitalRoute);

@@ -16,6 +16,8 @@ import path from 'path';
 import cron from 'node-cron';
 import { exec } from 'child_process';
 import { dirname } from 'path';
+import { google } from 'googleapis';
+
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -32,6 +34,75 @@ const transporter = nodemailer.createTransport({
     pass: 'xeyj cbsm ustp udbc',
   },
 });
+
+const auth = new google.auth.GoogleAuth({
+  keyFile: path.join(__dirname, './service-account-key.json'),
+  scopes: ['https://www.googleapis.com/auth/drive'],
+});
+
+const uploadToDrive = async (zipPath) => {
+  const drive = google.drive({ version: 'v3', auth: await auth.getClient() });
+  const fileName = 'mongo-backup.zip';
+  const folderId = process.env.GOOGLE_FOLDER_ID; // This should be a Shared Drive folder ID
+
+  // Check if file already exists in the shared drive folder
+  const existing = await drive.files.list({
+    q: `'${folderId}' in parents and name='${fileName}' and trashed=false`,
+    fields: 'files(id)',
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    corpora: 'allDrives',
+  });
+
+  let fileId;
+  if (existing.data.files.length > 0) {
+    fileId = existing.data.files[0].id;
+    await drive.files.update({
+      fileId,
+      media: {
+        mimeType: 'application/zip',
+        body: fs.createReadStream(zipPath),
+      },
+      supportsAllDrives: true,
+    });
+    console.log('🔁 Updated existing file on Shared Drive');
+  } else {
+    const response = await drive.files.create({
+      requestBody: {
+        name: fileName,
+        parents: [folderId],
+        mimeType: 'application/zip',
+      },
+      media: {
+        mimeType: 'application/zip',
+        body: fs.createReadStream(zipPath),
+      },
+      supportsAllDrives: true,
+    });
+    fileId = response.data.id;
+    console.log('✅ Uploaded new file to Shared Drive');
+  }
+
+  // Optional: Set public view permission (if needed)
+  await drive.permissions.create({
+    fileId,
+    requestBody: {
+      role: 'reader',
+      type: 'anyone',
+    },
+    supportsAllDrives: true,
+  });
+
+  // Get file link
+  const result = await drive.files.get({
+    fileId,
+    fields: 'webViewLink',
+    supportsAllDrives: true,
+  });
+
+  return result.data.webViewLink;
+};
+
 
 export const backupMongoDB = () => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -57,21 +128,23 @@ export const backupMongoDB = () => {
       const output = fs.createWriteStream(zipPath);
       const archive = archiver('zip', { zlib: { level: 9 } });
   
-      output.on('close', () => {
+      output.on('close', async () => {
         console.log(`✅ ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
+
+        const link = await uploadToDrive(zipPath);
+
   
-        // Send email and cleanup
+        // Send email with link instead of attachment
         const mailOptions = {
           from: 'monkshadow.dev@gmail.com',
-          to: 'irclinic2018@gmail.com', // Change this to your actual email
-          subject: 'Daily Database Backup',
-          text: 'Attached is the daily MongoDB backup.',
-          attachments: [
-            {
-              filename: path.basename(zipPath),
-              path: zipPath,
-            },
-          ],
+          to: 'irclinic2018@gmail.com',
+          subject: 'Daily Database Backup (Drive Link)',
+          html: `
+            <p>Hello,</p>
+            <p>The daily MongoDB backup has been uploaded to Google Drive.</p>
+            <p><strong>Backup Link:</strong> <a href="${link}">${link}</a></p>
+            <p>Regards,<br/>IR Clinic Backup System</p>
+          `,
         };
   
         transporter.sendMail(mailOptions, (emailErr, info) => {

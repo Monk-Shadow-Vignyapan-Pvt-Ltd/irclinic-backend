@@ -37,11 +37,56 @@ export const addSymptom = async (req, res) => {
 };
 
 
+export const getDashboardSymptoms = async (req, res) => {
+  try {
+    const { page = 1, search = "", tagID = "" } = req.query;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // Create a search filter
+    const searchFilter = {};
+
+    // Apply search filter
+    if (search) {
+      searchFilter.$or = [
+        { blogTitle: { $regex: search, $options: "i" } },
+        { blogDescription: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (tagID) {
+      searchFilter["tags.value"] = tagID; // Check tagID in tags array
+    }
+    const allBlogs = await Blog.find(searchFilter);
+    const paginatedBlogs = await Blog.find(searchFilter)
+      .sort({ _id: -1 }) // Sort newest first
+      .skip(skip)
+      .limit(limit);
+    if (!paginatedBlogs) {
+      return res
+        .status(404)
+        .json({ message: "No blogs found", success: false });
+    }
+    res.status(200).json({
+      blogs: paginatedBlogs,
+      success: true,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(allBlogs.length / limit),
+        totalCategories: allBlogs.length,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch blogs", success: false });
+  }
+};
+
 export const getSymptoms = async (req, res) => {
   const symptom = await Symptom.find().select(
     "symptomName symptomDescription symptomURL seoTitle seoDescription"
   );
-  
+
   try {
     if (!symptom) {
       return res
@@ -53,7 +98,7 @@ export const getSymptoms = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
 
     // Define the number of items per page
-    // const limit = 12;
+    const limit = 12;
 
     // Calculate the start and end indices for pagination
     const startIndex = (page - 1) * limit;
@@ -207,7 +252,7 @@ export const getSymptomByUrl = async (req, res) => {
         .json({ message: "Symptom not found!", success: false });
 
     let parentSymptom = null;
-   
+
     const symptomIdsToMatch = [symptom._id.toString()];
     if (parentSymptom) {
       symptomIdsToMatch.push(parentSymptom._id.toString());

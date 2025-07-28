@@ -53,7 +53,7 @@ export const getSymptoms = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
 
     // Define the number of items per page
-    const limit = 12;
+    // const limit = 12;
 
     // Calculate the start and end indices for pagination
     const startIndex = (page - 1) * limit;

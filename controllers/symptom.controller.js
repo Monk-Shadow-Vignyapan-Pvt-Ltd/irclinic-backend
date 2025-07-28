@@ -39,7 +39,7 @@ export const addSymptom = async (req, res) => {
 
 export const getDashboardSymptoms = async (req, res) => {
   try {
-    const { page = 1, search = "", tagID = "" } = req.query;
+    const { page = 1, search = "" } = req.query;
     const limit = 10;
     const skip = (page - 1) * limit;
 
@@ -49,36 +49,32 @@ export const getDashboardSymptoms = async (req, res) => {
     // Apply search filter
     if (search) {
       searchFilter.$or = [
-        { blogTitle: { $regex: search, $options: "i" } },
-        { blogDescription: { $regex: search, $options: "i" } },
+        { symptomName: { $regex: search, $options: "i" } },
       ];
     }
 
-    if (tagID) {
-      searchFilter["tags.value"] = tagID; // Check tagID in tags array
-    }
-    const allBlogs = await Blog.find(searchFilter);
-    const paginatedBlogs = await Blog.find(searchFilter)
+    const allSymptoms = await Symptom.find(searchFilter);
+    const paginatedSymptoms = await Symptom.find(searchFilter)
       .sort({ _id: -1 }) // Sort newest first
       .skip(skip)
       .limit(limit);
-    if (!paginatedBlogs) {
+    if (!paginatedSymptoms) {
       return res
         .status(404)
-        .json({ message: "No blogs found", success: false });
+        .json({ message: "No Symptoms found", success: false });
     }
     res.status(200).json({
-      blogs: paginatedBlogs,
+      symptoms: paginatedSymptoms,
       success: true,
       pagination: {
         currentPage: Number(page),
-        totalPages: Math.ceil(allBlogs.length / limit),
-        totalCategories: allBlogs.length,
+        totalPages: Math.ceil(allSymptoms.length / limit),
+        totalSymptoms: allSymptoms.length,
       },
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Failed to fetch blogs", success: false });
+    res.status(500).json({ message: "Failed to fetch symptoms", success: false });
   }
 };
 

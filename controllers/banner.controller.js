@@ -6,7 +6,7 @@ import sharp from 'sharp';
 
 export const addBanner = async (req, res) => {
     try {
-        const { imageBase64, mobileImage, userId, bannerUrl } = req.body;
+        const { imageBase64, mobileImage,bannerinPage,altText, userId, bannerUrl } = req.body;
 
         // Validate base64 data (make sure it's an image)
         // if (!imageBase64 || !imageBase64.startsWith('data:image') || !mobileImage || !mobileImage.startsWith('data:image')) {
@@ -29,6 +29,8 @@ export const addBanner = async (req, res) => {
         const banner = new Banner({
             image: imageBase64, // Store the base64 string in MongoDB
             mobileImage,
+            bannerinPage,
+            altText,
             bannerUrl,
             userId
         });
@@ -54,7 +56,7 @@ export const getBanners = async (req, res) => {
 
 export const getMobileBanners = async (req, res) => {
     try {
-        const banners = await Banner.find().select("mobileImage bannerUrl");
+        const banners = await Banner.find({bannerinPage: "Home"}).select("mobileImage bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -64,7 +66,27 @@ export const getMobileBanners = async (req, res) => {
 
 export const getDesktopBanners = async (req, res) => {
     try {
-        const banners = await Banner.find().select("image bannerUrl");
+        const banners = await Banner.find({bannerinPage: "Home"}).select("image bannerUrl altText");
+        if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
+        return res.status(200).json({ banners });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export const getMobileAboutBanners = async (req, res) => {
+    try {
+        const banners = await Banner.find({bannerinPage: "About"}).select("mobileImage bannerUrl altText");
+        if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
+        return res.status(200).json({ banners });
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export const getDesktopAboutBanners = async (req, res) => {
+    try {
+        const banners = await Banner.find({bannerinPage: "About"}).select("image bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -91,7 +113,7 @@ export const updateBanner = async (req, res) => {
     try {
         const { id } = req.params;
         const updatedData = req.body;
-        const { imageBase64, mobileImage, userId, bannerUrl } = req.body;
+        const { imageBase64, mobileImage, userId,bannerinPage,altText, bannerUrl } = req.body;
 
         // Validate base64 data (make sure it's an image)
         if (!imageBase64 || !imageBase64.startsWith('data:image') || !mobileImage || !mobileImage.startsWith('data:image')) {
@@ -112,6 +134,8 @@ export const updateBanner = async (req, res) => {
             image: imageBase64, // Store the base64 string in MongoDB
             mobileImage,
             bannerUrl,
+            altText,
+            bannerinPage,
             userId
         }, { new: true, runValidators: true });
         if (!banner) return res.status(404).json({ message: "Banner not found!", success: false });

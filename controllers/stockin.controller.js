@@ -289,3 +289,71 @@ export const searchStockins = async (req, res) => {
         res.status(500).json({ message: 'Failed to search stockins', success: false });
     }
 };
+
+export const getExpiringStockins = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const stockins = await Stockin.find({ centerId: id });
+        if (!stockins || stockins.length === 0) {
+            return res.status(404).json({ message: 'No stockins found', success: false });
+        }
+
+        const inventoryIds = stockins.map(s => s.inventoryId);
+        const inventories = await Inventory.find({ _id: { $in: inventoryIds } });
+        const inventoryMap = new Map(inventories.map(inv => [inv._id.toString(), inv]));
+
+        const today = new Date();
+        const sixMonthsLater = new Date();
+        sixMonthsLater.setMonth(today.getMonth() + 6);
+
+        const expired = [];
+        const expiringSoon = [];
+
+        for (const stockin of stockins) {
+            const inventory = inventoryMap.get(stockin.inventoryId.toString());
+            if (!inventory) continue;
+
+            let hasExpired = false;
+            let hasExpiringSoon = false;
+
+            for (const other of stockin.others || []) {
+                const expiryStr = other.expiryDate;
+
+                if (!expiryStr || expiryStr === "No Expiry") continue;
+
+                const expiryDate = new Date(expiryStr);
+                if (isNaN(expiryDate)) continue;
+
+                if (expiryDate < today) {
+                    hasExpired = true;
+                } else if (expiryDate >= today && expiryDate <= sixMonthsLater) {
+                    hasExpiringSoon = true;
+                }
+            }
+
+            const fullStockin = {
+                ...stockin.toObject(),
+                inventory
+            };
+
+            if (hasExpired) expired.push(fullStockin);
+            if (hasExpiringSoon) expiringSoon.push(fullStockin);
+        }
+
+        return res.status(200).json({
+            expired,
+            expiringSoon,
+            success: true,
+            count: {
+                expired: expired.length,
+                expiringSoon: expiringSoon.length
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching expiring stockins:', error);
+        res.status(500).json({ message: 'Failed to fetch expiring stockins', success: false });
+    }
+};
+

@@ -65,7 +65,7 @@ export const getCategoryName = async (req, res) => {
 // Get all categories
 export const getCategories = async (req, res) => {
     try {
-        const categories = await Category.find();
+        const categories = await Category.find().select("-categoryImage");
         if (!categories) return res.status(404).json({ message: "Categories not found", success: false });
         return res.status(200).json({ categories });
     } catch (error) {
@@ -90,7 +90,7 @@ export const getCategoryById = async (req, res) => {
 export const getCategoryByUrl = async (req, res) => {
     try {
         const categoryUrl = req.params.id;
-        const category = await Category.findOne({ categoryUrl });
+        const category = await Category.findOne({ categoryUrl }).select("-categoryImage");
         if (!category) return res.status(404).json({ message: "Category not found!", success: false });
         const services = await Service.find({ categoryId: category._id })
             .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled');
@@ -197,5 +197,31 @@ export const updateCategoryRank = async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Error updating rank', success: false, error: error.message });
     }
+};
+
+export const getCategoryImageUrl = async (req, res) => {
+   try {
+ const categoryId = req.params.id;
+const category = await Category.findById(categoryId).select("categoryImage");
+if (!category || !category.categoryImage) {
+return res.status(404).send('Image not found');
+}
+const matches = category.categoryImage.match(/^data:(.+);base64,(.+)$/);
+if (!matches) {
+  return res.status(400).send('Invalid image format');
+}
+
+const mimeType = matches[1];
+const base64Data = matches[2];
+const buffer = Buffer.from(base64Data, 'base64');
+
+res.set('Content-Type', mimeType);
+res.send(buffer);
+
+} catch (err) {
+console.error('Image route error:', err);
+res.status(500).send('Error loading image');
+}
+
 };
 

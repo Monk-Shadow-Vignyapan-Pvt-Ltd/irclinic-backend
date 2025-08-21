@@ -401,3 +401,27 @@ export const deleteDisease = async (req, res) => {
 //     });
 //   }
 // };
+
+export const getAllDiseases = async (req, res) => {
+  const diseases = await Disease.find().select(
+    "diseaseName diseaseDescription diseaseURL"
+  );
+
+  try {
+    if (!diseases) {
+      return res
+        .status(404)
+        .json({ message: "No diseases found", success: false });
+    }
+
+    res.status(200).json({
+      diseases: diseases,
+      success: true
+    });
+  } catch (error) {
+    console.log(error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch disease", success: false });
+  }
+};

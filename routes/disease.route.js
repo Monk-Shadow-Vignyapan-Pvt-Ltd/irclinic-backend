@@ -8,8 +8,9 @@ import {
   getDiseaseByUrl,
   deleteDisease,
   updateDisease,
-  searchDiseases
+  searchDiseases,
   // updateDiseaseRank,
+  getAllDiseases
 } from "../controllers/disease.controller.js";
 
 const router = express.Router();
@@ -24,5 +25,6 @@ router.route("/getDiseaseById/:id").put(getDiseaseById);
 router.route("/updateDisease/:id").post(updateDisease);
 // router.route("/updateDiseaseRank").post(updateDiseaseRank);
 router.route("/deleteDisease/:id").delete(deleteDisease);
+router.route("/getAllDiseases").get(getAllDiseases);
 
 export default router;

@@ -2,7 +2,7 @@ import express from "express";
 import {
      addService, getServices, getEnabledServices, getServiceName, searchServices, getServiceById, getServiceByUrl, getServicesByCategory,
      deleteService, updateService, onOffService, getServicesFrontend, getServicesBeforeAfter, cloneService, addServiceRanking,
-     getServiceRanking, getServicesAfterRanking, addServiceInSearch, getServiceInSearch, getServicesAfterInSearch,
+     getServiceRanking, getServicesAfterRanking, addServiceInSearch, getServiceInSearch, getServicesAfterInSearch,getAllServices,getServiceImage
 } from "../controllers/service.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
@@ -29,6 +29,7 @@ router.route("/getServicesAfterRanking").get(getServicesAfterRanking);
 router.route("/addServiceInSearch").post(addServiceInSearch);
 router.route("/getServiceInSearch").get(getServiceInSearch);
 router.route("/getServicesAfterInSearch").get(getServicesAfterInSearch);
-
+router.route("/getAllServices").get(getAllServices);
+router.route("/getServiceImage/:id").get(getServiceImage);
 
 export default router;

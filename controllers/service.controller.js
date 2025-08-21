@@ -695,6 +695,50 @@ export const getServicesAfterInSearch = async (req, res) => {
     }
 };
 
+export const getAllServices = async (req, res) => {
+    try {
+        // Fetch only enabled services
+        const services = await Service.find({ serviceEnabled: true })
+            .select('serviceName serviceUrl serviceDescription  others')
+
+        if (!services.length) {
+            return res.status(404).json({ message: 'No enabled services found', success: false });
+        }
+
+        res.status(200).json({
+            services: services,
+            success: true,
+        });
+    } catch (error) {
+        console.error('Error fetching enabled services:', error);
+        res.status(500).json({ message: 'Failed to fetch enabled services', success: false });
+    }
+};
+
+export const getServiceImage = async (req, res) => {
+    try {
+        const serviceId = req.params.id;
+        const service = await Service.findById(serviceId).select('serviceImage');
+        if (!service) return res.status(404).json({ message: "Service not found!", success: false });
+        const matches = service.serviceImage.match(/^data:(.+);base64,(.+)$/);
+            if (!matches) {
+            return res.status(400).send('Invalid image format');
+            }
+
+            const mimeType = matches[1];
+            const base64Data = matches[2];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            res.set('Content-Type', mimeType);
+            res.send(buffer);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch service image', success: false });
+    }
+};
+
+
+
 
 
 

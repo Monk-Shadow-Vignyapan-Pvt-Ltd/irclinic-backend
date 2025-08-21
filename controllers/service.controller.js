@@ -702,7 +702,7 @@ export const getAllServices = async (req, res) => {
     try {
         // Fetch only enabled services
         const services = await Service.find({ serviceEnabled: true })
-            .select('serviceName serviceUrl serviceDescription  others')
+            .select('serviceName serviceUrl serviceDescription rank  others')
 
         if (!services.length) {
             return res.status(404).json({ message: 'No enabled services found', success: false });
@@ -750,7 +750,7 @@ export const updateServiceRank = async (req, res) => {
 
         const updatePromises = ranking.map(item => {
             return Service.findByIdAndUpdate(
-                item._id,
+                item.value,
                 {
                     rank: item.rank,
                 },

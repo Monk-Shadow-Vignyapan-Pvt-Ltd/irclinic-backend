@@ -93,7 +93,8 @@ export const getCategoryByUrl = async (req, res) => {
         const category = await Category.findOne({ categoryUrl }).select("-categoryImage");
         if (!category) return res.status(404).json({ message: "Category not found!", success: false });
         const services = await Service.find({ categoryId: category._id })
-            .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled');
+            .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled')
+            .sort({ rank: 1 });
         return res.status(200).json({ category, services, success: true });
     } catch (error) {
         console.log(error);

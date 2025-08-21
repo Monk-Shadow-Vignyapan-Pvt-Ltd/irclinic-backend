@@ -104,6 +104,10 @@ const serviceSchema = new mongoose.Schema({
         type: String,
         required: false,
     },
+    rank:{
+        type: Number, // Store image as base64 or use a URL reference
+        required: false,    
+      },
 
     userId: {
         type: mongoose.Schema.Types.ObjectId,

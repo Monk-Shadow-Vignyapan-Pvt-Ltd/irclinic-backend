@@ -119,29 +119,31 @@ export const addService = async (req, res) => {
 
 export const getServices = async (req, res) => {
     try {
-        const services = await Service.find().select('serviceName serviceUrl symptomId serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled').populate('procedureId');
-        if (!services) {
-            return res.status(404).json({ message: 'No services found', success: false });
-        }
-        const reversedservices = services.reverse();
         const page = parseInt(req.query.page) || 1;
-
-        // Define the number of items per page
         const limit = 12;
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+        // Use MongoDB to sort by rank
+        const services = await Service.find()
+            .select('serviceName serviceUrl symptomId serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled rank')
+            .populate('procedureId')
+            .sort({ rank: 1 }) // ascending rank, use -1 for descending
+            .skip((page - 1) * limit)
+            .limit(limit);
 
-        // Paginate the reversed movies array
-        const paginatedservices = reversedservices.slice(startIndex, endIndex);
+        // Get total count for pagination
+        const totalServices = await Service.countDocuments();
+
+        if (!services || services.length === 0) {
+            return res.status(404).json({ message: 'No services found', success: false });
+        }
+
         res.status(200).json({
-            services: paginatedservices,
+            services,
             success: true,
             pagination: {
                 currentPage: page,
-                totalPages: Math.ceil(services.length / limit),
-                totalServices: services.length,
+                totalPages: Math.ceil(totalServices / limit),
+                totalServices,
             }
         });
     } catch (error) {
@@ -149,6 +151,7 @@ export const getServices = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch services', success: false });
     }
 };
+
 
 export const getServiceName = async (req, res) => {
     try {
@@ -737,6 +740,32 @@ export const getServiceImage = async (req, res) => {
     }
 };
 
+export const updateServiceRank = async (req, res) => {
+    try {
+        const { ranking } = req.body;
+
+        if (!Array.isArray(ranking) || ranking.length === 0) {
+            return res.status(400).json({ message: "Invalid or empty ranking data", success: false });
+        }
+
+        const updatePromises = ranking.map(item => {
+            return Service.findByIdAndUpdate(
+                item._id,
+                {
+                    rank: item.rank,
+                },
+                { new: true, runValidators: true }
+            );
+        });
+
+        const updatedProducts = await Promise.all(updatePromises);
+
+        return res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("Error updating service ranks:", error);
+        res.status(500).json({ message: "Server Error", success: false });
+    }
+};
 
 
 

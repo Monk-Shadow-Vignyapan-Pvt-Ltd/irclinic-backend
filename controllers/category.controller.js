@@ -226,3 +226,23 @@ res.status(500).send('Error loading image');
 
 };
 
+export const getAllCategories = async (req, res) => {
+    try {
+        // Fetch only enabled services
+        const categories = await Category.find()
+            .select('categoryName categoryUrl categoryDescription')
+
+        if (!categories.length) {
+            return res.status(404).json({ message: 'No Categories found', success: false });
+        }
+
+        res.status(200).json({
+            categories: categories,
+            success: true,
+        });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ message: 'Failed to fetch categories', success: false });
+    }
+};
+

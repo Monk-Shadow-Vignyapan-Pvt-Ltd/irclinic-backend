@@ -1,5 +1,5 @@
 import express from "express";
-import { addDoctor, getDoctors,getAllDoctors, getDoctorById, deleteDoctor, updateDoctor,dashboardDoctors,searchDoctors} from "../controllers/doctor.controller.js";
+import { addDoctor, getDoctors,getAllDoctors, getDoctorById, deleteDoctor, updateDoctor,dashboardDoctors,searchDoctors, getDoctorsExcel} from "../controllers/doctor.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -13,5 +13,6 @@ router.route("/updateDoctor/:id").put( updateDoctor);
 router.route("/deleteDoctor/:id").delete(deleteDoctor);
 router.route("/dashboardDoctors/:id").get( dashboardDoctors);
 router.route("/searchDoctors/:id").post( searchDoctors);
+router.route("/getDoctorsExcel").get(getDoctorsExcel); // Added route for exporting doctors to Excel
 
 export default router;

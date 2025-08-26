@@ -1,4 +1,5 @@
 import { Doctor } from '../models/doctor.model.js'; // Update the path as per your project structure
+import ExcelJS from 'exceljs';
 
 // Add a new doctor
 export const addDoctor = async (req, res) => {
@@ -40,7 +41,7 @@ export const addDoctor = async (req, res) => {
 // Get all doctors
 export const getDoctors = async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
         const doctors = await Doctor.find({ centerId: id });
         if (!doctors ) {
             return res.status(404).json({ message: "No doctors found", success: false });
@@ -57,8 +58,8 @@ export const getDoctors = async (req, res) => {
 
         // Paginate the reversed movies array
         const paginateddoctors = reverseddoctors.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            doctors:paginateddoctors, 
+        return res.status(200).json({
+            doctors:paginateddoctors,
             success: true ,
             pagination: {
             currentPage: page,
@@ -86,8 +87,8 @@ export const getAllDoctors = async (req, res) => {
             return res.status(404).json({ message: "No doctors found", success: false });
         }
 
-        return res.status(200).json({ 
-            doctors, 
+        return res.status(200).json({
+            doctors,
             success: true
         });
     } catch (error) {
@@ -166,16 +167,16 @@ export const deleteDoctor = async (req, res) => {
 
 export const dashboardDoctors = async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
         const totalDoctors = await Doctor.countDocuments({ centerId: id }); // Get total count
 
         const lastFiveDoctors = await Doctor.find({ centerId: id }, { firstName: 1,lastName:1, _id: 1 }) // Select only doctorName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 doctors
 
-        return res.status(200).json({ 
-            totalDoctors, 
-            doctors: lastFiveDoctors 
+        return res.status(200).json({
+            totalDoctors,
+            doctors: lastFiveDoctors
         });
     } catch (error) {
         console.error('Error fetching doctors:', error);
@@ -185,7 +186,7 @@ export const dashboardDoctors = async (req, res) => {
 
 export const searchDoctors = async (req, res) => {
     try {
-        const { id } = req.params; 
+        const { id } = req.params;
         const { search } = req.query;
         if (!search) {
             return res.status(400).json({ message: 'Search query is required', success: false });
@@ -203,7 +204,8 @@ export const searchDoctors = async (req, res) => {
                 { company: regex },
                 { gender: regex },
                 { state: regex },
-                {speciality : regex},
+                {'speciality.label' : regex},
+                {'address.label' : regex},
                 { city: regex },
             ]
         });
@@ -225,4 +227,77 @@ export const searchDoctors = async (req, res) => {
         console.error('Error searching Doctors:', error);
         res.status(500).json({ message: 'Failed to search Doctors', success: false });
     }
+};
+
+// New controller function to export doctors to Excel with filters
+export const getDoctorsExcel = async (req, res) => {
+  try {
+    const { centerId, speciality, address } = req.query;
+
+    const filter = {};
+
+    if (centerId) {
+      filter.centerId = centerId;
+    }
+    if (speciality) {
+      // Assuming speciality is an object with a 'label' field, adjust if the schema is different
+      filter['speciality.label'] = speciality;
+    }
+    if (address) {
+      // Assuming address is an object with a 'label' field, adjust if the schema is different
+      filter['address.label'] = address;
+    }
+
+    const doctors = await Doctor.find(filter); // Apply filters
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Doctors');
+
+    // Define columns for the Excel sheet
+    worksheet.columns = [
+      { header: 'Doctor Name', key: 'name', width: 30 },
+      { header: 'Speciality', key: 'speciality', width: 30 },
+      { header: 'Hospital', key: 'hospital', width: 30 },
+      { header: 'Contact Number', key: 'contactNumber', width: 20 },
+      { header: 'Address', key: 'address', width: 30 },
+      { header: 'Email', key: 'email', width: 30 },
+    ];
+
+    // Populate the worksheet with doctor data
+    doctors.forEach(doctor => {
+      worksheet.addRow({
+        name: `${doctor.firstName} ${doctor.lastName}`, // Combine first and last name
+        speciality: doctor.speciality?.map(s => s.label).join(", ") || 'N/A', // Assuming speciality is an object with a 'label' field
+        hospital: doctor.company || 'N/A',     // Assuming hospital is an object with a 'label' field
+        contactNumber: doctor.phoneNo,
+        address: doctor.address?.label || 'N/A', // Assuming address is an object with a 'label' field
+        email: doctor.email || 'N/A',
+      });
+    });
+
+    // Set response headers for Excel download
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    // Dynamically set filename based on filters if needed, or keep it simple
+    let filename = 'doctors';
+    if (centerId) filename += `_center_${centerId}`;
+    if (speciality) filename += `_speciality_${speciality}`;
+    if (address) filename += `_address_${address}`;
+    filename += '.xlsx';
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${filename}`
+    );
+
+    // Write the Excel file to the response
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Error exporting doctors to Excel:', error);
+    res.status(500).json({ message: 'Failed to export doctors', success: false });
+  }
 };

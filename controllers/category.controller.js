@@ -12,6 +12,7 @@ export const addCategory = async (req, res) => {
             categoryDescription,
             rank,
             imageBase64,
+            categoryGif,
             userId,
             categoryUrl,
             seoTitle,
@@ -27,6 +28,7 @@ export const addCategory = async (req, res) => {
         const category = new Category({
             categoryName,
             categoryImage: imageBase64, // Keep original base64, supports GIF, JPEG, PNG, etc.
+            categoryGif,
             categoryDescription,
             userId,
             categoryUrl,
@@ -65,7 +67,7 @@ export const getCategoryName = async (req, res) => {
 // Get all categories
 export const getCategories = async (req, res) => {
     try {
-        const categories = await Category.find().select("-categoryImage");
+        const categories = await Category.find().select("-categoryImage -categoryGif").sort({ rank: 1 });
         if (!categories) return res.status(404).json({ message: "Categories not found", success: false });
         return res.status(200).json({ categories });
     } catch (error) {
@@ -90,7 +92,7 @@ export const getCategoryById = async (req, res) => {
 export const getCategoryByUrl = async (req, res) => {
     try {
         const categoryUrl = req.params.id;
-        const category = await Category.findOne({ categoryUrl }).select("-categoryImage");
+        const category = await Category.findOne({ categoryUrl }).select("-categoryImage -categoryGif");
         if (!category) return res.status(404).json({ message: "Category not found!", success: false });
         const services = await Service.find({ categoryId: category._id })
             .select('serviceName serviceUrl serviceDescription serviceImage serviceEnabled')
@@ -106,7 +108,7 @@ export const getCategoryByUrl = async (req, res) => {
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { categoryName, imageBase64, rank, categoryDescription, userId, categoryUrl,
+        const { categoryName, imageBase64,categoryGif, rank, categoryDescription, userId, categoryUrl,
             seoTitle, seoDescription, } = req.body;
 
         const existingCategory = await Category.findById(id);
@@ -135,6 +137,7 @@ export const updateCategory = async (req, res) => {
             categoryUrl,
             oldUrls,
             seoTitle, seoDescription,
+            categoryGif,
             ...(imageBase64 && { categoryImage: imageBase64 }) // Only update image if new image is provided
         };
 
@@ -208,6 +211,32 @@ if (!category || !category.categoryImage) {
 return res.status(404).send('Image not found');
 }
 const matches = category.categoryImage.match(/^data:(.+);base64,(.+)$/);
+if (!matches) {
+  return res.status(400).send('Invalid image format');
+}
+
+const mimeType = matches[1];
+const base64Data = matches[2];
+const buffer = Buffer.from(base64Data, 'base64');
+
+res.set('Content-Type', mimeType);
+res.send(buffer);
+
+} catch (err) {
+console.error('Image route error:', err);
+res.status(500).send('Error loading image');
+}
+
+};
+
+export const getCategoryGifUrl = async (req, res) => {
+   try {
+ const categoryId = req.params.id;
+const category = await Category.findById(categoryId).select("categoryGif");
+if (!category || !category.categoryGif) {
+return res.status(404).send('Image not found');
+}
+const matches = category.categoryGif.match(/^data:(.+);base64,(.+)$/);
 if (!matches) {
   return res.status(400).send('Invalid image format');
 }

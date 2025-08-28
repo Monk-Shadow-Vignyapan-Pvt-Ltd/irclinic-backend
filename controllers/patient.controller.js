@@ -5,7 +5,7 @@ import { Estimate } from '../models/estimate.model.js';
 // Add a new patient
 export const addPatient = async (req, res) => {
     try {
-        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference, centerId,state,city,caseId,area, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
 
         // Validate required fields
         if (!patientName || !gender  || !patientType) {
@@ -27,6 +27,7 @@ export const addPatient = async (req, res) => {
             city,
             caseId,
             area,
+            diagnosis,
             userId
         });
 
@@ -159,7 +160,7 @@ export const getPatientById = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference,visitHistory, centerId,state,city,caseId,area, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference,visitHistory, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -177,6 +178,7 @@ export const updatePatient = async (req, res) => {
             ...(city && { city }),
             ...(caseId && { caseId }),
             ...(area && { area }),
+            ...(diagnosis && { diagnosis }),
             ...(userId && { userId }),
         };
 
@@ -233,7 +235,10 @@ export const searchOPDPatients = async (req, res) => {
             return res.status(400).json({ message: 'Search query is required', success: false });
         }
 
-        const regex = new RegExp(search, 'i'); // Case-insensitive search
+        const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        // Replace spaces with ".*" so it matches anything between words
+        const regex = new RegExp(escapedSearch.replace(/\s+/g, ".*"), "i");
 
         const patients = await Patient.find({
             centerId: id,
@@ -248,6 +253,7 @@ export const searchOPDPatients = async (req, res) => {
                 { address: regex },
                 { "reference.label": regex },
                 { "area.label": regex },
+                { "diagnosis.label": regex },
             ]
         });
 
@@ -309,7 +315,10 @@ export const searchOutSidePatients = async (req, res) => {
             return res.status(400).json({ message: 'Search query is required', success: false });
         }
 
-        const regex = new RegExp(search, 'i'); // Case-insensitive search
+        const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        // Replace spaces with ".*" so it matches anything between words
+        const regex = new RegExp(escapedSearch.replace(/\s+/g, ".*"), "i");
 
         const patients = await Patient.find({
             centerId: id,
@@ -324,6 +333,7 @@ export const searchOutSidePatients = async (req, res) => {
                 { address: regex },
                 { "reference.label": regex },
                 { "area.label": regex },
+                { "diagnosis.label": regex },
                 { "visitHistory.hospital.label": regex }, 
             ]
         });

@@ -42,6 +42,7 @@ import globalSearchRoute from "./global_search.route.js";
 import symptomRoute from "./symptom.route.js";
 import bannerRoute from "./banner.route.js";
 import newsletterRoute from "./newsletter.route.js";
+import diagnosisRoute from "./diagnosis.route.js";
 
 
 const routes = {
@@ -88,7 +89,8 @@ const routes = {
   blogRoute,
   contactRoute,
   areaRoute,
-  vendorInvoiceRoute
+  vendorInvoiceRoute,
+  diagnosisRoute
 };
 
 export default routes;

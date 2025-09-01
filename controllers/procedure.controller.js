@@ -3,10 +3,10 @@ import { Procedure } from '../models/procedure.model.js'; // Update the path as 
 // Add a new procedure
 export const addProcedure = async (req, res) => {
     try {
-        const { procedureName, cost, notes, instructions,isProcedure,procedureUrl, userId,centerId } = req.body;
+        const { procedureName, cost, notes, instructions, isProcedure, procedureUrl, userId, centerId } = req.body;
 
         // Validate required fields
-        if (!procedureName || cost === undefined ) {
+        if (!procedureName || cost === undefined) {
             return res.status(400).json({ message: 'Procedure name and cost are required', success: false });
         }
 
@@ -36,8 +36,8 @@ export const getProcedures = async (req, res) => {
         const { id } = req.params;
         const procedures = await Procedure.find({
             'centerId.value': { $in: ['all', id] }
-          });
-        if (!procedures ) {
+        });
+        if (!procedures) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
         const reversedprocedures = procedures.reverse();
@@ -52,14 +52,15 @@ export const getProcedures = async (req, res) => {
 
         // Paginate the reversed movies array
         const paginatedprocedures = reversedprocedures.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            procedures:paginatedprocedures, 
-            success: true ,
+        return res.status(200).json({
+            procedures: paginatedprocedures,
+            success: true,
             pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(procedures.length / limit),
-            totalprocedures: procedures.length,
-        },});
+                currentPage: page,
+                totalPages: Math.ceil(procedures.length / limit),
+                totalprocedures: procedures.length,
+            },
+        });
     } catch (error) {
         console.error('Error fetching procedures:', error);
         res.status(500).json({ message: 'Failed to fetch procedures', success: false });
@@ -70,9 +71,9 @@ export const getProceduresFrontend = async (req, res) => {
     try {
         const { id } = req.params;
         const procedures = await Procedure.find({
-            'centerId.value': { $in: [ id] }
-          }).select('procedureName, cost, notes, instructions, isProcedure, procedureUrl, userId, centerId')
-        .populate('procedureId'); // Populating category data
+            'centerId.value': { $in: [id] }
+        }).select('procedureName, cost, notes, instructions, isProcedure, procedureUrl, userId, centerId')
+            .populate('procedureId'); // Populating category data
         if (!procedures) return res.status(404).json({ message: "Procedures not found", success: false });
         return res.status(200).json({ procedures });
     } catch (error) {
@@ -86,19 +87,37 @@ export const getAllProcedures = async (req, res) => {
         const { id } = req.params;
         const procedures = await Procedure.find({
             'centerId.value': { $in: ['all', id] }
-          });
-        if (!procedures ) {
+        });
+        if (!procedures) {
             return res.status(404).json({ message: "No procedures found", success: false });
         }
-        return res.status(200).json({ 
-            procedures, 
-            success: true ,
-            });
+        return res.status(200).json({
+            procedures,
+            success: true,
+        });
     } catch (error) {
         console.error('Error fetching procedures:', error);
         res.status(500).json({ message: 'Failed to fetch procedures', success: false });
     }
 };
+
+export const getProcedureUrls = async (req, res) => {
+    try {
+        const procedures = await Procedure.find().select("procedureUrl")
+
+
+        res.status(200).json({
+            procedures,
+            success: true,
+        });
+    } catch (error) {
+        console.error("Error fetching Procedures:", error);
+        res
+            .status(500)
+            .json({ message: "Failed to fetch Procedures", success: false });
+    }
+};
+
 
 // Get procedure by ID
 export const getProcedureById = async (req, res) => {
@@ -119,7 +138,7 @@ export const getProcedureById = async (req, res) => {
 export const updateProcedure = async (req, res) => {
     try {
         const { id } = req.params;
-        const { procedureName, cost, notes, instructions,isProcedure, userId,procedureUrl,centerId } = req.body;
+        const { procedureName, cost, notes, instructions, isProcedure, userId, procedureUrl, centerId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -127,7 +146,7 @@ export const updateProcedure = async (req, res) => {
             ...(cost !== undefined && { cost }),
             ...(notes && { notes }),
             ...(instructions && { instructions }),
-            isProcedure ,
+            isProcedure,
             ...(userId && { userId }),
             procedureUrl,
             centerId
@@ -164,17 +183,17 @@ export const dashboardProcedures = async (req, res) => {
         const { id } = req.params;
         const totalProcedures = await Procedure.countDocuments({
             'centerId.value': { $in: ['all', id] }
-          }); // Get total count
+        }); // Get total count
 
         const lastFiveProcedures = await Procedure.find({
             'centerId.value': { $in: ['all', id] }
-          }, { procedureName: 1, _id: 1 }) // Select only ProcedureName
+        }, { procedureName: 1, _id: 1 }) // Select only ProcedureName
             .sort({ createdAt: -1 }) // Sort by creation date (descending)
             .limit(5); // Get last 5 Procedures
 
-        return res.status(200).json({ 
-            totalProcedures, 
-            procedures: lastFiveProcedures 
+        return res.status(200).json({
+            totalProcedures,
+            procedures: lastFiveProcedures
         });
     } catch (error) {
         console.error('Error fetching Procedures:', error);
@@ -191,12 +210,12 @@ export const searchProcedures = async (req, res) => {
         }
 
         const regex = new RegExp(search, 'i'); // Case-insensitive search
-        const searchNumber = !isNaN(search) ? Number(search) : null; 
+        const searchNumber = !isNaN(search) ? Number(search) : null;
 
         const procedures = await Procedure.find({
-            
-                'centerId.value': { $in: ['all', id] }
-              ,
+
+            'centerId.value': { $in: ['all', id] }
+            ,
             $or: [
                 { procedureName: regex },
                 { notes: regex },

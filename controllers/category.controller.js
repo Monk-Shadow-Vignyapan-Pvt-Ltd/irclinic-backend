@@ -89,6 +89,22 @@ export const getCategoryById = async (req, res) => {
     }
 };
 
+export const getCategoriesIds = async (req, res) => {
+    try {
+        const categories = await Category.find().select("categoryName categoryUrl");
+        if (!categories)
+            return res
+                .status(404)
+                .json({ message: "Categories not found", success: false });
+        return res.status(200).json({ categories });
+    } catch (error) {
+        console.log(error);
+        res
+            .status(500)
+            .json({ message: "Failed to fetch categories", success: false });
+    }
+};
+
 export const getCategoryByUrl = async (req, res) => {
     try {
         const categoryUrl = req.params.id;
@@ -108,7 +124,7 @@ export const getCategoryByUrl = async (req, res) => {
 export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        const { categoryName, imageBase64,categoryGif, rank, categoryDescription, userId, categoryUrl,
+        const { categoryName, imageBase64, categoryGif, rank, categoryDescription, userId, categoryUrl,
             seoTitle, seoDescription, } = req.body;
 
         const existingCategory = await Category.findById(id);
@@ -127,7 +143,7 @@ export const updateCategory = async (req, res) => {
             return res.status(400).json({ message: 'Invalid image data', success: false });
         }
 
-        
+
 
         const updatedData = {
             categoryName: req.body.name,
@@ -204,54 +220,54 @@ export const updateCategoryRank = async (req, res) => {
 };
 
 export const getCategoryImageUrl = async (req, res) => {
-   try {
- const categoryId = req.params.id;
-const category = await Category.findById(categoryId).select("categoryImage");
-if (!category || !category.categoryImage) {
-return res.status(404).send('Image not found');
-}
-const matches = category.categoryImage.match(/^data:(.+);base64,(.+)$/);
-if (!matches) {
-  return res.status(400).send('Invalid image format');
-}
+    try {
+        const categoryId = req.params.id;
+        const category = await Category.findById(categoryId).select("categoryImage");
+        if (!category || !category.categoryImage) {
+            return res.status(404).send('Image not found');
+        }
+        const matches = category.categoryImage.match(/^data:(.+);base64,(.+)$/);
+        if (!matches) {
+            return res.status(400).send('Invalid image format');
+        }
 
-const mimeType = matches[1];
-const base64Data = matches[2];
-const buffer = Buffer.from(base64Data, 'base64');
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
 
-res.set('Content-Type', mimeType);
-res.send(buffer);
+        res.set('Content-Type', mimeType);
+        res.send(buffer);
 
-} catch (err) {
-console.error('Image route error:', err);
-res.status(500).send('Error loading image');
-}
+    } catch (err) {
+        console.error('Image route error:', err);
+        res.status(500).send('Error loading image');
+    }
 
 };
 
 export const getCategoryGifUrl = async (req, res) => {
-   try {
- const categoryId = req.params.id;
-const category = await Category.findById(categoryId).select("categoryGif");
-if (!category || !category.categoryGif) {
-return res.status(404).send('Image not found');
-}
-const matches = category.categoryGif.match(/^data:(.+);base64,(.+)$/);
-if (!matches) {
-  return res.status(400).send('Invalid image format');
-}
+    try {
+        const categoryId = req.params.id;
+        const category = await Category.findById(categoryId).select("categoryGif");
+        if (!category || !category.categoryGif) {
+            return res.status(404).send('Image not found');
+        }
+        const matches = category.categoryGif.match(/^data:(.+);base64,(.+)$/);
+        if (!matches) {
+            return res.status(400).send('Invalid image format');
+        }
 
-const mimeType = matches[1];
-const base64Data = matches[2];
-const buffer = Buffer.from(base64Data, 'base64');
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
 
-res.set('Content-Type', mimeType);
-res.send(buffer);
+        res.set('Content-Type', mimeType);
+        res.send(buffer);
 
-} catch (err) {
-console.error('Image route error:', err);
-res.status(500).send('Error loading image');
-}
+    } catch (err) {
+        console.error('Image route error:', err);
+        res.status(500).send('Error loading image');
+    }
 
 };
 

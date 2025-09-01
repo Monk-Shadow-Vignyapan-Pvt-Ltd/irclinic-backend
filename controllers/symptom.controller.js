@@ -81,7 +81,10 @@ export const getDashboardSymptoms = async (req, res) => {
 export const getSymptoms = async (req, res) => {
   const symptom = await Symptom.find().select(
     "symptomName rank symptomDescription symptomURL seoTitle seoDescription"
-  ).sort({ rank: 1 });
+  ).sort({
+    rank: 1,            // first by rank
+    symptomName: 1      // then alphabetically (optional)
+  });
 
   try {
     if (!symptom) {

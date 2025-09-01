@@ -68,7 +68,7 @@ export const addDisease = async (req, res) => {
 export const getDiseases = async (req, res) => {
   const diseases = await Disease.find().select(
     "diseaseName diseaseDescription symptomId parentID  diseaseURL seoTitle seoDescription"
-  );
+  ).sort({ rank: 1 });
 
   try {
     if (!diseases) {

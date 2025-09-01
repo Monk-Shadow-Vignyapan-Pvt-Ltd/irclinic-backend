@@ -23,6 +23,7 @@ export const addSymptom = async (req, res) => {
       symptomURL,
       seoTitle,
       seoDescription,
+      rank:99999
       // rank,
     });
 
@@ -79,7 +80,7 @@ export const getDashboardSymptoms = async (req, res) => {
 };
 
 export const getSymptoms = async (req, res) => {
-  const symptom = await Symptom.find().select(
+  const reversedSymptom = await Symptom.find().select(
     "symptomName rank symptomDescription symptomURL seoTitle seoDescription"
   ).sort({
     rank: 1,            // first by rank
@@ -87,13 +88,13 @@ export const getSymptoms = async (req, res) => {
   });
 
   try {
-    if (!symptom) {
+    if (!reversedSymptom) {
       return res
         .status(404)
         .json({ message: "No Symptom found", success: false });
     }
 
-    const reversedSymptom = symptom.reverse();
+    //const reversedSymptom = symptom.reverse();
     const page = parseInt(req.query.page) || 1;
 
     // Define the number of items per page
@@ -110,8 +111,8 @@ export const getSymptoms = async (req, res) => {
       success: true,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(symptom.length / limit),
-        totalsymptom: symptom.length,
+        totalPages: Math.ceil(reversedSymptom.length / limit),
+        totalsymptom: reversedSymptom.length,
       }
     });
   } catch (error) {

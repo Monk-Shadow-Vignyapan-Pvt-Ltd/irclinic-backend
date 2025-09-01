@@ -51,6 +51,7 @@ export const addDisease = async (req, res) => {
       diseaseURL,
       seoTitle,
       seoDescription,
+      rank:99999
       // rank,
     });
 

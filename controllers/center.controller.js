@@ -19,7 +19,8 @@ export const addCenter = async (req, res) => {
             accountPhoneNo,
             centerEmail,
             centerAddress,
-            centerTiming, centerOpenOn,
+            centerTiming,
+            centerOpenOn,
             stateCode,
             cityCode,
             centerCode: upperCaseCenterCode,
@@ -242,5 +243,27 @@ export const getCenterSeoUrls = async (req, res) => {
         res
             .status(500)
             .json({ message: "Failed to fetch Centers", success: false });
+    }
+};
+
+export const getCenterImage = async (req, res) => {
+    try {
+        const centerId = req.params.id;
+        const center = await Center.findById(centerId).select('centerImage');
+        if (!center) return res.status(404).json({ message: "center not found!", success: false });
+        const matches = center.centerImage.match(/^data:(.+);base64,(.+)$/);
+        if (!matches) {
+            return res.status(400).send('Invalid image format');
+        }
+
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        res.set('Content-Type', mimeType);
+        res.send(buffer);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch center image', success: false });
     }
 };

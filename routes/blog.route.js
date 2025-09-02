@@ -8,10 +8,9 @@ import {
   getBlogsFrontend,
   getRecentBlog,
   updateBlog,
-  getBlogUrls
+  getBlogUrls,
+  getBlogImage
 } from "../controllers/blog.controller.js";
-import isAuthenticated from "../auth/isAuthenticated.js";
-import { singleUpload } from "../middleware/multer.js";
 
 const router = express.Router();
 
@@ -24,5 +23,6 @@ router.route("/getBlogByUrl/:id").post(getBlogByUrl);
 router.route("/updateBlog/:id").post(updateBlog);
 router.route("/getBlogsFrontend").get(getBlogsFrontend);
 router.route("/deleteBlog/:id").delete(deleteBlog);
+router.route("/getBlogImage/:id").get(getBlogImage);
 
 export default router;

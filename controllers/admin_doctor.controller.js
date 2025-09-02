@@ -407,3 +407,25 @@ export const getDoctorUrls = async (req, res) => {
       .json({ message: "Failed to fetch Doctor", success: false });
   }
 };
+
+export const getDoctorImage = async (req, res) => {
+  try {
+    const doctorId = req.params.id;
+    const doctor = await AdminDoctor.findById(doctorId).select('doctorImage');
+    if (!doctor) return res.status(404).json({ message: "Doctor not found!", success: false });
+    const matches = doctor.doctorImage.match(/^data:(.+);base64,(.+)$/);
+    if (!matches) {
+      return res.status(400).send('Invalid image format');
+    }
+
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    res.set('Content-Type', mimeType);
+    res.send(buffer);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Failed to fetch Doctor image', success: false });
+  }
+};

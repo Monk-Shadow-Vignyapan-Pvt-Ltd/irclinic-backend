@@ -1,5 +1,5 @@
 import express from "express";
-import { addCenter, getCenters,getAllCenters, getCenterById,getCenterByUrl, deleteCenter, updateCenter, dashboardCenters,searchCenters} from "../controllers/center.controller.js";
+import { addCenter, getCenters,getAllCenters, getCenterById,getCenterByUrl, deleteCenter, updateCenter, dashboardCenters,searchCenters, getCenterSeoUrls} from "../controllers/center.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.route("/addCenter").post( addCenter);
 router.route("/getCenters").get( getCenters);
+router.route("/getCenterSeoUrls").get(getCenterSeoUrls);
 router.route("/getAllCenters").get( getAllCenters);
 router.route("/getCenterById/:id").put( getCenterById);
 router.route("/getCenterByUrl/:id").put( getCenterByUrl);

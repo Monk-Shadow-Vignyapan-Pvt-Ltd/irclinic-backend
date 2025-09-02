@@ -11,7 +11,8 @@ import {
   getDashboardSymptoms,
   searchSymptom,
   // updateSymptomRank,
-  getAllSymptoms
+  getAllSymptoms,
+  getSymptomUrls
 } from "../controllers/symptom.controller.js";
 
 const router = express.Router();
@@ -19,6 +20,7 @@ const router = express.Router();
 router.route("/addSymptom").post(addSymptom);
 router.route("/searchSymptom").post(searchSymptom);
 router.route("/getSymptoms").get(getSymptoms);
+router.route("/getSymptomUrls").get(getSymptomUrls);
 router.route("/getDashboardSymptoms").get(getDashboardSymptoms);
 router.route("/getSymptomByUrl/:id").put(getSymptomByUrl);
 router.route("/getSymptomFrontend").get(getSymptomFrontend);

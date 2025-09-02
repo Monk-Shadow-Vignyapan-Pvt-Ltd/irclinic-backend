@@ -458,3 +458,20 @@ export const getAllSymptoms = async (req, res) => {
       .json({ message: "Failed to fetch symptoms", success: false });
   }
 };
+
+
+export const getSymptomUrls = async (req, res) => {
+  try {
+    const symptom = await Symptom.find().select("symptomURL")
+
+    res.status(200).json({
+      symptom,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error fetching symptom:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch symptom", success: false });
+  }
+};

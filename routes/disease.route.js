@@ -10,7 +10,8 @@ import {
   updateDisease,
   searchDiseases,
   // updateDiseaseRank,
-  getAllDiseases
+  getAllDiseases,
+  getDiseaseUrls
 } from "../controllers/disease.controller.js";
 
 const router = express.Router();
@@ -18,6 +19,7 @@ const router = express.Router();
 router.route("/addDisease").post(addDisease);
 router.route("/searchDiseases").post(searchDiseases);
 router.route("/getDiseases").get(getDiseases);
+router.route("/getDiseaseUrls").get(getDiseaseUrls);
 router.route("/getDiseaseByUrl/:id").put(getDiseaseByUrl);
 router.route("/getDiseasesFrontend").get(getDiseasesFrontend);
 router.route("/getDiseaseName").get(getDiseaseName);

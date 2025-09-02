@@ -392,3 +392,18 @@ export const getDoctorInSearch = async (req, res) => {
   }
 };
 
+export const getDoctorUrls = async (req, res) => {
+  try {
+    const adminDoctor = await AdminDoctor.find().select("doctorUrl")
+
+    res.status(200).json({
+      adminDoctor,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error fetching Doctor:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch Doctor", success: false });
+  }
+};

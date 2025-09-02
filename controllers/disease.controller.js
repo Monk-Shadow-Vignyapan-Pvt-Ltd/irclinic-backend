@@ -429,3 +429,19 @@ export const getAllDiseases = async (req, res) => {
       .json({ message: "Failed to fetch disease", success: false });
   }
 };
+
+export const getDiseaseUrls = async (req, res) => {
+  try {
+    const disease = await Disease.find().select("diseaseURL")
+
+    res.status(200).json({
+      disease,
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error fetching disease:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch disease", success: false });
+  }
+};

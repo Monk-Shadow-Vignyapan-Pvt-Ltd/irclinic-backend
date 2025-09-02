@@ -5,6 +5,7 @@ import { SubService } from '../models/sub_service.model.js';
 import sharp from 'sharp';
 import { Invoice } from '../models/invoice.model.js';
 import { Estimate } from '../models/estimate.model.js';
+import { Category } from '../models/category.model.js';
 
 // Add a new service
 export const addService = async (req, res) => {
@@ -717,6 +718,36 @@ export const getAllServices = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch enabled services', success: false });
     }
 };
+
+export const getWithoutBasicServices = async (req, res) => {
+    try {
+        // Find the "Basic" category
+        const categoryBasic = await Category.findOne({ categoryName: "Basic" }).select('_id');
+
+        // Build query
+        const query = { serviceEnabled: true };
+        if (categoryBasic) {
+            query.categoryId = { $ne: categoryBasic._id }; // exclude Basic category
+        }
+
+        // Fetch enabled services excluding "Basic" category
+        const services = await Service.find(query)
+            .select('serviceName serviceUrl categoryId serviceDescription rank');
+
+        if (!services.length) {
+            return res.status(404).json({ message: 'No enabled services found', success: false });
+        }
+
+        res.status(200).json({
+            services,
+            success: true,
+        });
+    } catch (error) {
+        console.error('Error fetching enabled services:', error);
+        res.status(500).json({ message: 'Failed to fetch enabled services', success: false });
+    }
+};
+
 
 export const getServiceImage = async (req, res) => {
     try {

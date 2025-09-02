@@ -15,7 +15,7 @@ import axios from "axios";
 import cron from "node-cron";
 import moment from "moment";
 import { Quicknote } from "../models/quicknote.model.js";
-
+import { Service } from '../models/service.model.js';
 
 dotenv.config();
 
@@ -570,11 +570,11 @@ const formattedTime = appointmentDate.format('hh:mm A');
             appointment.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Procedure.findById(rea.value);
-                    if (procedure && procedure.isProcedure) {
+                    const procedure = await Service.findById(rea.value);
+                    if (procedure ) {
                         return {
-                            name: procedure.procedureName || procedure.name || "Procedure",
-                            link: procedure.procedureUrl || ""
+                            name: procedure.serviceName || procedure.name || "Procedure",
+                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -650,11 +650,11 @@ const formattedTime = appointmentDate.format('hh:mm A');
             appointment.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Procedure.findById(rea.value);
-                    if (procedure && procedure.isProcedure) {
+                    const procedure = await Service.findById(rea.value);
+                    if (procedure ) {
                         return {
-                            name: procedure.procedureName || procedure.name || "Procedure",
-                            link: procedure.procedureUrl || ""
+                            name: procedure.serviceName || procedure.name || "Procedure",
+                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -913,11 +913,11 @@ const sendWhatsApp = async (payload) => {
             appt.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Procedure.findById(rea.value);
-                    if (procedure && procedure.isProcedure) {
+                    const procedure = await Service.findById(rea.value);
+                    if (procedure ) {
                         return {
-                            name: procedure.procedureName || procedure.name || "Procedure",
-                            link: procedure.procedureUrl || ""
+                            name: procedure.serviceName || procedure.name || "Procedure",
+                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -983,11 +983,11 @@ const sendWhatsApp = async (payload) => {
             appt.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Procedure.findById(rea.value);
-                    if (procedure && procedure.isProcedure) {
+                    const procedure = await Service.findById(rea.value);
+                    if (procedure ) {
                         return {
-                            name: procedure.procedureName || procedure.name || "Procedure",
-                            link: procedure.procedureUrl || ""
+                            name: procedure.serviceName || procedure.name || "Procedure",
+                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -1073,13 +1073,13 @@ for (const appt of procedureAppointments) {
       appt.procedurePlan.map(async (plan) => {
         const isValidObjectId = mongoose.Types.ObjectId.isValid(plan.value);
         if (plan.value && isValidObjectId) {
-          const procedure = await Procedure.findById(plan.value);
-          if (procedure && procedure.isProcedure) {
-            return {
-              name: procedure.procedureName || procedure.name || "Procedure",
-              link: procedure.procedureUrl || ""
-            };
-          }
+          const procedure = await Service.findById(plan.value);
+                    if (procedure ) {
+                        return {
+                            name: procedure.serviceName || procedure.name || "Procedure",
+                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                        };
+                    }
         }
         return null;
       })

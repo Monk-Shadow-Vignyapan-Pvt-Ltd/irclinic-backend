@@ -1,8 +1,5 @@
 import express from "express";
-import { addBanner, getBanners,getMobileBanners,getDesktopBanners,getMobileAboutBanners,getDesktopAboutBanners, getBannerById, deleteBanner, updateBanner} from "../controllers/banner.controller.js";
-import {auth} from "../middleware/auth.js"
-import isAuthenticated from "../auth/isAuthenticated.js";
-import { singleUpload } from "../middleware/multer.js";
+import { addBanner, getBanners,getMobileBanners,getDesktopBanners,getMobileAboutBanners,getDesktopAboutBanners, getBannerById, deleteBanner, updateBanner, getBannerImage, getBannerMobileImage} from "../controllers/banner.controller.js";
 
 const router = express.Router();
 
@@ -15,5 +12,7 @@ router.route("/getDesktopAboutBanners").get( getDesktopAboutBanners);
 router.route("/getBannerById/:id").put( getBannerById);
 router.route("/updateBanner/:id").post( updateBanner);
 router.route("/deleteBanner/:id").delete(deleteBanner);
+router.route("/getBannerMobileImage/:id").delete(getBannerMobileImage);
+router.route("/getBannerImage/:id").delete(getBannerImage);
 
 export default router;

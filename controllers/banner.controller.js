@@ -37,7 +37,7 @@ export const getBanners = async (req, res) => {
 
 export const getMobileBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "Home" }).select("mobileImage bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "Home" }).select("-mobileImage bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -47,7 +47,7 @@ export const getMobileBanners = async (req, res) => {
 
 export const getDesktopBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "Home" }).select("image bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "Home" }).select("-image bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -57,7 +57,7 @@ export const getDesktopBanners = async (req, res) => {
 
 export const getMobileAboutBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "About" }).select("mobileImage bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "About" }).select("-mobileImage bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -67,7 +67,7 @@ export const getMobileAboutBanners = async (req, res) => {
 
 export const getDesktopAboutBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "About" }).select("image bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "About" }).select("-image bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {

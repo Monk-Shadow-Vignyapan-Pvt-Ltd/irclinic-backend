@@ -103,6 +103,52 @@ export const getBlogs = async (req, res) => {
   }
 };
 
+export const getWebBlogs = async (req, res) => {
+  try {
+    const { page = 1, search = "",tagID = "" } = req.query;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // Create a search filter
+    const searchFilter = {};
+
+    // Apply search filter
+    if (search) {
+      searchFilter.$or = [
+        { blogTitle: { $regex: search, $options: "i" } },
+        { blogDescription: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (tagID) {
+      searchFilter["tags.value"] = tagID; // Check tagID in tags array
+    }
+    const allBlogs = await Blog.find(searchFilter);
+    const paginatedBlogs = await Blog.find(searchFilter)
+      .select("-blogImage")
+      .sort({ _id: -1 }) // Sort newest first
+      .skip(skip)
+      .limit(limit);
+    if (!paginatedBlogs) {
+      return res
+        .status(404)
+        .json({ message: "No blogs found", success: false });
+    }
+    res.status(200).json({
+      blogs: paginatedBlogs,
+      success: true,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(allBlogs.length / limit),
+        totalCategories: allBlogs.length,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch blogs", success: false });
+  }
+};
+
 export const getRecentBlog = async (req, res) => {
   try {
     const allBlogs = await Blog.find()

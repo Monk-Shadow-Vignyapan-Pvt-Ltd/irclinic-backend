@@ -2,6 +2,7 @@ import express from "express";
 import {
   addBlog,
   getBlogs,
+  getWebBlogs,
   getBlogById,
   getBlogByUrl,
   deleteBlog,
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.route("/addBlog").post(addBlog);
 router.route("/getBlogs").get(getBlogs);
+router.route("/getWebBlogs").get(getWebBlogs);
 router.route("/getBlogUrls").get(getBlogUrls);
 router.route("/getRecentBlog").get(getRecentBlog);
 router.route("/getBlogById/:id").put(getBlogById);

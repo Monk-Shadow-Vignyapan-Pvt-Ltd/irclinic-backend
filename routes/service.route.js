@@ -1,6 +1,6 @@
 import express from "express";
 import {
-     addService, getServices, getEnabledServices, getServiceName, searchServices, getServiceById, getServiceByUrl, getServicesByCategory,
+     addService, getServices,getWebServices, getEnabledServices, getServiceName, searchServices,searchWebServices, getServiceById, getServiceByUrl, getServicesByCategory,
      deleteService, updateService, onOffService, getServicesFrontend, getServicesBeforeAfter, cloneService, addServiceRanking,
      getServiceRanking, getServicesAfterRanking, addServiceInSearch, getServiceInSearch, getServicesAfterInSearch,getAllServices,
      getServiceImage,updateServiceRank, getWithoutBasicServices
@@ -12,9 +12,11 @@ const router = express.Router();
 
 router.route("/addService").post(addService);
 router.route("/getServices").get(getServices);
+router.route("/getWebServices").get(getWebServices);
 router.route("/getServiceName").get(getServiceName);
 router.route("/getEnabledServices").get(getEnabledServices);
 router.route("/searchServices").post(searchServices);
+router.route("/searchWebServices").post(searchWebServices);
 router.route("/getServiceById/:id").put(getServiceById);
 router.route("/getServiceByUrl/:id").put(getServiceByUrl);
 router.route("/getServicesByCategory/:id").get(getServicesByCategory);

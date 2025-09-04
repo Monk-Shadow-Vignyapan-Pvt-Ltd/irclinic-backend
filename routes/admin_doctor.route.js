@@ -1,10 +1,12 @@
 import express from "express";
-import { getDoctorInSearch,cloneDoctor, addDoctor,getDoctors ,  getDoctorsFrontend, deleteDoctor, updateDoctor, getDoctorByUrl, getDoctorById, searchDoctors, getDoctorUrls, getDoctorImage} from "../controllers/admin_doctor.controller.js";
+import { getDoctorInSearch,cloneDoctor, addDoctor,getDoctors ,getWebDoctors,
+      getDoctorsFrontend, deleteDoctor, updateDoctor, getDoctorByUrl, getDoctorById, searchDoctors, getDoctorUrls, getDoctorImage} from "../controllers/admin_doctor.controller.js";
 
 const router = express.Router();
 
 router.route("/addDoctor").post( addDoctor);
 router.route("/getDoctors").get( getDoctors);
+router.route("/getWebDoctors").get( getWebDoctors);
 router.route("/getDoctorUrls").get( getDoctorUrls);
 router.route("/searchDoctors").post( searchDoctors);
 router.route("/getDoctorById/:id").put( getDoctorById);

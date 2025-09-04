@@ -125,7 +125,42 @@ export const getServices = async (req, res) => {
 
         // Use MongoDB to sort by rank
         const services = await Service.find()
-            .select('serviceName serviceUrl symptomId serviceDescription serviceImage procedureId categoryId diseaseId serviceType serviceEnabled rank')
+            .select('serviceName serviceUrl symptomId serviceImage serviceDescription procedureId categoryId diseaseId serviceType serviceEnabled rank')
+            .populate('procedureId')
+            .sort({ rank: 1 }) // ascending rank, use -1 for descending
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        // Get total count for pagination
+        const totalServices = await Service.countDocuments();
+
+        if (!services || services.length === 0) {
+            return res.status(404).json({ message: 'No services found', success: false });
+        }
+
+        res.status(200).json({
+            services,
+            success: true,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalServices / limit),
+                totalServices,
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching services:', error);
+        res.status(500).json({ message: 'Failed to fetch services', success: false });
+    }
+};
+
+export const getWebServices = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 12;
+
+        // Use MongoDB to sort by rank
+        const services = await Service.find({serviceEnabled:true})
+            .select('serviceName serviceUrl symptomId serviceDescription procedureId categoryId diseaseId serviceType  rank')
             .populate('procedureId')
             .sort({ rank: 1 }) // ascending rank, use -1 for descending
             .skip((page - 1) * limit)
@@ -245,6 +280,53 @@ export const searchServices = async (req, res) => {
                 { serviceName: regex },
             ]
         });
+
+        if (!services) {
+            return res.status(404).json({ message: 'No services found', success: false });
+        }
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedservices = services.slice(startIndex, endIndex);
+        res.status(200).json({
+            services: paginatedservices,
+            success: true,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(services.length / limit),
+                totalServices: services.length,
+            }
+        });
+    } catch (error) {
+        console.error('Error searching services:', error);
+        res.status(500).json({ message: 'Failed to search services', success: false });
+    }
+};
+
+export const searchWebServices = async (req, res) => {
+    try {
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const regex = new RegExp(search, 'i'); // Case-insensitive search
+
+        const services = await Service.find({
+            serviceEnabled: true, // ✅ only enabled services
+            $or: [
+                { serviceName: regex },
+            ]
+            })
+             .select('serviceName serviceUrl symptomId serviceDescription procedureId categoryId diseaseId serviceType  rank')
+              .sort({ rank: 1 });
 
         if (!services) {
             return res.status(404).json({ message: 'No services found', success: false });

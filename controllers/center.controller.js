@@ -71,7 +71,7 @@ export const getCenters = async (req, res) => {
 
 export const getAllCenters = async (req, res) => {
     try {
-        const centers = await Center.find();
+        const centers = await Center.find().select('-centerImage');
         if (!centers) {
             return res.status(404).json({ message: "No centers found", success: false });
         }

@@ -84,6 +84,10 @@ const appointmentSchema = new mongoose.Schema(
       type: Boolean,
       required: false,
     },
+    isOnline:{
+      type: Boolean,
+      required: false,
+    },
   },
   { timestamps: true }
 );

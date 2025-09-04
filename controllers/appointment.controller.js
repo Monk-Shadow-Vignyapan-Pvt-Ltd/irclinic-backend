@@ -30,7 +30,7 @@ if (!admin.apps.length) {
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp } = req.body;
+        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp ,isOnline} = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -51,7 +51,8 @@ export const addAppointment = async (req, res) => {
             isCancelled, cancelby, cancelReason,
             userId: userId || null,
             status: status || "Scheduled",
-            isFollowUp
+            isFollowUp,
+            isOnline
         });
 
         await appointment.save();

@@ -30,7 +30,7 @@ if (!admin.apps.length) {
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp ,isOnline} = req.body;
+        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
@@ -52,7 +52,7 @@ export const addAppointment = async (req, res) => {
             userId: userId || null,
             status: status || "Scheduled",
             isFollowUp,
-            isOnline
+            isOnline:false
         });
 
         await appointment.save();
@@ -183,6 +183,131 @@ export const addAppointment = async (req, res) => {
         res.status(500).json({ message: 'Failed to add appointment', success: false });
     }
 };
+
+export const addOnlineAppointment = async (req, res) => {
+    try {
+        const { fullName, gender, center, age, appointmentDate, appointmentTime, patientPhoneNo } = req.body;
+
+        if (!fullName || !patientPhoneNo || !appointmentDate || !appointmentTime) {
+            return res.status(400).json({ message: 'Required Fields are missing', success: false });
+        }
+
+        const selectedCenter = await Center.findById(center);
+        if (!selectedCenter) {
+            return res.status(404).json({ message: 'Center not found', success: false });
+        }
+
+        // ✅ Check if patient already exists with same phoneNo in this center
+        let patient = await Patient.findOne({ phoneNo: patientPhoneNo, centerId: center });
+
+        if (!patient) {
+            // Find last online patient for generating caseId
+            const latestOnlinePatient = await Patient.findOne({
+                centerId: center,
+                isOnline: true,
+                caseId: { $regex: `${selectedCenter.centerCode}-ON-` }
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
+            let sequenceNumber = 1;
+            if (latestOnlinePatient) {
+                const lastSeq = parseInt(latestOnlinePatient.caseId.slice(-7), 10);
+                sequenceNumber = lastSeq + 1;
+            }
+
+            const formattedDate = new Date(appointmentDate)
+                .toLocaleDateString('en-GB')
+                .replace(/\//g, '');
+
+            const paddedSequence = sequenceNumber.toString().padStart(7, '0');
+
+            // Create new patient
+            patient = new Patient({
+                patientName: fullName,
+                gender,
+                phoneNo: patientPhoneNo,
+                age,
+                patientType: "OPD",
+                centerId: center,
+                isOnline: true,
+                caseId: `${selectedCenter.centerCode}-ON-${formattedDate}-${paddedSequence}`,
+            });
+            await patient.save();
+        }
+
+        // ✅ Find doctors
+        const doctors = await Doctor.find({
+            $or: [
+                { centerId: center, isPartner: false },
+                { superDoctor: true }
+            ]
+        });
+
+        let doctor = null;
+        if (doctors.length > 0) {
+            const randomIndex = Math.floor(Math.random() * doctors.length);
+            doctor = doctors[randomIndex];
+        }
+
+        if (!doctor) {
+            return res.status(400).json({ message: "No doctor available", success: false });
+        }
+
+        
+        const [hours, minutes] = appointmentTime.split(":").map(Number);
+
+        // Parse the appointmentDate string
+        const appointmentDateObj = new Date(appointmentDate);
+
+        // ⚡ Extract date in IST (not UTC!)
+        const istYear = appointmentDateObj.getUTCFullYear();
+        const istMonth = appointmentDateObj.getUTCMonth();
+        const istDate = appointmentDateObj.getUTCDate() + 1; // adjust since picker gave UTC midnight of previous day
+
+        // Build datetime in IST
+        const selectedDateTime = new Date(
+          istYear,
+          istMonth,
+          istDate,
+          hours,
+          minutes,
+          0
+        );
+
+        // Convert to UTC for DB (Mongo stores ISO UTC automatically)
+        const start = new Date(selectedDateTime.getTime() - (5.5 * 60 * 60 * 1000)); 
+        const end = new Date(start.getTime() + 15 * 60000);
+
+          if (isNaN(start.getTime())) {
+            return res.status(400).json({ message: "Invalid time selected", success: false });
+          }
+
+          // Save in DB
+          const appointment = new Appointment({
+            patientId: patient._id,
+            appointmentType: "OPD",
+            title: fullName,
+            doctorId: doctor._id,
+            centerId: center || null,
+            start,   // UTC ISO string (e.g. 2025-09-06T04:30:00.000Z)
+            end,
+            status: "Scheduled",
+            isOnline: true
+          });
+          await appointment.save();
+
+        io.emit("appointmentAddUpdate", { success: true });
+
+        await sendAppointmentConfirmation(appointment, patient, doctor, selectedCenter);
+
+        res.status(201).json({ appointment, success: true });
+    } catch (error) {
+        console.error("Error adding appointment:", error);
+        res.status(500).json({ message: "Failed to add appointment", success: false });
+    }
+};
+
 
 // Get all appointments
 export const getAppointments = async (req, res) => {

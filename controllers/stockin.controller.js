@@ -1,6 +1,7 @@
 import { Stockin } from '../models/stockin.model.js'; // Update the path as per your project structure
 import { Inventory } from '../models/inventory.model.js';
 import mongoose from "mongoose";
+import ExcelJS from 'exceljs';
 
 // Add a new stockin
 export const addStockin = async (req, res) => {
@@ -357,3 +358,90 @@ export const getExpiringStockins = async (req, res) => {
     }
 };
 
+
+// Function to get stockins with filters and prepare for Excel export
+export const getStockinsExcel = async (req, res) => {
+  try {
+    const { centerId, vendorId, inventoryId, startDate, endDate } = req.query;
+
+    const filter = {};
+
+    if (centerId) {
+      filter.centerId = centerId;
+    }
+    if (vendorId) {
+      filter.vendorId = vendorId;
+    }
+    if (inventoryId) {
+      filter.inventoryId = inventoryId;
+    }
+
+    // Date range filter for createdAt
+    if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (startDate) {
+      filter.createdAt = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      filter.createdAt = { $lte: new Date(endDate) };
+    }
+
+    const stockins = await Stockin.find(filter).populate('vendorId').populate('inventoryId'); // Populate vendor and inventory names
+
+    if (!stockins || stockins.length === 0) {
+      return res.status(404).json({ message: 'No stockins found matching the criteria', success: false });
+    }
+
+    // Prepare data for Excel export
+    const excelData = stockins.map(stockin => ({
+      'Vendor Name': stockin.vendorId ? stockin.vendorId.vendorName : 'N/A',
+      'Inventory Name': stockin.inventoryId ? stockin.inventoryId.inventoryName : 'N/A',
+      'Total Stock': stockin.totalStock,
+      'Others': JSON.stringify(stockin.others), // Stringify 'others' object for clarity
+      'Created At': stockin.createdAt.toISOString(),
+    }));
+
+    // Note: Directly generating an Excel file (.xlsx) requires a library like ExcelJS.
+    // Since the original code used ExcelJS for doctors, we'll assume it's available.
+    // If not, this part would need adjustment to return JSON data.
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Stockins');
+
+    worksheet.columns = [
+      { header: 'Vendor Name', key: 'Vendor Name', width: 25 },
+      { header: 'Inventory Name', key: 'Inventory Name', width: 25 },
+      { header: 'Total Stock', key: 'Total Stock', width: 15 },
+      { header: 'Others', key: 'Others', width: 40 },
+      { header: 'Created At', key: 'Created At', width: 25 },
+    ];
+
+    excelData.forEach(data => {
+      worksheet.addRow(data);
+    });
+
+    // Set response headers for Excel download
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    let filename = 'stockins';
+    if (startDate) filename += `_from_${startDate}`;
+    if (endDate) filename += `_to_${endDate}`;
+    filename += '.xlsx';
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${filename}`
+    );
+
+    // Write the Excel file to the response
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Error exporting stockins to Excel:', error);
+    res.status(500).json({ message: 'Failed to export stockins', success: false });
+  }
+};

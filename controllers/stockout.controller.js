@@ -7,6 +7,7 @@ import { FirebaseToken } from '../models/firebaseToken.model.js';
 import { User } from '../models/user.model.js';
 import mongoose from "mongoose";
 import { io } from "../index.js";
+import ExcelJS from 'exceljs';
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ if (!admin.apps.length) {
 // Add a new stockin
 export const addStockout = async (req, res) => {
     try {
-        const { vendorId,inventoryId, totalStock,others, centerId,appointmentType,hospitalId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId,appointmentId,appointmentType,hospitalId } = req.body;
 
         // Validate required fields
         if (!vendorId || !inventoryId  || !centerId || !appointmentType) {
@@ -135,7 +136,7 @@ export const addStockout = async (req, res) => {
         
 
         // Create a new stockin
-        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId,appointmentType,hospitalId });
+        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId,appointmentId,appointmentType,hospitalId });
 
         await stockout.save();
         res.status(201).json({ stockout, success: true });
@@ -269,7 +270,7 @@ export const getAllStockoutsByVendorId = async (req, res) => {
 export const updateStockout = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others,invoiceId, centerId ,appointmentType,hospitalId} = req.body;
+        const { vendorId,inventoryId, totalStock,others,invoiceId, centerId ,appointmentId,appointmentType,hospitalId} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -279,6 +280,7 @@ export const updateStockout = async (req, res) => {
              others ,
              invoiceId,
             ...(centerId && { centerId }),
+            appointmentId,
             appointmentType,hospitalId
         };
 
@@ -451,4 +453,96 @@ export const searchStockouts = async (req, res) => {
         console.error('Error searching stockouts:', error);
         res.status(500).json({ message: 'Failed to search stockouts', success: false });
     }
+};
+
+export const getStockoutsExcel = async (req, res) => {
+  try {
+    const { centerId, vendorId, inventoryId, startDate, endDate } = req.query;
+
+    const filter = {};
+
+    if (centerId) {
+      filter.centerId = centerId;
+    }
+    if (vendorId) {
+      filter.vendorId = vendorId;
+    }
+    if (inventoryId) {
+      filter.inventoryId = inventoryId;
+    }
+
+    // Date range filter for createdAt
+    if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (startDate) {
+      filter.createdAt = { $gte: new Date(startDate) };
+    } else if (endDate) {
+      filter.createdAt = { $lte: new Date(endDate) };
+    }
+
+    const stockouts = await Stockout.find(filter).populate('vendorId').populate('inventoryId').populate('hospitalId').populate('appointmentId'); // Populate vendor and inventory names
+
+    if (!stockouts || stockouts.length === 0) {
+      return res.status(404).json({ message: 'No stockouts found matching the criteria', success: false });
+    }
+
+    // Prepare data for Excel export
+    const excelData = stockouts.map(stockout => ({
+      'Vendor Name': stockout.vendorId ? stockout.vendorId.vendorName : 'N/A',
+      'Inventory Name': stockout.inventoryId ? stockout.inventoryId.inventoryName : 'N/A',
+      'Hospital Name': stockout.hospitalId ? stockout.hospitalId.hospitalName : 'N/A',
+      'Appointment Type': stockout.appointmentType,
+      'Patient Name': stockout.appointmentId ? stockout.appointmentId.title : 'N/A',
+      'Total Stock': stockout.totalStock,
+      'Others': JSON.stringify(stockout.others), // Stringify 'others' object for clarity
+      'Created At': stockout.createdAt.toISOString(),
+    }));
+
+    // Note: Directly generating an Excel file (.xlsx) requires a library like ExcelJS.
+    // Since the original code used ExcelJS for doctors, we'll assume it's available.
+    // If not, this part would need adjustment to return JSON data.
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Stockins');
+
+    worksheet.columns = [
+      { header: 'Vendor Name', key: 'Vendor Name', width: 25 },
+      { header: 'Inventory Name', key: 'Inventory Name', width: 25 },
+      { header: 'Hospital Name', key: 'Hospital Name', width: 25 },
+      { header: 'Appointment Type', key: 'Appointment Type', width: 25 },
+      { header: 'Patient Name', key: 'Patient Name', width: 25 },
+      { header: 'Total Stock', key: 'Total Stock', width: 15 },
+      { header: 'Others', key: 'Others', width: 40 },
+      { header: 'Created At', key: 'Created At', width: 25 },
+    ];
+
+    excelData.forEach(data => {
+      worksheet.addRow(data);
+    });
+
+    // Set response headers for Excel download
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    let filename = 'stockouts';
+    if (startDate) filename += `_from_${startDate}`;
+    if (endDate) filename += `_to_${endDate}`;
+    filename += '.xlsx';
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${filename}`
+    );
+
+    // Write the Excel file to the response
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Error exporting stockins to Excel:', error);
+    res.status(500).json({ message: 'Failed to export stockins', success: false });
+  }
 };

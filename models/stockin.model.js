@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 const stockinSchema = new mongoose.Schema({
-    vendorId: { type: mongoose.Schema.Types.ObjectId, required: true },
-    inventoryId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    vendorId: { type: mongoose.Schema.Types.ObjectId,ref: "Vendor", required: true },
+    inventoryId: { type: mongoose.Schema.Types.ObjectId,ref: "Inventory", required: true },
     totalStock: { type: Number, required: true },
     // stockinType: { type: String, required: true },
     // lotNo:{ type: String, required: true },

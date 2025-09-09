@@ -45,7 +45,8 @@ app.use(
       "http://localhost:5173",
       "http://localhost:5174",
       "http://localhost:3000",
-      "https://irclinicindia.com"
+      "https://irclinicindia.com",
+      "https://ir-clinic-next.vercel.app"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     allowedHeaders: [

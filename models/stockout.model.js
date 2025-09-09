@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 const stockoutSchema = new mongoose.Schema({
-    vendorId: { type: mongoose.Schema.Types.ObjectId, required: true },
-    inventoryId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    vendorId: { type: mongoose.Schema.Types.ObjectId,ref: "Vendor", required: true },
+    inventoryId: { type: mongoose.Schema.Types.ObjectId,ref: "Inventory", required: true },
     totalStock: { type: Number, required: true },
     appointmentType: {
       type: String,
@@ -10,6 +10,7 @@ const stockoutSchema = new mongoose.Schema({
     },
     hospitalId:{
       type:mongoose.Schema.Types.ObjectId,
+      ref: "Hospital",
       required:false
     },
     // stockinType: { type: String, required: true },
@@ -17,6 +18,7 @@ const stockoutSchema = new mongoose.Schema({
     // expiryDate:{ type: Date,  default: null, },
     others: { type: mongoose.Schema.Types.Mixed, required: false },
     invoiceId: { type: mongoose.Schema.Types.Mixed, required: false },
+    appointmentId: { type: mongoose.Schema.Types.ObjectId,ref: "Appointment", required: false },
     centerId:{
         type:mongoose.Schema.Types.ObjectId,
         required:true

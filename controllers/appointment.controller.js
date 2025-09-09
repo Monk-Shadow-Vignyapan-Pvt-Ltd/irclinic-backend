@@ -696,11 +696,11 @@ const formattedTime = appointmentDate.format('hh:mm A');
             appointment.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
+                    const procedure = await Procedure.findById(rea.value);
                     if (procedure ) {
                         return {
-                            name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            name: procedure.procedureName || procedure.name || "Procedure",
+                            link: procedure.procedureUrl || ""
                         };
                     }
                 }
@@ -776,11 +776,11 @@ const formattedTime = appointmentDate.format('hh:mm A');
             appointment.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
+                     const procedure = await Procedure.findById(rea.value);
                     if (procedure ) {
                         return {
-                            name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            name: procedure.procedureName || procedure.name || "Procedure",
+                            link: procedure.procedureUrl || ""
                         };
                     }
                 }
@@ -1039,11 +1039,11 @@ const sendWhatsApp = async (payload) => {
             appt.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
+                     const procedure = await Procedure.findById(rea.value);
                     if (procedure ) {
                         return {
-                            name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            name: procedure.procedureName || procedure.name || "Procedure",
+                            link: procedure.procedureUrl || ""
                         };
                     }
                 }
@@ -1109,11 +1109,11 @@ const sendWhatsApp = async (payload) => {
             appt.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
+                     const procedure = await Procedure.findById(rea.value);
                     if (procedure ) {
                         return {
-                            name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            name: procedure.procedureName || procedure.name || "Procedure",
+                            link: procedure.procedureUrl || ""
                         };
                     }
                 }
@@ -1199,11 +1199,11 @@ for (const appt of procedureAppointments) {
       appt.procedurePlan.map(async (plan) => {
         const isValidObjectId = mongoose.Types.ObjectId.isValid(plan.value);
         if (plan.value && isValidObjectId) {
-          const procedure = await Service.findById(plan.value);
+           const procedure = await Procedure.findById(rea.value);
                     if (procedure ) {
                         return {
-                            name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            name: procedure.procedureName || procedure.name || "Procedure",
+                            link: procedure.procedureUrl || ""
                         };
                     }
         }

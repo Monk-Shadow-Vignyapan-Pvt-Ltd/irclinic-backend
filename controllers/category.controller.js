@@ -17,6 +17,7 @@ export const addCategory = async (req, res) => {
             categoryUrl,
             seoTitle,
             seoDescription,
+            schema,
         } = req.body;
 
         // Validate base64 image data
@@ -34,6 +35,7 @@ export const addCategory = async (req, res) => {
             categoryUrl,
             seoTitle,
             seoDescription,
+            schema,
             rank,
         });
 
@@ -125,7 +127,7 @@ export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
         const { categoryName, imageBase64, categoryGif, rank, categoryDescription, userId, categoryUrl,
-            seoTitle, seoDescription, } = req.body;
+            seoTitle, seoDescription,schema } = req.body;
 
         const existingCategory = await Category.findById(id);
         if (!existingCategory) {
@@ -152,7 +154,7 @@ export const updateCategory = async (req, res) => {
             rank,
             categoryUrl,
             oldUrls,
-            seoTitle, seoDescription,
+            seoTitle, seoDescription,schema,
             categoryGif,
             ...(imageBase64 && { categoryImage: imageBase64 }) // Only update image if new image is provided
         };

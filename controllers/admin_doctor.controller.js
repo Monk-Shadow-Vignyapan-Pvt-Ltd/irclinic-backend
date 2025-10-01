@@ -21,6 +21,7 @@ export const addDoctor = async (req, res) => {
       oldUrls,
       seoTitle,
       seoDescription,
+      schema,
       userId,
     } = req.body;
 
@@ -61,6 +62,7 @@ export const addDoctor = async (req, res) => {
       oldUrls,
       seoTitle,
       seoDescription,
+      schema,
       userId,
     });
 
@@ -250,6 +252,7 @@ export const updateDoctor = async (req, res) => {
       doctorUrl,
       seoTitle,
       seoDescription,
+      schema,
       userId
     } = req.body;
 
@@ -304,6 +307,7 @@ export const updateDoctor = async (req, res) => {
       linkedinUrl,
       seoTitle,
       seoDescription,
+      schema,
       userId,
       oldUrls,
     };
@@ -346,7 +350,7 @@ export const getDoctorsFrontend = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find()
       .select(
-        "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl seoDescription seoTitle"
+        "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl seoDescription seoTitle schema"
       )
 
     if (!doctors)

@@ -18,6 +18,7 @@ export const addDisease = async (req, res) => {
       diseaseURL,
       seoTitle,
       seoDescription,
+      schema
     } = req.body;
     // Validate base64 image data
     // if (!imageBase64 || !imageBase64.startsWith("data:image")) {
@@ -51,6 +52,7 @@ export const addDisease = async (req, res) => {
       diseaseURL,
       seoTitle,
       seoDescription,
+      schema,
       rank:99999
       // rank,
     });
@@ -68,7 +70,7 @@ export const addDisease = async (req, res) => {
 // Get all disease
 export const getDiseases = async (req, res) => {
   const diseases = await Disease.find().select(
-    "diseaseName rank diseaseDescription symptomId parentID  diseaseURL seoTitle seoDescription"
+    "diseaseName rank diseaseDescription symptomId parentID  diseaseURL seoTitle seoDescription schema"
   ) .sort({
     rank: 1,            // first by rank
     diseaseName: 1      // then alphabetically (optional)
@@ -152,6 +154,7 @@ export const getDiseasesFrontend = async (req, res) => {
           diseaseURL: 1,
           seoTitle: 1,
           seoDescription: 1,
+          schema: 1,
         },
       },
     ]);
@@ -269,6 +272,7 @@ export const updateDisease = async (req, res) => {
       diseaseURL,
       seoTitle,
       seoDescription,
+      schema
     } = req.body;
 
     const existingDisease = await Disease.findById(id);
@@ -320,6 +324,7 @@ export const updateDisease = async (req, res) => {
       oldUrls,
       seoTitle,
       seoDescription,
+      schema
       // ...(compressedBase64 && { diseaseImage: compressedBase64 }), // Only update image if new image is provided
     };
 

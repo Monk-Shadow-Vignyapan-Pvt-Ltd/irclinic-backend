@@ -14,6 +14,7 @@ export const addSymptom = async (req, res) => {
       symptomURL,
       seoTitle,
       seoDescription,
+      schema,
     } = req.body;
 
     const symptom = new Symptom({
@@ -23,6 +24,7 @@ export const addSymptom = async (req, res) => {
       symptomURL,
       seoTitle,
       seoDescription,
+      schema,
       rank:99999
       // rank,
     });
@@ -81,7 +83,7 @@ export const getDashboardSymptoms = async (req, res) => {
 
 export const getSymptoms = async (req, res) => {
   const reversedSymptom = await Symptom.find().select(
-    "symptomName rank symptomDescription symptomURL seoTitle seoDescription"
+    "symptomName rank symptomDescription symptomURL seoTitle seoDescription schema"
   ).sort({
     rank: 1,            // first by rank
     symptomName: 1      // then alphabetically (optional)
@@ -181,6 +183,7 @@ export const getSymptomFrontend = async (req, res) => {
           symptomURL: 1,
           seoTitle: 1,
           seoDescription: 1,
+          schema: 1,
         },
       },
     ]);
@@ -300,6 +303,7 @@ export const updateSymptom = async (req, res) => {
       symptomURL,
       seoTitle,
       seoDescription,
+      schema,
     } = req.body;
 
     const existingSymptom = await Symptom.findById(id);
@@ -349,6 +353,7 @@ export const updateSymptom = async (req, res) => {
       oldUrls,
       seoTitle,
       seoDescription,
+      schema
       // ...(compressedBase64 && { symptomImage: compressedBase64 }), // Only update image if new image is provided
     };
 

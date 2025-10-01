@@ -28,6 +28,10 @@ const blogSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    schema: {
+      type: String, // Store image as base64 or use a URL reference
+      required: false,
+    },
     blog: {
       type: String, // Store image as base64 or use a URL reference
       required: true,

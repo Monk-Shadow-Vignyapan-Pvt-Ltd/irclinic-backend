@@ -34,6 +34,10 @@ const centerSchema = new mongoose.Schema({
     seoDescription:{
         type: String, required: false
     },
+    schema: {
+      type: String, // Store image as base64 or use a URL reference
+      required: false,
+    },
     centerCode:{
         type: String, 
         required: true,

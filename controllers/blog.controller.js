@@ -12,6 +12,7 @@ export const addBlog = async (req, res) => {
       blogUrl,
       seoTitle,
       seoDescription,
+      schema,
       userId,
       tags,
     } = req.body;
@@ -47,6 +48,7 @@ export const addBlog = async (req, res) => {
       seoTitle,
       tags,
       seoDescription,
+      schema,
     });
 
     await newBlog.save();
@@ -213,6 +215,7 @@ export const updateBlog = async (req, res) => {
       tags,
       seoTitle,
       seoDescription,
+      schema,
       userId,
     } = req.body;
 
@@ -247,6 +250,7 @@ export const updateBlog = async (req, res) => {
       tags,
       seoTitle,
       seoDescription,
+      schema,
     };
 
     const updatedBlog = await Blog.findByIdAndUpdate(id, updatedData, {

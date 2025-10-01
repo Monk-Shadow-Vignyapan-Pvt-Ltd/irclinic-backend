@@ -44,6 +44,10 @@ const adminDoctorSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    schema: {
+      type: String, // Store image as base64 or use a URL reference
+      required: false,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

@@ -786,7 +786,7 @@ export const getAllServices = async (req, res) => {
     try {
         // Fetch only enabled services
         const services = await Service.find({ serviceEnabled: true })
-            .select('serviceName serviceUrl serviceDescription rank')
+            .select('serviceName serviceUrl serviceDescription rank').sort({ rank: 1 });
 
         if (!services.length) {
             return res.status(404).json({ message: 'No enabled services found', success: false });

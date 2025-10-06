@@ -354,7 +354,7 @@ export const getAppointmentsByPatientId = async (req, res) => {
         // Enhance appointments with corresponding invoicePlan if invoiceId exists
         const enhancedAppointments = await Promise.all(
             appointments.map(async (appointment) => {
-                if (appointment.invoiceId) {
+                if (appointment.invoiceId && appointment.invoiceId.length > 0) {
                     let invoices = [];
                     if (Array.isArray(appointment.invoiceId)) {
                         invoices = await Invoice.find({ _id: { $in: appointment.invoiceId } });

@@ -376,8 +376,8 @@ export const getServiceByUrl = async (req, res) => {
         const serviceUrl = req.params.id;
         const service = await Service.findOne({ serviceUrl }).populate('procedureId'); // Populating category data
         if (!service) return res.status(404).json({ message: "Service not found!", success: false });
-        const procedures = await Procedure.find({ procedureUrl: `https://irclinicindia.com/procedures/${service.serviceUrl}` });
-        const procedureValues = procedures.map(p => p._id);
+        const procedures = await Procedure.find({ procedureUrl: `https://irclinicindia.com/procedures/${serviceUrl}` });
+        const procedureValues = procedures.map(p => String(p._id));
 
         // Get count of invoices that include any of the procedure values
         const invoicecount = await Invoice.countDocuments({

@@ -6,6 +6,7 @@ import sharp from 'sharp';
 import { Invoice } from '../models/invoice.model.js';
 import { Estimate } from '../models/estimate.model.js';
 import { Category } from '../models/category.model.js';
+import { Procedure } from '../models/procedure.model.js'; 
 
 // Add a new service
 export const addService = async (req, res) => {
@@ -375,7 +376,8 @@ export const getServiceByUrl = async (req, res) => {
         const serviceUrl = req.params.id;
         const service = await Service.findOne({ serviceUrl }).populate('procedureId'); // Populating category data
         if (!service) return res.status(404).json({ message: "Service not found!", success: false });
-        const procedureValues = service.procedureId.map(p => p.value);
+        const procedures = await Procedure.find({ procedureUrl: `https://irclinicindia.com/procedures/${service.serviceUrl}` });
+        const procedureValues = procedures.map(p => p._id);
 
         // Get count of invoices that include any of the procedure values
         const invoicecount = await Invoice.countDocuments({

@@ -672,6 +672,71 @@ export const dashboardAppointments = async (req, res) => {
     }
 };
 
+export const getNonStockAppointments = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const estimates = await Estimate.find({
+      centerId: id,
+      "estimatePlan.nonStockInventories.0": { $exists: true }
+    }).lean();
+
+    const invoices = await Invoice.find({
+      centerId: id,
+      "invoicePlan.nonStockInventories.0": { $exists: true }
+    }).lean();
+
+    const enhancedEstimates = await Promise.all(
+      estimates.map(async (estimate) => {
+        let patientName = null;
+
+        if (estimate.appointmentId) {
+          const appointment = await Appointment.findById(estimate.appointmentId).lean();
+          patientName = appointment?.title || null;
+        }
+
+        if (estimate.patientId) {
+          const patient = await Patient.findById(estimate.patientId).lean();
+          patientName = patient?.patientName || patientName;
+        }
+
+        return { ...estimate, patientName };
+      })
+    );
+
+    const enhancedInvoices = await Promise.all(
+      invoices.map(async (invoice) => {
+        let patientName = null;
+
+        if (invoice.appointmentId) {
+          const appointment = await Appointment.findById(invoice.appointmentId).lean();
+          patientName = appointment?.title || null;
+        }
+
+        if (invoice.patientId) {
+          const patient = await Patient.findById(invoice.patientId).lean();
+          patientName = patient?.patientName || patientName;
+        }
+
+        return { ...invoice, patientName };
+      })
+    );
+
+    const mergedData = [...enhancedEstimates, ...enhancedInvoices];
+
+
+
+    res.status(200).json({
+      invoices: mergedData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+      success: true,
+    });
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    res.status(500).json({ message: "Failed to fetch invoices", success: false });
+  }
+};
+
+
 const sendAppointmentConfirmation = async (appointment, patient, doctor, center) => {
   const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
 

@@ -1,5 +1,5 @@
 import express from "express";
-import { addAppointment,addOnlineAppointment, getAppointments, getAppointmentById,getAppointmentsByPatientId,getLastAppointmentByPatientId, deleteAppointment, updateAppointment, dashboardAppointments} from "../controllers/appointment.controller.js";
+import { addAppointment,addOnlineAppointment, getAppointments, getAppointmentById,getAppointmentsByPatientId,getLastAppointmentByPatientId, deleteAppointment, updateAppointment, dashboardAppointments,getNonStockAppointments} from "../controllers/appointment.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -14,5 +14,6 @@ router.route("/getLastAppointmentByPatientId/:id").put( getLastAppointmentByPati
 router.route("/updateAppointment/:id").post( updateAppointment);
 router.route("/deleteAppointment/:id").delete(deleteAppointment);
 router.route("/dashboardAppointments/:id").get( dashboardAppointments);
+router.route("/getNonStockAppointments/:id").get( getNonStockAppointments);
 
 export default router;

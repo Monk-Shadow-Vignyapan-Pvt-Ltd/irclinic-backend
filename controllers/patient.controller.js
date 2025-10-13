@@ -113,31 +113,20 @@ export const getOutSidePatients = async (req, res) => {
 export const getCampPatients = async (req, res) => {
     try {
         const { id } = req.params;
-        const patients = await Patient.find({ centerId: id,patientType:"OPD",fromCamp:true });
+        const patients = await Patient.find({ centerId: id,patientType:"OPD",fromCamp:true }).sort({ createdAt: -1 });;
         if (!patients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
-        //const outsidePatients = patients.filter(patient => patient.patientType === "Outside")
-        const reversedpatients = patients.reverse();
-        const page = parseInt(req.query.page) || 1;
-
-        // Define the number of items per page
-        const limit = 12;
-
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
-
-        // Paginate the reversed movies array
-        const paginatedpatients = reversedpatients.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            patients:paginatedpatients, 
-            success: true ,
+        
+        return res.status(200).json({
+            patients: patients,
+            success: true,
             pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(patients.length / limit),
-            totalpatients: patients.length,
-        },});
+                currentPage: 1,
+                totalPages: Math.ceil(patients.length / 12),
+                totalPatients: patients.length,
+            },
+        });
     } catch (error) {
         console.error('Error fetching patients:', error);
         res.status(500).json({ message: 'Failed to fetch patients', success: false });

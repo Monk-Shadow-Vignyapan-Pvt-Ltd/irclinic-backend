@@ -8,6 +8,7 @@ const patientSchema = new mongoose.Schema({
     alterphoneNo: { type: String, required: false,},
     age: { type: String, required: false },
     address: { type: String, required: false },
+    fromCamp: { type: Boolean, required: false },
     patientType: { type: String, required: true },
     reference: { type: mongoose.Schema.Types.Mixed, required: false },
     visitHistory: { type: mongoose.Schema.Types.Mixed, required: false },

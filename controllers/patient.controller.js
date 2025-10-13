@@ -5,7 +5,7 @@ import { Estimate } from '../models/estimate.model.js';
 // Add a new patient
 export const addPatient = async (req, res) => {
     try {
-        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
 
         // Validate required fields
         if (!patientName || !gender  || !patientType) {
@@ -20,6 +20,7 @@ export const addPatient = async (req, res) => {
             alterphoneNo,
             age,
             address,
+            fromCamp,
             patientType,
             reference,
             centerId:(centerId === '')  ? null:centerId,
@@ -109,6 +110,40 @@ export const getOutSidePatients = async (req, res) => {
     }
 };
 
+export const getCampPatients = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const patients = await Patient.find({ centerId: id,patientType:"OPD",fromCamp:true });
+        if (!patients) {
+            return res.status(404).json({ message: 'No patients found', success: false });
+        }
+        //const outsidePatients = patients.filter(patient => patient.patientType === "Outside")
+        const reversedpatients = patients.reverse();
+        const page = parseInt(req.query.page) || 1;
+
+        // Define the number of items per page
+        const limit = 12;
+
+        // Calculate the start and end indices for pagination
+        const startIndex = (page - 1) * limit;
+        const endIndex = page * limit;
+
+        // Paginate the reversed movies array
+        const paginatedpatients = reversedpatients.slice(startIndex, endIndex);
+        return res.status(200).json({ 
+            patients:paginatedpatients, 
+            success: true ,
+            pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(patients.length / limit),
+            totalpatients: patients.length,
+        },});
+    } catch (error) {
+        console.error('Error fetching patients:', error);
+        res.status(500).json({ message: 'Failed to fetch patients', success: false });
+    }
+};
+
 export const getAllPatients = async (req, res) => {
     try {
         const { id } = req.params;
@@ -160,7 +195,7 @@ export const getPatientById = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientName, gender, phoneNo,alterphoneNo, age, address, patientType, reference,visitHistory, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference,visitHistory, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
 
         // Build updated data
         const updatedData = {
@@ -170,6 +205,7 @@ export const updatePatient = async (req, res) => {
             ...(alterphoneNo && { alterphoneNo }),
             ...(age && { age }),
             ...(address && { address }),
+            fromCamp,
             ...(patientType && { patientType }),
             ...(reference && { reference }),
             ...(visitHistory && { visitHistory }),
@@ -387,5 +423,88 @@ export const searchOutSidePatients = async (req, res) => {
         res.status(500).json({ message: 'Failed to search patients', success: false });
     }
 };
+
+export const searchCampPatients = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { search } = req.query;
+        if (!search) {
+            return res.status(400).json({ message: 'Search query is required', success: false });
+        }
+
+        const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+        // Replace spaces with ".*" so it matches anything between words
+        const regex = new RegExp(escapedSearch.replace(/\s+/g, ".*"), "i");
+
+        const patients = await Patient.find({
+            centerId: id,
+            patientType:"OPD",
+            fromCamp:true,
+            $or: [
+                { patientName: regex },
+                { gender: regex },
+                { phoneNo: regex },
+                { age: regex },
+                { city: regex },
+                { state: regex },
+                { address: regex },
+                { "reference.label": regex },
+                { "area.label": regex },
+                { "diagnosis.label": regex },
+            ]
+        });
+
+        const estimates = await Estimate.find({
+            centerId: id,
+            $or: [
+                { "estimatePlan.hospital.name": regex }, 
+            ]
+        });
+
+        // Extract all estimateId values
+        const estimateIds = estimates.map(est => est._id);
+
+        // If no estimates found, short-circuit
+        // if (!estimateIds.length) {
+        //     return res.status(404).json({ message: 'No matching estimates found', success: false });
+        // }
+
+        // Find appointments with those estimateIds
+        const appointments = await Appointment.find({
+            centerId: id,
+            estimateId: { $in: estimateIds }
+        });
+
+        const patientIds = appointments.map(apt => apt.patientId);
+
+         const hospitalPatients = await Patient.find({
+            centerId: id,
+            patientType:"OPD",
+            _id: { $in: patientIds }
+        });
+
+        const filterPatients = [...patients,...hospitalPatients];
+
+        if (!filterPatients) {
+            return res.status(404).json({ message: 'No patients found', success: false });
+        }
+
+        return res.status(200).json({
+            patients: filterPatients,
+            success: true,
+            pagination: {
+                currentPage: 1,
+                totalPages: Math.ceil(filterPatients.length / 12),
+                totalPatients: filterPatients.length,
+            },
+        });
+    } catch (error) {
+        console.error('Error searching patients:', error);
+        res.status(500).json({ message: 'Failed to search patients', success: false });
+    }
+};
+
+
 
 

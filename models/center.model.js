@@ -28,6 +28,10 @@ const centerSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
             required: false
         },
+    doctors: {
+            type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
+            required: false
+        },
     seoTitle:{
         type: String, required: false
     },

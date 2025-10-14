@@ -3,7 +3,7 @@ import { Center } from '../models/center.model.js'; // Update the path as per yo
 // Add a new center
 export const addCenter = async (req, res) => {
     try {
-        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,videoUrls } = req.body;
+        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,videoUrls ,doctors} = req.body;
 
         // Validate required fields
         if (!centerName || !adminPhoneNo || !accountPhoneNo || !centerEmail || !centerAddress || !stateCode || !cityCode || !centerCode || !centerSeoUrl) {
@@ -24,6 +24,7 @@ export const addCenter = async (req, res) => {
             stateCode,
             cityCode,
             videoUrls,
+            doctors,
             centerCode: upperCaseCenterCode,
             userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema
         });
@@ -117,7 +118,7 @@ export const getCenterByUrl = async (req, res) => {
 export const updateCenter = async (req, res) => {
     try {
         const { id } = req.params;
-        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,videoUrls } = req.body;
+        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,videoUrls ,doctors} = req.body;
 
         const upperCaseCenterCode = centerCode.toUpperCase();
 
@@ -143,6 +144,7 @@ export const updateCenter = async (req, res) => {
             ...(stateCode && { stateCode }),
             ...(cityCode && { cityCode }),
              ...(videoUrls && { videoUrls }),
+              ...(doctors && { doctors }),
             ...(upperCaseCenterCode && { centerCode: upperCaseCenterCode }),
             ...(userId && { userId }), centerImage, centerMapUrl, centerSeoUrl, oldUrls, seoTitle, seoDescription, schema
         };

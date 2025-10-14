@@ -105,7 +105,7 @@ export const getCenterById = async (req, res) => {
 export const getCenterByUrl = async (req, res) => {
     try {
         const centerSeoUrl = req.params.id;
-        const center = await Center.findOne({ centerSeoUrl }); // Populating category data
+        const center = await Center.findOne({ centerSeoUrl }).select("-centerImage"); // Populating category data
         if (!center) return res.status(404).json({ message: "Center not found!", success: false });
         return res.status(200).json({ center, success: true });
     } catch (error) {

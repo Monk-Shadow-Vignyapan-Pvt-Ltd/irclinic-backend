@@ -43,7 +43,8 @@ import symptomRoute from "./symptom.route.js";
 import bannerRoute from "./banner.route.js";
 import newsletterRoute from "./newsletter.route.js";
 import diagnosisRoute from "./diagnosis.route.js";
-
+import occupationRoute from "./occupation.route.js";
+import staffRoute from "./staff.route.js";
 
 const routes = {
   adminDoctorRoute,
@@ -90,7 +91,9 @@ const routes = {
   contactRoute,
   areaRoute,
   vendorInvoiceRoute,
-  diagnosisRoute
+  diagnosisRoute,
+  occupationRoute,
+  staffRoute
 };
 
 export default routes;

@@ -59,7 +59,7 @@ export const getStaff = async (req, res) => {
     const { id } = req.params;
     const staffList = await Staff.find({ centerId: id });
 
-    if (!staffList || staffList.length === 0) {
+    if (!staffList ) {
       return res.status(404).json({ message: "No staff found", success: false });
     }
 
@@ -260,12 +260,13 @@ export const searchStaff = async (req, res) => {
 // 📤 Export staff to Excel
 export const getStaffExcel = async (req, res) => {
   try {
-    const { centerId, occupation, address } = req.query;
+    const { centerId, occupation, address,inIR } = req.query;
 
     const filter = {};
     if (centerId) filter.centerId = centerId;
     if (occupation) filter["occupation.label"] = occupation;
     if (address) filter["address.label"] = address;
+    filter.inIR = inIR;
 
     const staffList = await Staff.find(filter);
 
@@ -278,7 +279,7 @@ export const getStaffExcel = async (req, res) => {
       { header: "Contact Number", key: "phone", width: 20 },
       { header: "Address", key: "address", width: 30 },
       { header: "Email", key: "email", width: 25 },
-      { header: "In IR", key: "inIR", width: 10 },
+      { header: "Category", key: "inIR", width: 10 },
     ];
 
     staffList.forEach((staff) => {
@@ -288,7 +289,7 @@ export const getStaffExcel = async (req, res) => {
         phone: staff.phoneNo,
         address: staff.address?.label || "N/A",
         email: staff.email || "N/A",
-        inIR: staff.inIR ? "Yes" : "No",
+        inIR: staff.inIR ? "IR Staff" : "Other Staff",
       });
     });
 

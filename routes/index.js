@@ -45,6 +45,7 @@ import newsletterRoute from "./newsletter.route.js";
 import diagnosisRoute from "./diagnosis.route.js";
 import occupationRoute from "./occupation.route.js";
 import staffRoute from "./staff.route.js";
+import authorRoute from "./author.route.js";
 
 const routes = {
   adminDoctorRoute,
@@ -93,7 +94,8 @@ const routes = {
   vendorInvoiceRoute,
   diagnosisRoute,
   occupationRoute,
-  staffRoute
+  staffRoute,
+  authorRoute
 };
 
 export default routes;

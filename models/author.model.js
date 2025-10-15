@@ -10,6 +10,10 @@ const authorSchema = new mongoose.Schema(
         type: String,
         required: false,
       },
+    authorImage: {
+        type: String,
+        required: false,
+      },
     authorUrl : {
         type: String,
         required: false,

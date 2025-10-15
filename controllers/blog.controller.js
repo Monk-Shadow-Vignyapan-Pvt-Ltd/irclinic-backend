@@ -13,6 +13,8 @@ export const addBlog = async (req, res) => {
       seoTitle,
       seoDescription,
       schema,
+      authors,
+      reviewedBy,
       userId,
       tags,
     } = req.body;
@@ -47,6 +49,8 @@ export const addBlog = async (req, res) => {
       blogUrl,
       seoTitle,
       tags,
+      authors,
+      reviewedBy,
       seoDescription,
       schema,
     });
@@ -190,7 +194,7 @@ export const getBlogById = async (req, res) => {
 export const getBlogByUrl = async (req, res) => {
   try {
     const blogUrl = req.params.id;
-    const blog = await Blog.findOne({ blogUrl });
+    const blog = await Blog.findOne({ blogUrl }).populate("authors reviewedBy");
     if (!blog)
       return res
         .status(404)
@@ -213,6 +217,8 @@ export const updateBlog = async (req, res) => {
       blogDescription,
       blogUrl,
       tags,
+      authors,
+      reviewedBy,
       seoTitle,
       seoDescription,
       schema,
@@ -248,6 +254,8 @@ export const updateBlog = async (req, res) => {
       userId,
       blogUrl,
       tags,
+      authors,
+      reviewedBy,
       seoTitle,
       seoDescription,
       schema,

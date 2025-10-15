@@ -40,6 +40,20 @@ const blogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed, // Store image as base64 or use a URL reference
       required: false,
     },
+    authors: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Author",
+          required: false,
+        }
+      ],
+      reviewedBy: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Author",
+          required: false,
+        }
+      ],
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,

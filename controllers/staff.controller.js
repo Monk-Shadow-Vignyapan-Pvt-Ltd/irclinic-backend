@@ -221,7 +221,31 @@ export const searchStaff = async (req, res) => {
       return res.status(400).json({ message: "Search query required", success: false });
     }
 
-    const regex = new RegExp(search, "i");
+    if(search === "IR Staff" || search === "Other Staff" || search === "All"){
+        
+    const inIr = search === "IR Staff" ? true : search === "Other Staff" ? false : null;
+    const staffList = await Staff.find({
+      centerId: id,
+      inIR: inIr === null ? { $in: [true, false] } : inIr,
+    });
+
+    if (!staffList) {
+      return res.status(404).json({ message: "No staff found", success: false });
+    }
+
+    res.status(200).json({
+      staff: staffList,
+      success: true,
+      pagination: {
+        currentPage: 1,
+        totalPages: Math.ceil(staffList.length / 12),
+        totalStaff: staffList.length,
+      },
+    });
+
+    }else{
+
+      const regex = new RegExp(search, "i");
 
     const staffList = await Staff.find({
       centerId: id,
@@ -251,6 +275,10 @@ export const searchStaff = async (req, res) => {
         totalStaff: staffList.length,
       },
     });
+
+    }
+
+    
   } catch (error) {
     console.error("Error searching staff:", error);
     res.status(500).json({ message: "Failed to search staff", success: false });
@@ -266,7 +294,10 @@ export const getStaffExcel = async (req, res) => {
     if (centerId) filter.centerId = centerId;
     if (occupation) filter["occupation.label"] = occupation;
     if (address) filter["address.label"] = address;
-    filter.inIR = inIR;
+    if (typeof inIR !== "undefined") {
+      // Convert string "true"/"false" to boolean
+      filter.inIR = inIR === "true";
+    }
 
     const staffList = await Staff.find(filter);
 

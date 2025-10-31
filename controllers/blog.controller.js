@@ -131,8 +131,6 @@ export const getWebBlogs = async (req, res) => {
     }
     const allBlogs = await Blog.find(searchFilter);
     const paginatedBlogs = await Blog.find(searchFilter)
-    .populate({ path: "authors", select: "-authorImage" })
-      .populate({ path: "reviewedBy", select: "-authorImage" })
       .select("-blogImage")
       .sort({ _id: -1 }) // Sort newest first
       .skip(skip)
@@ -162,8 +160,7 @@ export const getRecentBlog = async (req, res) => {
     const allBlogs = await Blog.find()
       .sort({ _id: -1 })
       .limit(10)
-      .select("blogTitle blogUrl").populate({ path: "authors", select: "-authorImage" })
-      .populate({ path: "reviewedBy", select: "-authorImage" });
+      .select("blogTitle blogUrl")
     if (!allBlogs)
       return res
         .status(404)
@@ -198,8 +195,7 @@ export const getBlogByUrl = async (req, res) => {
   try {
     const blogUrl = req.params.id;
     const blog = await Blog.findOne({ blogUrl })
-    .populate({ path: "authors", select: "-authorImage" })
-      .populate({ path: "reviewedBy", select: "-authorImage" });
+   
     if (!blog)
       return res
         .status(404)
@@ -259,8 +255,8 @@ export const updateBlog = async (req, res) => {
       userId,
       blogUrl,
       tags,
-      authors,
-      reviewedBy,
+      authors: Array.isArray(authors) ? authors : [],
+      reviewedBy: Array.isArray(reviewedBy) ? reviewedBy : [],
       seoTitle,
       seoDescription,
       schema,

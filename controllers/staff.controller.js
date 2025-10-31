@@ -168,7 +168,7 @@ export const updateStaff = async (req, res) => {
       ...(gender && { gender }),
       ...(phoneNo && { phoneNo }),
       ...(alterphoneNo && { alterphoneNo }),
-      ...(email && { email }),
+      email,
       ...(clinicTime && { clinicTime }),
       ...(address && { address }),
       ...(state && { state }),

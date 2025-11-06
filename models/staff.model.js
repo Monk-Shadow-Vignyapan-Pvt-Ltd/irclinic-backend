@@ -9,6 +9,7 @@ const staffSchema = new mongoose.Schema({
     alterphoneNo: { type: String, required: false,},
     email: { type: String, required: false },
     clinicTime: { type: String, required: false },
+    hospitalName: { type: String, required: false },
     address: { type: mongoose.Schema.Types.Mixed, required: false },
     state: { type: String, required: false },
     city: { type: String, required: false },

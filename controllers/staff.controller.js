@@ -12,6 +12,7 @@ export const addStaff = async (req, res) => {
       alterphoneNo,
       email,
       clinicTime,
+      hospitalName,
       address,
       state,
       city,
@@ -36,6 +37,7 @@ export const addStaff = async (req, res) => {
       alterphoneNo,
       email,
       clinicTime,
+      hospitalName,
       address,
       state,
       city,
@@ -153,6 +155,7 @@ export const updateStaff = async (req, res) => {
       alterphoneNo,
       email,
       clinicTime,
+      hospitalName,
       address,
       state,
       city,
@@ -170,6 +173,7 @@ export const updateStaff = async (req, res) => {
       ...(alterphoneNo && { alterphoneNo }),
       email,
       ...(clinicTime && { clinicTime }),
+      hospitalName,
       ...(address && { address }),
       ...(state && { state }),
       ...(city && { city }),
@@ -254,6 +258,7 @@ export const searchStaff = async (req, res) => {
         { lastName: regex },
         { email: regex },
         { phoneNo: regex },
+        { hospitalName: regex },
         { gender: regex },
         { state: regex },
         { city: regex },
@@ -311,6 +316,7 @@ export const getStaffExcel = async (req, res) => {
       { header: "Address", key: "address", width: 30 },
       { header: "Email", key: "email", width: 25 },
       { header: "Category", key: "inIR", width: 10 },
+      { header: "Hospital", key: "hospitalName", width: 10 },
     ];
 
     staffList.forEach((staff) => {
@@ -321,6 +327,7 @@ export const getStaffExcel = async (req, res) => {
         address: staff.address?.label || "N/A",
         email: staff.email || "N/A",
         inIR: staff.inIR ? "IR Staff" : "Other Staff",
+        hospitalName:staff.inIR ? "IR Clinic" : (staff.hospitalName || "N/A"),
       });
     });
 

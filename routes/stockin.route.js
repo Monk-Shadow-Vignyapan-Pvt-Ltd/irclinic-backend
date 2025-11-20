@@ -4,6 +4,7 @@ import { addStockin, getStockins,getAllStockins, getStockinById,
      searchStockins,getExpiringStockins,getStockinsExcel} from "../controllers/stockin.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
+import bwipjs from "bwip-js";
 
 const router = express.Router();
 
@@ -18,5 +19,16 @@ router.route("/dashboardStockins/:id").get( dashboardStockins);
 router.route("/searchStockins/:id").post( searchStockins);
 router.route("/getExpiringStockins/:id").get( getExpiringStockins);
 router.route("/getStockinsExcel").get(getStockinsExcel);
+
+router.get("/generate", async(req,res)=>{
+ try{
+  const {code="123456"}=req.query;
+  const png=await bwipjs.toBuffer({
+   bcid:"code128",text:code,scale:3,height:10,includetext:true
+  });
+  res.set("Content-Type","image/png");
+  res.send(png);
+ }catch(e){res.status(500).send("err");}
+});
 
 export default router;

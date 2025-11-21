@@ -2,6 +2,67 @@ import { Stockin } from '../models/stockin.model.js'; // Update the path as per 
 import { Inventory } from '../models/inventory.model.js';
 import mongoose from "mongoose";
 import ExcelJS from 'exceljs';
+import { Center } from "../models/center.model.js";
+import { Stockout } from '../models/stockout.model.js';
+
+// Generate next barcode code
+const getBarcodeSeed = async (centerId) => {
+  const center = await Center.findById(centerId).select("centerCode");
+  if (!center || !center.centerCode) {
+    throw new Error("Center not found or centerCode missing");
+  }
+
+  const centerCode = center.centerCode;
+
+  // 📌 Convert centerId to ObjectId
+  const cid = new mongoose.Types.ObjectId(centerId);
+
+  // 📌 PIPELINES for Stockin & Stockout
+  const stockinPipeline = [
+    { $match: { centerId: cid } },
+    { $unwind: "$others" },
+    { $match: { "others.barcodeCode": { $exists: true } } },
+    { $project: { barcodeCode: "$others.barcodeCode" } }
+  ];
+
+  const stockoutPipeline = [
+    { $match: { centerId: cid } },
+    { $unwind: "$others" },
+    { $match: { "others.barcodeCode": { $exists: true } } },
+    { $project: { barcodeCode: "$others.barcodeCode" } }
+  ];
+
+  // 📌 RUN BOTH AGGREGATIONS
+  const [stockinResult, stockoutResult] = await Promise.all([
+    Stockin.aggregate(stockinPipeline),
+    Stockout.aggregate(stockoutPipeline)
+  ]);
+
+  // 📌 MERGE & FIND LATEST BARCODE
+  const allBarcodes = [
+    ...stockinResult.map(x => x.barcodeCode),
+    ...stockoutResult.map(x => x.barcodeCode),
+  ];
+
+  let lastNumber = 0;
+
+  if (allBarcodes.length > 0) {
+    // Sort descending by numeric part of barcode
+    allBarcodes.sort((a, b) => {
+      const numA = parseInt(a.split(`${centerCode}-`)[1]);
+      const numB = parseInt(b.split(`${centerCode}-`)[1]);
+      return numB - numA;
+    });
+
+    lastNumber = parseInt(allBarcodes[0].split(`${centerCode}-`)[1]);
+  }
+
+  return { centerCode, lastNumber };
+};
+
+
+
+
 
 // Add a new stockin
 export const addStockin = async (req, res) => {
@@ -16,8 +77,19 @@ export const addStockin = async (req, res) => {
             });
         }
 
+           let updatedOthers = [];
+               let { centerCode, lastNumber } = await getBarcodeSeed(centerId);
+
+                    for (let item of others) {
+                    lastNumber++;
+                    updatedOthers.push({
+                        ...item,
+                        barcodeCode: `IR-${centerCode}-${String(lastNumber).padStart(7, "0")}`
+                    });
+                    }
+
         // Create a new stockin
-        const stockin = new Stockin({vendorId, inventoryId, totalStock,others, centerId, userId });
+        const stockin = new Stockin({vendorId, inventoryId, totalStock,others: updatedOthers, centerId, userId });
 
         await stockin.save();
         res.status(201).json({ stockin, success: true });
@@ -149,30 +221,53 @@ export const getStockinsByInventoryId = async (req, res) => {
 
 // Update stockin by ID
 export const updateStockin = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others, centerId, userId } = req.body;
+  try {
+    const { id } = req.params;
+    const { vendorId, inventoryId, totalStock, others = [], centerId, userId } = req.body;
 
-        // Build updated data
-        const updatedData = {
-            ...(vendorId && { vendorId }),
-            ...(inventoryId && { inventoryId }),
-             totalStock,
-             others ,
-            ...(centerId && { centerId }),
-            ...(userId && { userId }),
-        };
+    // Always start fresh! 🔥
+    let updatedOthers = [];
 
-        const stockin = await Stockin.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
-        if (!stockin) {
-            return res.status(404).json({ message: 'Stockin not found', success: false });
-        }
-        res.status(200).json({ stockin, success: true });
-    } catch (error) {
-        console.error('Error updating stockin:', error);
-        res.status(400).json({ message: 'Failed to update stockin', success: false });
+    let { centerCode, lastNumber } = await getBarcodeSeed(centerId);
+
+    for (let item of others) {
+      if (item.barcodeCode) {
+        updatedOthers.push(item); // keep existing barcode
+      } else {
+        lastNumber++;
+        updatedOthers.push({
+          ...item,
+          barcodeCode: `IR-${centerCode}-${String(lastNumber).padStart(7, "0")}`
+        });
+      }
     }
+
+    const updatedData = {
+      ...(vendorId && { vendorId }),
+      ...(inventoryId && { inventoryId }),
+      totalStock,
+      others: updatedOthers,
+      ...(centerId && { centerId }),
+      ...(userId && { userId }),
+    };
+
+    const stockin = await Stockin.findByIdAndUpdate(id, updatedData, {
+      new: true,
+      runValidators: true
+    });
+
+    if (!stockin) {
+      return res.status(404).json({ message: 'Stockin not found', success: false });
+    }
+
+    res.status(200).json({ stockin, success: true });
+
+  } catch (error) {
+    console.error("Error updating stockin:", error);
+    res.status(400).json({ message: "Failed to update stockin", success: false });
+  }
 };
+
 
 // Delete stockin by ID
 export const deleteStockin = async (req, res) => {

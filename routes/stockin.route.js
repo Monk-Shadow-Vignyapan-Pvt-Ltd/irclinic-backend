@@ -1,7 +1,7 @@
 import express from "express";
 import { addStockin, getStockins,getAllStockins, getStockinById,
     getStockinsByInventoryId, deleteStockin,updateStockin,dashboardStockins,
-     searchStockins,getExpiringStockins,getStockinsExcel} from "../controllers/stockin.controller.js";
+     searchStockins,getExpiringStockins,getStockinsExcel,getStockinByBarcode} from "../controllers/stockin.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 import bwipjs from "bwip-js";
@@ -19,6 +19,7 @@ router.route("/dashboardStockins/:id").get( dashboardStockins);
 router.route("/searchStockins/:id").post( searchStockins);
 router.route("/getExpiringStockins/:id").get( getExpiringStockins);
 router.route("/getStockinsExcel").get(getStockinsExcel);
+router.route("/getStockinByBarcode/:barcodeCode").get(getStockinByBarcode);
 
 router.get("/generate", async(req,res)=>{
  try{

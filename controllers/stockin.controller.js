@@ -60,10 +60,6 @@ const getBarcodeSeed = async (centerId) => {
   return { centerCode, lastNumber };
 };
 
-
-
-
-
 // Add a new stockin
 export const addStockin = async (req, res) => {
     try {
@@ -204,6 +200,52 @@ export const getStockinById = async (req, res) => {
     }
 };
 
+export const getStockinByBarcode = async (req, res) => {
+  try {
+    const { barcodeCode } = req.params;
+
+    if (!barcodeCode) {
+      return res.status(400).json({
+        message: "Barcode code is required",
+        success: false
+      });
+    }
+
+    // 🔍 Search in Stockin.others array
+    const stockin = await Stockin.findOne(
+      { "others.barcodeCode": barcodeCode }
+    )
+
+    if (!stockin) {
+      return res.status(404).json({
+        message: "No stockin found for this barcode",
+        success: false
+      });
+    }
+
+    // Extract the specific item from others array
+    const matchedItem = stockin.others.find(
+      item => item.barcodeCode === barcodeCode
+    );
+
+    return res.status(200).json({
+      success: true,
+      stockin: {
+        ...stockin._doc,
+        matchedItem
+      }
+    });
+
+  } catch (error) {
+    console.error("Error fetching stockin by barcode:", error);
+    res.status(500).json({
+      message: "Failed to fetch stockin",
+      success: false
+    });
+  }
+};
+
+
 // Get stockins by Inventory ID
 export const getStockinsByInventoryId = async (req, res) => {
     try {
@@ -332,20 +374,17 @@ export const searchStockins = async (req, res) => {
     try {
         const { id } = req.params;
         const { search } = req.query;
+
         if (!search) {
-            return res.status(400).json({ message: 'Search query is required', success: false });
+            return res.status(400).json({ message: "Search query is required", success: false });
         }
 
-        const regex = new RegExp(search, 'i'); // Case-insensitive search
+        const regex = new RegExp(search, "i");
 
-        const stockins = await Stockin.find({centerId: id});
-        if (!stockins) {
-            return res.status(404).json({ message: 'No stockins found', success: false });
-        }
-
-
-        const inventories = await Inventory.find(
-            {
+        // ------------------------------
+        // 1️⃣ SEARCH INVENTORIES FIRST
+        // ------------------------------
+        const inventories = await Inventory.find({
             $or: [
                 { inventoryType: regex },
                 { inventoryName: regex },
@@ -353,38 +392,63 @@ export const searchStockins = async (req, res) => {
                 { stockLevel: regex },
                 { unit: regex },
                 { instrumentType: regex },
-                
-            ]
-        }
-    );
+            ],
+        });
 
-        if (!inventories) {
-            return res.status(404).json({ message: 'No inventories found', success: false });
-        }
-
-        // Create a Map for fast inventory lookups
         const inventoryMap = new Map(inventories.map(inv => [inv._id.toString(), inv]));
 
-        // Attach inventory details to stockins
-        const stockinsWithInventory = stockins.map(stockin => ({
-            ...stockin.toObject(),
-            inventory: inventoryMap.get(stockin.inventoryId.toString()) || null
-        }));
+        // Get all stockins for this center
+        let stockins = await Stockin.find({ centerId: id });
+
+        // Check if inventory matched anything
+        if (inventories.length > 0) {
+            // Filter stockins by inventory match
+            stockins = stockins.filter(s => inventoryMap.has(s.inventoryId.toString()));
+
+            const result = stockins.map(s => ({
+                ...s.toObject(),
+                inventory: inventoryMap.get(s.inventoryId.toString()) || null
+            }));
+
+            return res.status(200).json({
+                stockins: result,
+                useFallback: false,   // tells UI inventory search was used
+                success: true
+            });
+        }
+
+        // ---------------------------------------------
+        // 2️⃣ NO INVENTORY MATCH → FALLBACK TO LOT NO + BARCODE
+        // ---------------------------------------------
+        const fallbackStockins = stockins.filter(s =>
+            s.others?.some(o =>
+                regex.test(o.lotNo || "") ||
+                regex.test(o.barcodeCode || "")
+            )
+        );
+
+        const result = await Promise.all(
+            fallbackStockins.map(async (s) => {
+                const inventory = await Inventory.findById(s.inventoryId);
+                return {
+                    ...s.toObject(),
+                    inventory: inventory || null
+                };
+            })
+        );
 
         return res.status(200).json({
-            stockins: stockinsWithInventory.filter(inventory => inventory.inventory),
-            success: true,
-            pagination: {
-                currentPage: 1,
-                totalPages: Math.ceil(stockins.length / 12),
-                totalStockins: stockins.length,
-            },
+            stockins: result,
+            useFallback: true,   // tells UI fallback search was used
+            success: true
         });
+
     } catch (error) {
-        console.error('Error searching stockins:', error);
-        res.status(500).json({ message: 'Failed to search stockins', success: false });
+        console.error("Error searching stockins:", error);
+        return res.status(500).json({ message: "Failed to search stockins", success: false });
     }
 };
+
 
 export const getExpiringStockins = async (req, res) => {
     try {

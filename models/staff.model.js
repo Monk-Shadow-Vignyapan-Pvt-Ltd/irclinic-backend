@@ -10,6 +10,7 @@ const staffSchema = new mongoose.Schema({
     email: { type: String, required: false },
     clinicTime: { type: String, required: false },
     hospitalName: { type: String, required: false },
+    sop: { type: String, required: false },
     address: { type: mongoose.Schema.Types.Mixed, required: false },
     state: { type: String, required: false },
     city: { type: String, required: false },

@@ -546,3 +546,157 @@ export const getStockoutsExcel = async (req, res) => {
     res.status(500).json({ message: 'Failed to export stockins', success: false });
   }
 };
+
+
+export const getEtoStock = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        if (!id) {
+            return res.status(400).json({ 
+                message: 'Center ID is required', 
+                success: false 
+            });
+        }
+
+        // Find all stockouts where inETO is true
+        const stockouts = await Stockout.find({
+            centerId:id,
+            'others.inETO': true
+        });
+
+              const etoStockouts = stockouts.map(stockout => {
+            const filteredOthers = stockout.others.filter(item => item.inETO === true);
+            
+            return {
+                ...stockout.toObject(),
+                others: filteredOthers,
+                totalStock: filteredOthers.length // Update totalStock to reflect only ETO items
+            };
+        }).filter(stockout => stockout.others.length > 0); // Remove stockouts with no ETO items after filtering
+
+        if (!etoStockouts) {
+            return res.status(404).json({ 
+                message: 'No ETO stock found', 
+                success: false 
+            });
+        }
+
+
+        res.status(200).json({
+            etoStockouts,
+            success: true,
+            
+        });
+
+    } catch (error) {
+        console.error('Error fetching ETO stock:', error);
+        res.status(500).json({ 
+            message: 'Failed to fetch ETO stock', 
+            success: false 
+        });
+    }
+};
+
+export const updateEtoItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { itemId, updates } = req.body;
+
+        if (!itemId || !updates) {
+            return res.status(400).json({ 
+                message: 'Item ID and updates are required', 
+                success: false 
+            });
+        }
+
+        const stockout = await Stockout.findById(id);
+        if (!stockout) {
+            return res.status(404).json({ 
+                message: 'Stockout not found', 
+                success: false 
+            });
+        }
+
+        // Find and update the specific item in others array
+        const itemIndex = stockout.others.findIndex(item => 
+            item._id?.toString() === itemId || item.id === itemId
+        );
+
+        if (itemIndex === -1) {
+            return res.status(404).json({ 
+                message: 'ETO item not found', 
+                success: false 
+            });
+        }
+
+        // Update the item
+        stockout.others[itemIndex] = {
+            ...stockout.others[itemIndex],
+            ...updates,
+            updatedAt: new Date()
+        };
+
+        await stockout.save();
+
+        res.status(200).json({ 
+            stockout, 
+            success: true,
+            message: 'ETO item updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating ETO item:', error);
+        res.status(400).json({ 
+            message: 'Failed to update ETO item', 
+            success: false 
+        });
+    }
+};
+
+export const removeFromEto = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { itemValue } = req.body;
+
+        if (!itemValue) {
+            return res.status(400).json({ 
+                message: 'Item Value is required', 
+                success: false 
+            });
+        }
+
+        // Use findOneAndUpdate with array positional operator
+        const stockout = await Stockout.findOneAndUpdate(
+            { 
+                _id: id,
+                'others.value': itemValue 
+            },
+            { 
+                $set: { 
+                    'others.$.inETO': false,
+                    'others.$.updatedAt': new Date()
+                } 
+            },
+            { new: true, runValidators: true }
+        );
+
+        if (!stockout) {
+            return res.status(404).json({ 
+                message: 'Stockout or ETO item not found', 
+                success: false 
+            });
+        }
+
+        res.status(200).json({ 
+            stockout, 
+            success: true,
+            message: 'Item removed from ETO successfully'
+        });
+    } catch (error) {
+        console.error('Error removing from ETO:', error);
+        res.status(400).json({ 
+            message: 'Failed to remove from ETO', 
+            success: false 
+        });
+    }
+};

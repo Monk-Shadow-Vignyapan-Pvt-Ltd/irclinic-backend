@@ -1,6 +1,7 @@
 import express from "express";
 import { addStockout, getStockouts,getStockoutById,getStockoutsByVendorId,
-    getAllStockoutsByVendorId,updateStockout, searchStockouts,getStockoutsExcel} from "../controllers/stockout.controller.js";
+    getAllStockoutsByVendorId,updateStockout, searchStockouts,getStockoutsExcel,
+    getEtoStock,updateEtoItem,removeFromEto} from "../controllers/stockout.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -14,5 +15,8 @@ router.route("/getAllStockoutsByVendorId/:id").get( getAllStockoutsByVendorId);
 router.route("/updateStockout/:id").post( updateStockout);
 router.route("/searchStockouts/:id").post( searchStockouts);
 router.route("/getStockoutsExcel").get(getStockoutsExcel);
+router.route("/getEtoStock/:id").get( getEtoStock);
+router.route("/updateEtoItem/:id").post( updateEtoItem);
+router.route("/removeFromEto/:id").post( removeFromEto);
 
 export default router;

@@ -382,7 +382,35 @@ export const getAppointmentsByPatientId = async (req, res) => {
                     } else {
                         return { ...appointment.toObject(), invoices: invoicesData }; // Convert Mongoose document to plain object
                     }
-                } else if (appointment.estimateId) {
+                }
+                else if(appointment.invoiceId && !Array.isArray(appointment.invoiceId) ){
+                   let invoices = [];
+                    const invoice = await Invoice.findOne({ _id: appointment.invoiceId });
+                        if (invoice) {
+                            invoices.push(invoice);
+                        }
+
+
+                   const invoicesData = invoices.map(inv => ({
+                        invoicePlan: inv.invoicePlan,
+                        invoiceDate: inv.createdAt,
+                        invoiceUserId: inv.userId
+                    }));
+
+                    if(appointment.quicknoteId){
+                        const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
+                        const quicknoteWithAudio = {
+                            ...qn._doc,
+                            audio: qn.audio ? qn.audio.toString("base64") : null,
+                        };
+                        const quicknoteDate = qn.createdAt;
+                        return { ...appointment.toObject(), invoices: invoicesData, quicknote: quicknoteWithAudio, quicknoteDate }; // Convert Mongoose document to plain object
+                    } else {
+                        return { ...appointment.toObject(), invoices: invoicesData }; // Convert Mongoose document to plain object
+                    }
+
+                }
+                else if (appointment.estimateId) {
                     const estimate = await Estimate.findOne({ _id: appointment.estimateId });
                     const estimatePlan = estimate.estimatePlan;
                     const estimateDate = estimate.createdAt;

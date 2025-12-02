@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 import sharp from 'sharp';
 import dotenv from "dotenv";
+import { Staff } from "../models/staff.model.js";
 
 dotenv.config();
 
@@ -112,6 +113,17 @@ export const getUser = async (req, res) => {
       centerId,
       userId
   }));
+
+  const staff = await Staff.findOne({
+          $expr: {
+            $regexMatch: {
+              input: { $concat: ["$firstName", " ", "$lastName"] },
+              regex: user.username,
+              options: "i"
+            }
+          }
+        }).select("sop");
+
    
     res.json({
       username: user.username,
@@ -122,7 +134,8 @@ export const getUser = async (req, res) => {
       notifications:user.notifications ? user.notifications.reverse() : [],
       selectedRoles:user.selectedRoles,
       userId:user.userId,
-      users:filteredUsers
+      users:filteredUsers,
+      sop: staff ? staff.sop : null
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

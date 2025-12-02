@@ -21,15 +21,29 @@ router.route("/getExpiringStockins/:id").get( getExpiringStockins);
 router.route("/getStockinsExcel").get(getStockinsExcel);
 router.route("/getStockinByBarcode/:barcodeCode").get(getStockinByBarcode);
 
-router.get("/generate", async(req,res)=>{
- try{
-  const {code="123456"}=req.query;
-  const png=await bwipjs.toBuffer({
-   bcid:"code128",text:code,scale:3,height:10,includetext:true
-  });
-  res.set("Content-Type","image/png");
-  res.send(png);
- }catch(e){res.status(500).send("err");}
+router.get("/generate", async (req, res) => {
+  try {
+    const { code = "123456" } = req.query;
+
+    const png = await bwipjs.toBuffer({
+      bcid: "qrcode",
+      text: code,
+      scale: 4,
+      version: 5,
+      includetext: true,     // <-- SHOW TEXT BELOW QR
+      textxalign: "center",  // <-- ALIGN TEXT
+      textsize: 12,          // <-- OPTIONAL: increase text size
+    });
+
+    res.set("Content-Type", "image/png");
+    res.send(png);
+
+  } catch (e) {
+    console.log(e);
+    res.status(500).send("QR generation error");
+  }
 });
+
+
 
 export default router;

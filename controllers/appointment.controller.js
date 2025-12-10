@@ -16,6 +16,8 @@ import cron from "node-cron";
 import moment from "moment";
 import { Quicknote } from "../models/quicknote.model.js";
 import { Service } from '../models/service.model.js';
+import { Stockin } from '../models/stockin.model.js';
+import { Stockout } from '../models/stockout.model.js';
 
 dotenv.config();
 
@@ -513,20 +515,11 @@ export const updateAppointment = async (req, res) => {
         }
 
         let reportsChanged = false;
-        if ((!existingAppointment.reports || existingAppointment.reports.length === 0) && reports && reports.length > 0) {
-          reportsChanged = true;
-      } else if (reports && existingAppointment.reports) {
-          if (existingAppointment.reports.length !== reports.length) {
+
+      if (reports && existingAppointment.reports) {
+          // ✅ If new reports count is greater → a new report was added
+          if (reports.length > existingAppointment.reports.length) {
               reportsChanged = true;
-          } else {
-              reportsChanged = reports.some((newReport, i) => {
-                  const oldReport = existingAppointment.reports[i];
-                  return !oldReport ||
-                      oldReport.creationReportDate !== newReport.creationReportDate ||
-                      oldReport.description !== newReport.description ||
-                      oldReport.impression !== newReport.impression ||
-                      oldReport.advice !== newReport.advice;
-              });
           }
       }
 
@@ -1013,38 +1006,43 @@ const formattedTime = appointmentDate.format('hh:mm A');
 };
 
 const sendRefAppointmentImpression = async (patient, reports) => {
-  const appointmentDate = moment.utc(reports[0].creationReportDate).add(5, 'hours').add(30, 'minutes');
 
-// Format date and time for message
-const formattedDate = appointmentDate.format('DD/MM/YYYY');
-const formattedTime = appointmentDate.format('hh:mm A');
+  // ✅ Get last report instead of first
+  const lastReport = reports[reports.length - 1];
+
+  if (!lastReport) return;
+
+  const appointmentDate = moment.utc(lastReport.creationReportDate)
+    .add(5, 'hours')
+    .add(30, 'minutes');
+
+  const formattedDate = appointmentDate.format('DD/MM/YYYY');
+  const formattedTime = appointmentDate.format('hh:mm A');
 
   const payload = {
-      apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Follow Up Impression Reference1",  // ✅ Must match your campaign in Aisensy
-      subCampaignName: patient._id.toString(), // ✅ Unique per message
-      destination: `+91${patient.reference.referencePhoneNo}`,
-      userName: "IR Clinic",
-      templateParams: [
-        patient.reference.label,
-        formattedDate,
-        formattedTime,
-        patient.patientName,
-        reports[0].impression.replace(/<[^>]*>/g, '').trim(),
-      ],
-      source: "new-landing-page form",
-      paramsFallbackValue: {
-        FirstName: "user"
-      }
-    };
+    apiKey: process.env.AISENSY_API_KEY,
+    campaignName: "Follow Up Impression Reference1", 
+    subCampaignName: patient._id.toString(),
+    destination: `+91${patient.reference.referencePhoneNo}`,
+    userName: "IR Clinic",
+    templateParams: [
+      patient.reference.label,
+      formattedDate,
+      formattedTime,
+      patient.patientName,
+      lastReport.impression.replace(/<[^>]*>/g, '').trim(),  // ✅ LAST IMPRESSION
+    ],
+    source: "new-landing-page form",
+    paramsFallbackValue: { FirstName: "user" }
+  };
 
   try {
-      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
-      //console.log("WhatsApp API Response:", data);
+    await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
   } catch (err) {
-      console.error("WhatsApp API Error:", err.response?.data || err.message);
+    console.error("WhatsApp API Error:", err.response?.data || err.message);
   }
 };
+
 
 const sendPatientInvoice = async (patient, invoiceId,center) => {
   const invoice = await Invoice.findById(invoiceId);
@@ -1344,3 +1342,356 @@ for (const appt of procedureAppointments) {
     console.log("✅ WhatsApp Cron Completed");
   });
 }
+
+
+export const saveAppointmentData = async (req, res) => {
+  try {
+    const {
+      isActive,
+      invoicePlan,
+      estimatePlan,
+      sections,
+      creationReportDate,
+      description,
+      impression,
+      advice,
+      followup,
+      selectedDate,
+      investigations,
+      progressValues,
+      editingAppointment,
+      currentAppointment,
+      isEditingInvoice,
+      isEditingCurrentAppointmentInvoice,
+      isEditingEstimate,
+      isEditingCurrentAppointmentEstimate,
+      isEditingReport,
+      currentReportIndex,
+      isEditingInvestigationReport,
+      currentInvestigationReportIndex,
+      isEditingProgressNotes,
+      currentProgressNoteIndex,
+      creationDate,
+      isEditingProcedure,
+      centerId,
+      userId
+    } = req.body;
+
+    let newInvoiceId = null;
+    let newEstimateId = null;
+    let appointmentToUpdate =
+      isEditingInvoice || isEditingEstimate || isEditingReport ||
+      isEditingProgressNotes || isEditingProcedure
+        ? editingAppointment
+        : currentAppointment;
+
+
+    // ------------------------------------------------------------
+    // 1️⃣ INVOICE TAB
+    // ------------------------------------------------------------
+    if (isActive === 4 && invoicePlan.length > 0) {
+
+      await handleStockouts(
+        invoicePlan,
+        centerId,
+        appointmentToUpdate,
+        isEditingInvoice,
+        isEditingCurrentAppointmentInvoice
+      );
+
+      let invoiceResponse;
+      if (isEditingInvoice || isEditingCurrentAppointmentInvoice) {
+        invoiceResponse = await Invoice.findByIdAndUpdate(
+          req.body.editingInvoiceId,
+          { invoicePlan, centerId, userId },
+          { new: true }
+        );
+      } else {
+        invoiceResponse = await Invoice.create({
+          invoicePlan,
+          appointmentId: appointmentToUpdate._id,
+          centerId,
+          userId
+        });
+      }
+
+      newInvoiceId = invoiceResponse._id;
+
+      let updatedInvoiceIds = Array.isArray(appointmentToUpdate.invoiceId)
+        ? [...appointmentToUpdate.invoiceId]
+        : appointmentToUpdate.invoiceId
+          ? [appointmentToUpdate.invoiceId]
+          : [];
+
+      if (!isEditingInvoice) updatedInvoiceIds.push(newInvoiceId);
+
+      await Appointment.findByIdAndUpdate(
+        appointmentToUpdate._id,
+        { invoiceId: updatedInvoiceIds },
+        { new: true }
+      );
+
+      // ------------------------------------------------------------
+      // 🔔 SEND WHATSAPP FOR NEW INVOICE
+      // ------------------------------------------------------------
+      const patient = await Patient.findById(appointmentToUpdate.patientId);
+      const center = await Center.findById(centerId);
+
+      if (!isEditingInvoice) {
+        await sendPatientInvoice(patient, newInvoiceId, center);
+      }
+    }
+
+
+    // ------------------------------------------------------------
+    // 2️⃣ REPORT TAB
+    // ------------------------------------------------------------
+    let reportsChanged = false;
+    let aptReports = [];
+    if (isActive === 2) {
+      let reports = [...(appointmentToUpdate.reports || [])];
+
+      if (isEditingReport) {
+        reports[currentReportIndex] = {
+          creationReportDate,
+          description,
+          impression,
+          advice,
+          followup
+        };
+      } else {
+        reports.push({
+          creationReportDate,
+          description,
+          impression,
+          advice,
+          followup
+        });
+      }
+
+      await Appointment.findByIdAndUpdate(
+        appointmentToUpdate._id,
+        { reports },
+        { new: true }
+      );
+
+      reportsChanged = true;
+      aptReports = reports;
+    }
+
+
+    // ------------------------------------------------------------
+    // 3️⃣ INVESTIGATION TAB
+    // ------------------------------------------------------------
+    if (isActive === 5) {
+      let investigationReports = [...(appointmentToUpdate.investigationReports || [])];
+
+      if (isEditingInvestigationReport) {
+        investigationReports[currentInvestigationReportIndex] = { selectedDate, investigations };
+      } else {
+        investigationReports.push({ selectedDate, investigations });
+      }
+
+      await Appointment.findByIdAndUpdate(
+        appointmentToUpdate._id,
+        { investigationReports },
+        { new: true }
+      );
+    }
+
+
+    // ------------------------------------------------------------
+    // 4️⃣ PROGRESS NOTES TAB
+    // ------------------------------------------------------------
+    if (isActive === 6) {
+      let progressNotes = [...(appointmentToUpdate.progressNotes || [])];
+
+      if (isEditingProgressNotes) {
+        progressNotes[currentProgressNoteIndex] = {
+          creationDate: creationDate,
+          progressNote: progressValues
+        };
+      } else {
+        progressNotes.push({
+          creationDate: creationDate,
+          progressNote: progressValues
+        });
+      }
+
+      await Appointment.findByIdAndUpdate(
+        appointmentToUpdate._id,
+        { progressNotes },
+        { new: true }
+      );
+    }
+
+
+    // ------------------------------------------------------------
+    // 5️⃣ ESTIMATE TAB
+    // ------------------------------------------------------------
+    if (isActive === 7 && estimatePlan.length > 0) {
+
+      await handleStockouts(
+        estimatePlan,
+        centerId,
+        appointmentToUpdate,
+        isEditingEstimate,
+        isEditingCurrentAppointmentEstimate
+      );
+
+      let estimateResponse;
+      if (isEditingEstimate) {
+        estimateResponse = await Estimate.findByIdAndUpdate(
+          req.body.editingEstimateId,
+          { estimatePlan, centerId },
+          { new: true }
+        );
+      } else if (isEditingCurrentAppointmentEstimate) {
+        estimateResponse = await Estimate.findByIdAndUpdate(
+          appointmentToUpdate.estimateId,
+          { estimatePlan, centerId },
+          { new: true }
+        );
+      } else {
+        estimateResponse = await Estimate.create({
+          estimatePlan,
+          appointmentId: appointmentToUpdate._id,
+          centerId,
+          followups: [
+            {
+              followStatus: "Pending",
+              followupMessage: "Pending",
+              updatedDate: new Date()
+            }
+          ]
+        });
+      }
+
+      newEstimateId = estimateResponse._id;
+
+      await Appointment.findByIdAndUpdate(
+        appointmentToUpdate._id,
+        { estimateId: newEstimateId },
+        { new: true }
+      );
+    }
+
+
+    // ------------------------------------------------------------
+    // 6️⃣ PROCEDURE TAB
+    // ------------------------------------------------------------
+    if (isActive === 3) {
+      await Appointment.findByIdAndUpdate(
+        appointmentToUpdate._id,
+        { procedurePlan: sections },
+        { new: true }
+      );
+    }
+
+
+    // ------------------------------------------------------------
+    // 🔔 WHATSAPP AFTER REPORT UPDATE (Impressions)
+    // ------------------------------------------------------------
+    if (reportsChanged) {
+      const patient = await Patient.findById(appointmentToUpdate.patientId);
+
+      if (patient?.reference) {
+        await sendRefAppointmentImpression(patient, aptReports);
+      }
+    }
+
+
+    // ------------------------------------------------------------
+    // 🔔 SOCKET EVENTS (same as updateAppointment)
+    // ------------------------------------------------------------
+    io.emit("appointmentAddUpdate", { success: true });
+
+    if (appointmentToUpdate.appointmentType === "OPD") {
+      io.emit("appointmentStatusUpdated", appointmentToUpdate);
+    }
+
+    const updatedAppointmentFinal = await Appointment.findById(appointmentToUpdate._id);
+
+
+    return res.json({
+      success: true,
+      invoiceId: newInvoiceId,
+      estimateId: newEstimateId,
+      appointment:updatedAppointmentFinal,
+      message: "Appointment data saved successfully with WhatsApp notifications."
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Internal Error" });
+  }
+};
+
+async function handleStockouts(plan, centerId, appointment, isEditing, isEditingCurrent) {
+  for (const procedure of plan || []) {
+    for (const inventory of procedure.usedInventories || []) {
+      for (const selectedStockItem of inventory.selectedStock || []) {
+
+        const stockoutData = {
+          vendorId: selectedStockItem.stock.vendorId,
+          inventoryId: selectedStockItem.stock.inventoryId,
+          totalStock: selectedStockItem.stockOut.length,
+          others: selectedStockItem.stockOut,
+          centerId,
+          appointmentId: appointment._id,
+          appointmentType: appointment.appointmentType,
+          hospitalId: procedure?.hospital?.id || null
+        };
+
+        let stockoutDoc;
+
+        // ---------------------------------------------
+        // CREATE or UPDATE STOCKOUT RECORD
+        // ---------------------------------------------
+        if (!isEditing && !isEditingCurrent) {
+          // CREATE
+          stockoutDoc = await Stockout.create(stockoutData);
+
+        } else {
+          // UPDATE
+          if (selectedStockItem.stockOutId) {
+            stockoutDoc = await Stockout.findByIdAndUpdate(
+              selectedStockItem.stockOutId,
+              stockoutData,
+              { new: true }
+            );
+          } else {
+            stockoutDoc = await Stockout.create(stockoutData);
+          }
+        }
+
+        // ---------------------------------------------
+        // UPDATE STOCKIN (remaining stock after stockout)
+        // ---------------------------------------------
+        let filteredOthers = selectedStockItem.stock?.others || [];
+
+        for (const stockOutItem of selectedStockItem.stockOut || []) {
+          filteredOthers = filteredOthers.filter(
+            other => other.id !== stockOutItem.stock.id
+          );
+        }
+
+        const stockinUpdate = {
+          vendorId: selectedStockItem.stock.vendorId,
+          inventoryId: selectedStockItem.stock.inventoryId,
+          totalStock: filteredOthers.length,
+          others: filteredOthers,
+          centerId
+        };
+
+        await Stockin.findByIdAndUpdate(
+          selectedStockItem.stock._id,
+          stockinUpdate,
+          { new: true }
+        );
+      }
+    }
+  }
+}
+
+

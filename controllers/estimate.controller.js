@@ -258,6 +258,7 @@ export const getEstimatesExcel = async (req, res) => {
        { header: 'TOTAL DISCOUNT', key: 'totalDiscount', width: 30 },
       { header: 'Total AMOUNT', key: 'totalAmount', width: 15 },
        { header: 'STATUS', key: 'status', width: 15 },
+       { header: 'Follow-ups', key: 'followups', width: 50 },
     ];
 
     for (const invoice of enhancedEstimates) {
@@ -273,7 +274,10 @@ export const getEstimatesExcel = async (req, res) => {
         grandTotal:invoice?.estimatePlan.reduce((total, section) => total + (section.qty * section.cost), 0),
         totalDiscount: invoice?.estimatePlan.reduce((total, section) => total + section.discountAmount, 0),
         totalAmount:  invoice?.estimatePlan.reduce((total, section) => total + section.procedureTotal, 0),
-        status:invoice.followups[invoice.followups.length - 1].followStatus
+        status:invoice.followups[invoice.followups.length - 1].followStatus,
+         followups: invoice.followups
+        ? invoice.followups.reverse().map(f => f.followupMessage).join(", ")
+        : ""
       });
     }
 

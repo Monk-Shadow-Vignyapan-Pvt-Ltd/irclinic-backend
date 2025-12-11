@@ -143,8 +143,27 @@ export const getEstimatesExcel = async (req, res) => {
   try {
     const { id } = req.params;
     const { startDate, endDate } = req.query;
+    const search = req.query.search || "";
+    const status = req.query.status || "";
 
     const filter = {};
+
+    let patientIds = [];
+    let appointmentIds = [];
+
+    if (search) {
+      const matchedPatients = await Patient.find({
+        patientName: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      patientIds = matchedPatients.map(p => p._id);
+
+      const matchedAppointments = await Appointment.find({
+        title: { $regex: search, $options: "i" },
+      }).select("_id");
+
+      appointmentIds = matchedAppointments.map(a => a._id);
+    }
 
     const matchStage = {
       centerId: new mongoose.Types.ObjectId(id),
@@ -169,7 +188,41 @@ export const getEstimatesExcel = async (req, res) => {
       matchStage.createdAt = { $lte: end };
     }
 
-    const basePipeline = [{ $match: matchStage }];
+      const orConditions = [];
+
+    if (patientIds.length) {
+      orConditions.push({ patientId: { $in: patientIds } });
+    }
+    if (appointmentIds.length) {
+      orConditions.push({ appointmentId: { $in: appointmentIds } });
+    }
+
+    if (search) {
+      orConditions.push({
+        "estimatePlan.procedureName": { $regex: search, $options: "i" },
+      });
+    }
+
+    if (search) {
+      orConditions.push({
+        "estimatePlan.hospital.name": { $regex: search, $options: "i" },
+      });
+    }
+
+    if (orConditions.length) {
+      matchStage.$or = orConditions;
+    }
+
+    const basePipeline = [
+      { $match: matchStage },
+      ...(status
+        ? [
+            { $addFields: { lastFollowup: { $arrayElemAt: ["$followups", -1] } } },
+            { $match: { "lastFollowup.followStatus": status } },
+          ]
+        : []),
+    ];
+
 
    const estimates = await Estimate.aggregate([
       ...basePipeline,

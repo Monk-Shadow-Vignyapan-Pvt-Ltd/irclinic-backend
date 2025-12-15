@@ -18,6 +18,7 @@ import { Quicknote } from "../models/quicknote.model.js";
 import { Service } from '../models/service.model.js';
 import { Stockin } from '../models/stockin.model.js';
 import { Stockout } from '../models/stockout.model.js';
+import sharp from 'sharp';
 
 dotenv.config();
 
@@ -490,6 +491,8 @@ export const updateAppointment = async (req, res) => {
         const { id } = req.params;
         const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp,checkInTime,checkOutTime } = req.body;
 
+         
+
         // Build updated data
         const updatedData = {
             ...(patientId && { patientId }),
@@ -505,7 +508,7 @@ export const updateAppointment = async (req, res) => {
             userId: userId || null,
             ...(status && { status }),
             isFollowUp,
-            checkInTime,checkOutTime
+            checkInTime,checkOutTime,
         };
 
         const existingAppointment = await Appointment.findById(id);
@@ -1693,5 +1696,102 @@ async function handleStockouts(plan, centerId, appointment, isEditing, isEditing
     }
   }
 }
+
+export const updateConsentImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { consentImage } = req.body;
+
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // -------- IMAGE COMPRESSION (500 KB max) --------
+    const compressImage = async (base64Image) => {
+      const MAX_SIZE = 500 * 1024; // 500 KB
+
+      const base64Data = base64Image.split(";base64,").pop();
+      let buffer = Buffer.from(base64Data, "base64");
+
+      let quality = 85;
+
+      while (buffer.length > MAX_SIZE && quality >= 60) {
+        buffer = await sharp(buffer)
+          .resize(1200, 1200, {
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .jpeg({
+            quality,
+            mozjpeg: true,
+            chromaSubsampling: "4:4:4",
+          })
+          .toBuffer();
+
+        quality -= 5;
+      }
+
+      return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+    };
+
+    // -------- HANDLE UPDATE / REMOVE --------
+    if (consentImage === null) {
+      // ✅ Remove image
+      appointment.consentImage = null;
+    } else if (consentImage) {
+      // ✅ Compress & update image
+      appointment.consentImage = await compressImage(consentImage);
+    } else {
+      // ❌ Nothing to update
+      return res.status(400).json({
+        success: false,
+        message: "No consent image provided",
+      });
+    }
+
+    await appointment.save();
+
+    io.emit("appointmentAddUpdate", { success: true });
+
+    return res.status(200).json({
+      success: true,
+      appointment,
+    });
+  } catch (error) {
+    console.error("Error updating consent image:", error);
+    return res.status(400).json({
+      success: false,
+      message: "Failed to update consent image",
+    });
+  }
+};
+
+
+export const getConsentImage = async (req, res) => {
+    try {
+        const aptId = req.params.id;
+        const consent = await Appointment.findById(aptId).select('consentImage');
+        if (!consent) return res.status(404).json({ message: "Consent not found!", success: false });
+        const matches = consent.consentImage.match(/^data:(.+);base64,(.+)$/);
+            if (!matches) {
+            return res.status(400).send('Invalid image format');
+            }
+
+            const mimeType = matches[1];
+            const base64Data = matches[2];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            res.set('Content-Type', mimeType);
+            res.send(buffer);
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: 'Failed to fetch consent image', success: false });
+    }
+};
 
 

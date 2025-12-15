@@ -88,6 +88,10 @@ const appointmentSchema = new mongoose.Schema(
       type: Boolean,
       required: false,
     },
+    consentImage: {
+        type: String, // Store image as base64 or use a URL reference
+        required: false,
+    },
   },
   { timestamps: true }
 );

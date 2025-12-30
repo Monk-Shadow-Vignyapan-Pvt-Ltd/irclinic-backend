@@ -347,12 +347,34 @@ export const getAppointmentsByPatientId = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Fetch all appointments for the given patient ID
-        const appointments = await Appointment.find({ patientId: id });
+          const patient = await Patient.findById(id);
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found"
+      });
+    }
 
-        if (!appointments ) {
-            return res.status(404).json({ message: 'No appointments found for this patient', success: false });
-        }
+    // 2️⃣ Get all patients with same caseId
+    const patients = await Patient.find(
+      { caseId: patient.caseId },
+      { _id: 1 }
+    );
+
+    const patientIds = patients.map(p => p._id);
+
+    // 3️⃣ Get all appointments for those patients
+    const appointments = await Appointment.find({
+      patientId: { $in: patientIds }
+    }).sort({ createdAt: -1 });
+
+    if (!appointments.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No appointments found for this case"
+      });
+    }
+
 
         // Enhance appointments with corresponding invoicePlan if invoiceId exists
         const enhancedAppointments = await Promise.all(
@@ -452,17 +474,61 @@ export const getAppointmentsByPatientId = async (req, res) => {
 
 export const getLastAppointmentByPatientId = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id, } = req.params;
+        const {centerId} = req.body;
+
+        const patient = await Patient.findById(id);
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found"
+      });
+    }
+
+    // 2️⃣ Get all patients with same caseId
+    const patients = await Patient.find(
+      { caseId: patient.caseId },
+      { _id: 1 }
+    );
+
+    const patientIds = patients.map(p => p._id);
+
+     const appointments = await Appointment.find({
+      patientId: { $in: patientIds }
+    }).sort({ createdAt: -1 });
+
+     if (!appointments.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No appointments found for this case"
+      });
+    }
 
         // Fetch all appointments for the given patient ID
-        const appointment = await Appointment.findOne({ patientId: id })
-            .sort({ createdAt: -1 }); // Latest first
+        // const appointment = await Appointment.findOne({ patientId: id })
+        //     .sort({ createdAt: -1 }); // Latest first
 
-        if (!appointment ) {
-            return res.status(200).json({ appointment: {}, success: true });
-        }
+        // if (!appointment ) {
+        //     return res.status(200).json({ appointment: {}, success: true });
+        // }
 
-        res.status(200).json({ appointment, success: true });
+         let latestAppointment = null;
+
+    if (centerId) {
+      latestAppointment = appointments.find(
+        appt => appt.centerId?.toString() === centerId
+      );
+    }
+
+    // 5️⃣ Fallback → latest overall
+    if (!latestAppointment) {
+      latestAppointment = appointments[0];
+    }
+
+    return res.status(200).json({
+      success: true,
+      appointment: latestAppointment
+    });
     } catch (error) {
         console.error('Error fetching appointment:', error);
         res.status(500).json({ message: 'Failed to fetch appointment', success: false });
@@ -1671,19 +1737,28 @@ async function handleStockouts(plan, centerId, appointment, isEditing, isEditing
         // ---------------------------------------------
         // UPDATE STOCKIN (remaining stock after stockout)
         // ---------------------------------------------
-        let filteredOthers = selectedStockItem.stock?.others || [];
+       let updatedOthers = (selectedStockItem.stock?.others || []).map(other => {
+            const isStockedOut = selectedStockItem.stockOut?.some(
+              stockOutItem => other.id === stockOutItem.stock.id
+            );
 
-        for (const stockOutItem of selectedStockItem.stockOut || []) {
-          filteredOthers = filteredOthers.filter(
-            other => other.id !== stockOutItem.stock.id
-          );
-        }
+            return {
+              ...other,
+              stockout: isStockedOut ? true : other.stockout || false,
+              stockoutAt: isStockedOut ? new Date() : other.stockoutAt || null
+            };
+          });
+        
+          const availableStockCount = updatedOthers.filter(
+            item => !item.stockout
+          ).length;
+
 
         const stockinUpdate = {
           vendorId: selectedStockItem.stock.vendorId,
           inventoryId: selectedStockItem.stock.inventoryId,
-          totalStock: filteredOthers.length,
-          others: filteredOthers,
+          totalStock: availableStockCount, // or updatedOthers.length if you want full count
+          others: updatedOthers,
           centerId
         };
 

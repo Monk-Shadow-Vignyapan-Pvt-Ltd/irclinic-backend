@@ -13,7 +13,7 @@ router.route("/addOnlineAppointment").post( addOnlineAppointment);
 router.route("/getAppointments/:id").get( getAppointments);
 router.route("/getAppointmentById/:id").put( getAppointmentById);
 router.route("/getAppointmentsByPatientId/:id").put( getAppointmentsByPatientId);
-router.route("/getLastAppointmentByPatientId/:id").put( getLastAppointmentByPatientId);
+router.route("/getLastAppointmentByPatientId/:id").post( getLastAppointmentByPatientId);
 router.route("/updateAppointment/:id").post( updateAppointment);
 router.route("/deleteAppointment/:id").delete(deleteAppointment);
 router.route("/dashboardAppointments/:id").get( dashboardAppointments);

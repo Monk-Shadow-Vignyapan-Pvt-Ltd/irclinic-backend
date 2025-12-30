@@ -1,5 +1,8 @@
 import express from "express";
-import { addPatient, getOPDPatients,getOutSidePatients,getCampPatients,getAllPatients, getPatientById,getPatientsByCenterId, deletePatient, updatePatient, dashboardPatients, searchOPDPatients,searchOutSidePatients,searchCampPatients} from "../controllers/patient.controller.js";
+import { addPatient, getOPDPatients,getOutSidePatients,getCampPatients,getAllPatients,
+     getPatientById,getPatientsByCenterId, deletePatient, updatePatient, dashboardPatients,
+      searchOPDPatients,searchOutSidePatients,searchCampPatients,clonePatientToCenter,
+    searchPatient} from "../controllers/patient.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -18,5 +21,7 @@ router.route("/dashboardPatients/:id").get( dashboardPatients);
 router.route("/searchOPDPatients/:id").post( searchOPDPatients);
 router.route("/searchOutSidePatients/:id").post( searchOutSidePatients);
 router.route("/searchCampPatients/:id").post( searchCampPatients);
+router.route("/clonePatientToCenter").post( clonePatientToCenter);
+router.route("/searchPatient").post( searchPatient);
 
 export default router;

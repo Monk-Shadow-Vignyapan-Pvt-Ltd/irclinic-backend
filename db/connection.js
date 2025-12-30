@@ -239,6 +239,7 @@ const connectDB = async () => {
                     { name: "Patients", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Inventories", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "StockIn", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "StockOut", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Reports", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Procedures", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Appointments", actions: { view: true, create: true, edit: true, delete: true } },
@@ -247,6 +248,8 @@ const connectDB = async () => {
                     { name: "Estimates", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Queue", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Staff", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "ETO", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Consignment", actions: { view: true, create: true, edit: true, delete: true } },
                 ],
             });
 

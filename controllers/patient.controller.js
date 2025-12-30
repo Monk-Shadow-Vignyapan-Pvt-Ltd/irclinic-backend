@@ -272,6 +272,7 @@ export const searchOPDPatients = async (req, res) => {
                 { patientName: regex },
                 { gender: regex },
                 { phoneNo: regex },
+                { caseId: regex },
                 { age: regex },
                 { city: regex },
                 { state: regex },
@@ -356,6 +357,7 @@ export const searchOutSidePatients = async (req, res) => {
                 { city: regex },
                 { state: regex },
                 { address: regex },
+                { caseId: regex },
                 { "reference.label": regex },
                 { "area.label": regex },
                 { "diagnosis.label": regex },
@@ -434,6 +436,7 @@ export const searchCampPatients = async (req, res) => {
                 { patientName: regex },
                 { gender: regex },
                 { phoneNo: regex },
+                { caseId: regex },
                 { age: regex },
                 { city: regex },
                 { state: regex },
@@ -494,6 +497,149 @@ export const searchCampPatients = async (req, res) => {
     }
 };
 
+// Clone patient to another center
+export const clonePatientToCenter = async (req, res) => {
+  try {
+    const { patientId, targetCenterId, userId } = req.body;
 
+    if (!patientId || !targetCenterId) {
+      return res.status(400).json({
+        success: false,
+        message: "patientId and targetCenterId are required"
+      });
+    }
+
+    // 1️⃣ Find source patient
+    const sourcePatient = await Patient.findById(patientId);
+    if (!sourcePatient) {
+      return res.status(404).json({
+        success: false,
+        message: "Source patient not found"
+      });
+    }
+
+    // 2️⃣ Prevent cloning into same center
+    if (sourcePatient.centerId.toString() === targetCenterId) {
+      return res.status(400).json({
+        success: false,
+        message: "Patient already belongs to this center"
+      });
+    }
+
+    // 3️⃣ Check if patient already exists in target center
+    const existingPatient = await Patient.findOne({
+      phoneNo: sourcePatient.phoneNo,
+      centerId: targetCenterId
+    });
+
+    if (existingPatient) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Patient with same phone number already exists in target center"
+      });
+    }
+
+    // 4️⃣ Create cloned patient
+    const clonedPatient = new Patient({
+      patientName: sourcePatient.patientName,
+      gender: sourcePatient.gender,
+      phoneNo: sourcePatient.phoneNo,
+      alterphoneNo: sourcePatient.alterphoneNo,
+      age: sourcePatient.age,
+      address: sourcePatient.address,
+      fromCamp: sourcePatient.fromCamp,
+      patientType: sourcePatient.patientType,
+      reference: sourcePatient.reference,
+      visitHistory: sourcePatient.visitHistory,
+
+      // 🔁 CHANGE CENTER
+      centerId: targetCenterId,
+
+      state: sourcePatient.state,
+      city: sourcePatient.city,
+
+      // 🔐 NEW CASE ID
+      caseId: sourcePatient.caseId,
+
+      area: sourcePatient.area,
+      diagnosis: sourcePatient.diagnosis,
+
+      userId: userId || sourcePatient.userId
+    });
+
+    await clonedPatient.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Patient cloned successfully",
+      patient: clonedPatient
+    });
+
+  } catch (error) {
+    console.error("Error cloning patient:", error);
+
+    // 🔒 Handle duplicate key (safety)
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Patient with same phone number already exists in target center"
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to clone patient"
+    });
+  }
+};
+
+export const searchPatient = async (req, res) => {
+  try {
+    const { search } = req.body;
+
+    if (!search) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required"
+      });
+    }
+
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const exactRegex = new RegExp(`^${escapedSearch}$`, "i");
+
+    // 1️⃣ Try exact phone match first
+    let patient = await Patient.findOne({
+      phoneNo: exactRegex
+    }).sort({ createdAt: -1 });
+
+    // 2️⃣ If not found, try caseId
+    if (!patient) {
+      patient = await Patient.findOne({
+        caseId: exactRegex
+      }).sort({ createdAt: -1 });
+    }
+
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: "Patient not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      patient
+    });
+
+  } catch (error) {
+    console.error("Error searching patient:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to search patient"
+    });
+  }
+};
 
 

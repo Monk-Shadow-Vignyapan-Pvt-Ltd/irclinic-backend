@@ -300,9 +300,23 @@ export const searchOPDPatients = async (req, res) => {
 
         // Find appointments with those estimateIds
         const appointments = await Appointment.find({
-            centerId: id,
-            estimateId: { $in: estimateIds }
-        });
+                centerId: id,
+                $or: [
+                    { estimateId: { $in: estimateIds } },
+                    {
+                    progressNotes: {
+                        $elemMatch: {
+                        progressNote: {
+                            $elemMatch: {
+                            value: regex
+                            }
+                        }
+                        }
+                    }
+                    }
+                ]
+                });
+
 
         const patientIds = appointments.map(apt => apt.patientId);
 
@@ -383,8 +397,22 @@ export const searchOutSidePatients = async (req, res) => {
         // Find appointments with those estimateIds
         const appointments = await Appointment.find({
             centerId: id,
-            estimateId: { $in: estimateIds }
-        });
+            $or: [
+                { estimateId: { $in: estimateIds } },
+                {
+                progressNotes: {
+                    $elemMatch: {
+                    progressNote: {
+                        $elemMatch: {
+                        value: regex
+                        }
+                    }
+                    }
+                }
+                }
+            ]
+            });
+
 
         const patientIds = appointments.map(apt => apt.patientId);
 
@@ -465,8 +493,22 @@ export const searchCampPatients = async (req, res) => {
         // Find appointments with those estimateIds
         const appointments = await Appointment.find({
             centerId: id,
-            estimateId: { $in: estimateIds }
-        });
+            $or: [
+                { estimateId: { $in: estimateIds } },
+                {
+                progressNotes: {
+                    $elemMatch: {
+                    progressNote: {
+                        $elemMatch: {
+                        value: regex
+                        }
+                    }
+                    }
+                }
+                }
+            ]
+            });
+
 
         const patientIds = appointments.map(apt => apt.patientId);
 

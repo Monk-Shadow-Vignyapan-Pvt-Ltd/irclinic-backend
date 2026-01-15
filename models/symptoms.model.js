@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const symptomSchema = new mongoose.Schema({
   symptomName: { type: String, required: true },
   symptomDescription: { type: String, required: true },
+  longDescription: { type: String, required: false },
   symptomURL: { type: String, required: true, unique: true },
   oldUrls: {
     type: mongoose.Schema.Types.Mixed,

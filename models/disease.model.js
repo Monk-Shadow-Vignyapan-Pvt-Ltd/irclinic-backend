@@ -7,6 +7,7 @@ const diseaseSchema = new mongoose.Schema({
     type: String, // Store image as base64 or use a URL reference
     required: false,
   },
+  longDescription: { type: String, required: false },
   // diseaseImage: {
   //     type: String, // Store image as base64 or use a URL reference
   //     required: true,

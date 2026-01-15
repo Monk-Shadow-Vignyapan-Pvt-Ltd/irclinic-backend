@@ -10,6 +10,7 @@ export const addSymptom = async (req, res) => {
     const {
       symptomName,
       symptomDescription,
+      longDescription,
       userId,
       symptomURL,
       seoTitle,
@@ -22,6 +23,7 @@ export const addSymptom = async (req, res) => {
       symptomDescription: req.body.description,
       userId: req.body.userId,
       symptomURL,
+      longDescription,
       seoTitle,
       seoDescription,
       schema,
@@ -83,7 +85,7 @@ export const getDashboardSymptoms = async (req, res) => {
 
 export const getSymptoms = async (req, res) => {
   const reversedSymptom = await Symptom.find().select(
-    "symptomName rank symptomDescription symptomURL seoTitle seoDescription schema"
+    "symptomName rank symptomDescription symptomURL longDescription seoTitle seoDescription schema"
   ).sort({
     rank: 1,            // first by rank
     symptomName: 1      // then alphabetically (optional)
@@ -180,6 +182,7 @@ export const getSymptomFrontend = async (req, res) => {
           symptomDescription: 1,
           // parentID: 1,
           // symptomImage: 1,
+          longDescription:1,
           symptomURL: 1,
           seoTitle: 1,
           seoDescription: 1,
@@ -299,6 +302,7 @@ export const updateSymptom = async (req, res) => {
       // imageBase64,
       // rank,
       symptomDescription,
+      longDescription,
       userId,
       symptomURL,
       seoTitle,
@@ -350,6 +354,7 @@ export const updateSymptom = async (req, res) => {
       userId: req.body.userId,
       // rank,
       symptomURL,
+      longDescription,
       oldUrls,
       seoTitle,
       seoDescription,

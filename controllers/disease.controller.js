@@ -10,6 +10,7 @@ export const addDisease = async (req, res) => {
     const {
       diseaseName,
       diseaseDescription,
+      longDescription,
       symptomId,
       parentID,
       // rank,
@@ -50,6 +51,7 @@ export const addDisease = async (req, res) => {
       parentID: req.body.parentID,
       userId: req.body.userId,
       diseaseURL,
+      longDescription,
       seoTitle,
       seoDescription,
       schema,
@@ -70,7 +72,7 @@ export const addDisease = async (req, res) => {
 // Get all disease
 export const getDiseases = async (req, res) => {
   const diseases = await Disease.find().select(
-    "diseaseName rank diseaseDescription symptomId parentID  diseaseURL seoTitle seoDescription schema"
+    "diseaseName rank diseaseDescription symptomId parentID longDescription  diseaseURL seoTitle seoDescription schema"
   ) .sort({
     rank: 1,            // first by rank
     diseaseName: 1      // then alphabetically (optional)
@@ -152,6 +154,7 @@ export const getDiseasesFrontend = async (req, res) => {
           parentID: 1,
           // diseaseImage: 1,
           diseaseURL: 1,
+          longDescription:1,
           seoTitle: 1,
           seoDescription: 1,
           schema: 1,
@@ -266,6 +269,7 @@ export const updateDisease = async (req, res) => {
       // imageBase64,
       // rank,
       diseaseDescription,
+      longDescription,
       symptomId,
       parentID,
       userId,
@@ -321,6 +325,7 @@ export const updateDisease = async (req, res) => {
       parentID: req.body.parentID,
       // rank,
       diseaseURL,
+      longDescription,
       oldUrls,
       seoTitle,
       seoDescription,

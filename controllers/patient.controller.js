@@ -1,16 +1,112 @@
 import { Patient } from '../models/patient.model.js'; // Update the path as per your project structure
 import { Appointment } from '../models/appointment.model.js';
 import { Estimate } from '../models/estimate.model.js';
+import { Center } from '../models/center.model.js'; // You'll need this model
+import { City } from '../models/city.model.js'; // You'll need this model
+import { State } from '../models/state.model.js'; // You'll need this model
+
+const generateCaseId = async (centerId, patientType, cityName = null) => {
+  try {
+    // Get center details
+    const center = await Center.findById(centerId);
+    if (!center) {
+      throw new Error('Center not found');
+    }
+
+    // Get current date
+    const currentDate = new Date();
+    const formattedDate = currentDate
+      .toLocaleDateString('en-GB')
+      .replace(/\//g, '');
+
+    let stateCode, cityCode, centerCode, sequenceNumber;
+
+    if (patientType === "OPD") {
+      // For OPD patients - use center's location
+      stateCode = center.stateCode;
+      cityCode = center.cityCode;
+      centerCode = center.centerCode;
+      
+      // Get last sequence number for this center
+      const lastPatient = await Patient.findOne(
+        { 
+          centerId, 
+          patientType: "OPD",
+          caseId: new RegExp(`^${stateCode}-${cityCode}-${centerCode}-${formattedDate}-`)
+        },
+        { caseId: 1 }
+      ).sort({ createdAt: -1 });
+
+      sequenceNumber = lastPatient 
+        ? parseInt(lastPatient.caseId.slice(-7), 10) + 1
+        : 1;
+      
+      return `${stateCode}-${cityCode}-${centerCode}-${formattedDate}-${sequenceNumber.toString().padStart(7, '0')}`;
+      
+    } else if (patientType === "Outside") {
+      // For Outside patients - use selected city
+      if (!cityName) {
+        throw new Error('City name is required for Outside patients');
+      }
+      
+      // Get city details
+      const city = await City.findOne({ cityName });
+      if (!city) {
+        throw new Error('City not found');
+      }
+      
+      // Get state details
+      const state = await State.findById(city.stateId);
+      if (!state) {
+        throw new Error('State not found');
+      }
+      
+      stateCode = state.stateCode;
+      cityCode = city.cityCode;
+      centerCode = center.centerCode;
+      
+      // Get last sequence number for this center + city combination
+      const lastPatient = await Patient.findOne(
+        { 
+          centerId, 
+          patientType: "Outside",
+          caseId: new RegExp(`^${stateCode}-${cityCode}-${centerCode}-O-${formattedDate}-`)
+        },
+        { caseId: 1 }
+      ).sort({ createdAt: -1 });
+
+      sequenceNumber = lastPatient 
+        ? parseInt(lastPatient.caseId.slice(-7), 10) + 1
+        : 1;
+      
+      return `${stateCode}-${cityCode}-${centerCode}-O-${formattedDate}-${sequenceNumber.toString().padStart(7, '0')}`;
+    }
+    
+    throw new Error('Invalid patient type');
+    
+  } catch (error) {
+    console.error('Error generating caseId:', error);
+    throw error;
+  }
+};
+
 
 // Add a new patient
 export const addPatient = async (req, res) => {
     try {
-        const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference, centerId,state,city,area,diagnosis, userId } = req.body;
 
         // Validate required fields
         if (!patientName || !gender  || !patientType) {
             return res.status(400).json({ message: 'All required fields must be filled', success: false });
         }
+
+           let caseId;
+                try {
+                caseId = await generateCaseId(centerId, patientType, patientType === "Outside" ? city : null);
+                } catch (error) {
+                return res.status(400).json({ message: error.message, success: false });
+                }
 
         // Create a new patient
         const patient = new Patient({
@@ -184,7 +280,25 @@ export const getPatientById = async (req, res) => {
 export const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference,visitHistory, centerId,state,city,caseId,area,diagnosis, userId } = req.body;
+        const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference,visitHistory, centerId,state,city,area,diagnosis, userId } = req.body;
+
+          const existingPatient = await Patient.findById(id);
+    if (!existingPatient) {
+      return res.status(404).json({ message: 'Patient not found', success: false });
+    }
+
+     let caseId = existingPatient.caseId;
+    if (patientType && patientType !== existingPatient.patientType) {
+      try {
+        caseId = await generateCaseId(
+          existingPatient.centerId, 
+          patientType, 
+          patientType === "Outside" ? city : null
+        );
+      } catch (error) {
+        return res.status(400).json({ message: error.message, success: false });
+      }
+    }
 
         // Build updated data
         const updatedData = {

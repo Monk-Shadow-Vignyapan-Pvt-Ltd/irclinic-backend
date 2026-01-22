@@ -299,7 +299,6 @@ export const updatePatient = async (req, res) => {
             centerId: (centerId === "") ? null : centerId ,
             ...(state && { state }),
             ...(city && { city }),
-            ...(caseId && { caseId }),
             ...(area && { area }),
             ...(diagnosis && { diagnosis }),
             ...(userId && { userId }),

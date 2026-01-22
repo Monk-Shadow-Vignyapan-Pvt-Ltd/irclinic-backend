@@ -266,23 +266,23 @@ export const updatePatient = async (req, res) => {
         const { id } = req.params;
         const { patientName, gender, phoneNo,alterphoneNo, age, address,fromCamp, patientType, reference,visitHistory, centerId,state,city,area,diagnosis, userId } = req.body;
 
-          const existingPatient = await Patient.findById(id);
-    if (!existingPatient) {
-      return res.status(404).json({ message: 'Patient not found', success: false });
-    }
+    //       const existingPatient = await Patient.findById(id);
+    // if (!existingPatient) {
+    //   return res.status(404).json({ message: 'Patient not found', success: false });
+    // }
 
-     let caseId = existingPatient.caseId;
-    if (patientType && patientType !== existingPatient.patientType) {
-      try {
-        caseId = await generateCaseId(
-          existingPatient.centerId, 
-          patientType, 
-          patientType === "Outside" ? city : null
-        );
-      } catch (error) {
-        return res.status(400).json({ message: error.message, success: false });
-      }
-    }
+    //  let caseId = existingPatient.caseId;
+    // if (patientType && patientType !== existingPatient.patientType) {
+    //   try {
+    //     caseId = await generateCaseId(
+    //       existingPatient.centerId, 
+    //       patientType, 
+    //       patientType === "Outside" ? city : null
+    //     );
+    //   } catch (error) {
+    //     return res.status(400).json({ message: error.message, success: false });
+    //   }
+    // }
 
         // Build updated data
         const updatedData = {

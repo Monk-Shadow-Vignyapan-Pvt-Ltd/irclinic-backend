@@ -7,88 +7,72 @@ import { State } from '../models/state.model.js'; // You'll need this model
 
 const generateCaseId = async (centerId, patientType, cityName = null) => {
   try {
-    // Get center details
     const center = await Center.findById(centerId);
-    if (!center) {
-      throw new Error('Center not found');
-    }
+    if (!center) throw new Error("Center not found");
 
-    // Get current date
-    const currentDate = new Date();
-    const formattedDate = currentDate
-      .toLocaleDateString('en-GB')
-      .replace(/\//g, '');
+    // IST-safe date
+    const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const formattedDate = istNow
+      .toLocaleDateString("en-GB")
+      .replace(/\//g, "");
 
-    let stateCode, cityCode, centerCode, sequenceNumber;
+    let stateCode, cityCode, centerCode, sequenceNumber = 1;
+    centerCode = center.centerCode;
+
+    let lastPatient;
 
     if (patientType === "OPD") {
-      // For OPD patients - use center's location
       stateCode = center.stateCode;
       cityCode = center.cityCode;
-      centerCode = center.centerCode;
-      
-      // Get last sequence number for this center
-      const lastPatient = await Patient.findOne(
-        { 
-          centerId, 
-          patientType: "OPD",
-          caseId: new RegExp(`^${stateCode}-${cityCode}-${centerCode}-${formattedDate}-`)
-        },
-        { caseId: 1 }
-      ).sort({ createdAt: -1 });
 
-      sequenceNumber = lastPatient 
-        ? parseInt(lastPatient.caseId.slice(-7), 10) + 1
-        : 1;
-      
-      return `${stateCode}-${cityCode}-${centerCode}-${formattedDate}-${sequenceNumber.toString().padStart(7, '0')}`;
-      
+      lastPatient = await Patient.findOne({
+        centerId,
+        patientType: "OPD",
+      })
+        .sort({ createdAt: -1 })
+        .select("caseId");
+
     } else if (patientType === "Outside") {
-      // For Outside patients - use selected city
-      if (!cityName) {
-        throw new Error('City name is required for Outside patients');
-      }
-      
-      // Get city details
+      if (!cityName) throw new Error("City name is required");
+
       const city = await City.findOne({ cityName });
-      if (!city) {
-        throw new Error('City not found');
-      }
-      
-      // Get state details
+      if (!city) throw new Error("City not found");
+
       const state = await State.findById(city.stateId);
-      if (!state) {
-        throw new Error('State not found');
-      }
-      
+      if (!state) throw new Error("State not found");
+
       stateCode = state.stateCode;
       cityCode = city.cityCode;
-      centerCode = center.centerCode;
-      
-      // Get last sequence number for this center + city combination
-      const lastPatient = await Patient.findOne(
-        { 
-          centerId, 
-          patientType: "Outside",
-          caseId: new RegExp(`^${stateCode}-${cityCode}-${centerCode}-O-${formattedDate}-`)
-        },
-        { caseId: 1 }
-      ).sort({ createdAt: -1 });
 
-      sequenceNumber = lastPatient 
-        ? parseInt(lastPatient.caseId.slice(-7), 10) + 1
-        : 1;
-      
-      return `${stateCode}-${cityCode}-${centerCode}-O-${formattedDate}-${sequenceNumber.toString().padStart(7, '0')}`;
+      lastPatient = await Patient.findOne({
+        centerId,
+        patientType: "Outside",
+      })
+        .sort({ createdAt: -1 })
+        .select("caseId");
+
+    } else {
+      throw new Error("Invalid patient type");
     }
-    
-    throw new Error('Invalid patient type');
-    
-  } catch (error) {
-    console.error('Error generating caseId:', error);
-    throw error;
+
+    if (lastPatient?.caseId) {
+      const lastSeq = lastPatient.caseId.split("-").pop();
+      sequenceNumber = parseInt(lastSeq, 10) + 1;
+    }
+
+    const paddedSeq = sequenceNumber.toString().padStart(7, "0");
+
+    if (patientType === "OPD") {
+      return `${stateCode}-${cityCode}-${centerCode}-${formattedDate}-${paddedSeq}`;
+    }
+
+    return `${stateCode}-${cityCode}-${centerCode}-O-${formattedDate}-${paddedSeq}`;
+  } catch (err) {
+    console.error("Error generating caseId:", err);
+    throw err;
   }
 };
+
 
 
 // Add a new patient

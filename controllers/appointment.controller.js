@@ -347,23 +347,27 @@ export const getAppointmentsByPatientId = async (req, res) => {
     try {
         const { id } = req.params;
 
-          const patient = await Patient.findById(id);
+      const patient = await Patient.findById(id);
     if (!patient) {
       return res.status(404).json({
         success: false,
-        message: "Patient not found"
+        message: "Patient not found",
       });
     }
 
-    // 2️⃣ Get all patients with same caseId
-    const patients = await Patient.find(
-      { caseId: patient.caseId },
-      { _id: 1 }
-    );
+    let patientIds = [patient._id]; // always include self
 
-    const patientIds = patients.map(p => p._id);
+    // 2️⃣ If caseId exists, get all patients with same caseId
+    if (patient.caseId) {
+      const relatedPatients = await Patient.find(
+        { caseId: patient.caseId },
+        { _id: 1 }
+      );
 
-    // 3️⃣ Get all appointments for those patients
+      patientIds = relatedPatients.map(p => p._id);
+    }
+
+    // 3️⃣ Fetch appointments (same caseId OR same patientId)
     const appointments = await Appointment.find({
       patientId: { $in: patientIds }
     }).sort({ createdAt: -1 });
@@ -371,7 +375,7 @@ export const getAppointmentsByPatientId = async (req, res) => {
     if (!appointments.length) {
       return res.status(404).json({
         success: false,
-        message: "No appointments found for this case"
+        message: "No appointments found",
       });
     }
 
@@ -481,26 +485,31 @@ export const getLastAppointmentByPatientId = async (req, res) => {
     if (!patient) {
       return res.status(404).json({
         success: false,
-        message: "Patient not found"
+        message: "Patient not found",
       });
     }
 
-    // 2️⃣ Get all patients with same caseId
-    const patients = await Patient.find(
-      { caseId: patient.caseId },
-      { _id: 1 }
-    );
+    let patientIds = [patient._id]; // always include self
 
-    const patientIds = patients.map(p => p._id);
+    // 2️⃣ If caseId exists, get all patients with same caseId
+    if (patient.caseId) {
+      const relatedPatients = await Patient.find(
+        { caseId: patient.caseId },
+        { _id: 1 }
+      );
 
-     const appointments = await Appointment.find({
+      patientIds = relatedPatients.map(p => p._id);
+    }
+
+    // 3️⃣ Fetch appointments (same caseId OR same patientId)
+    const appointments = await Appointment.find({
       patientId: { $in: patientIds }
     }).sort({ createdAt: -1 });
 
-     if (!appointments.length) {
+    if (!appointments.length) {
       return res.status(404).json({
         success: false,
-        message: "No appointments found for this case"
+        message: "No appointments found",
       });
     }
 

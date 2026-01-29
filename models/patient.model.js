@@ -38,4 +38,9 @@ patientSchema.index(
   { unique: true }
 );
 
+patientSchema.index(
+  { caseId:1, centerId: 1},
+  { unique: true }
+);
+
 export const Patient = mongoose.model("Patient", patientSchema);

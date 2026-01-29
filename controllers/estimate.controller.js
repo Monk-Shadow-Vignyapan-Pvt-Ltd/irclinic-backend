@@ -235,7 +235,8 @@ export const getEstimatesExcel = async (req, res) => {
       estimates.map(async (estimate) => {
         if (estimate.appointmentId) {
           const appointment = await Appointment.findById(estimate.appointmentId);
-          estimate.patientName = appointment?.title || null;
+          const patientApt = await Patient.findById(appointment.patientId);
+          estimate.patientName = patientApt?.patientName || null;
         }
 
         if (estimate.patientId) {
@@ -404,7 +405,8 @@ export const getPaginatedEstimates = async (req, res) => {
       estimates.map(async (estimate) => {
         if (estimate.appointmentId) {
           const appointment = await Appointment.findById(estimate.appointmentId);
-          estimate.patientName = appointment?.title || null;
+          const patientApt = await Patient.findById(appointment.patientId);
+          estimate.patientName = patientApt?.patientName || null;
         }
 
         if (estimate.patientId) {

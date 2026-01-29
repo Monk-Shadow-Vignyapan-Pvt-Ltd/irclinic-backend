@@ -4,74 +4,53 @@ import { Estimate } from '../models/estimate.model.js';
 import { Center } from '../models/center.model.js'; // You'll need this model
 import { City } from '../models/city.model.js'; // You'll need this model
 import { State } from '../models/state.model.js'; // You'll need this model
+import { CaseCounter } from '../models/caseCounter.model.js';
+
+const getNextSequence = async (centerId, patientType, date) => {
+  const counter = await CaseCounter.findOneAndUpdate(
+    { centerId, patientType, date },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  return counter.seq;
+};
+
 
 const generateCaseId = async (centerId, patientType, cityName = null) => {
-  try {
-    const center = await Center.findById(centerId);
-    if (!center) throw new Error("Center not found");
+  const center = await Center.findById(centerId);
+  if (!center) throw new Error("Center not found");
 
-    // IST-safe date
-    const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
-    const formattedDate = istNow
-      .toLocaleDateString("en-GB")
-      .replace(/\//g, "");
+  const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const formattedDate = istNow
+    .toLocaleDateString("en-GB")
+    .replace(/\//g, "");
 
-    let stateCode, cityCode, centerCode, sequenceNumber = 1;
-    centerCode = center.centerCode;
+  let stateCode, cityCode;
 
-    let lastPatient;
+  if (patientType === "OPD") {
+    stateCode = center.stateCode;
+    cityCode = center.cityCode;
+  } else if (patientType === "Outside") {
+    if (!cityName) throw new Error("City name is required");
 
-    if (patientType === "OPD") {
-      stateCode = center.stateCode;
-      cityCode = center.cityCode;
+    const city = await City.findOne({ cityName });
+    const state = await State.findById(city.stateId);
 
-      lastPatient = await Patient.findOne({
-        centerId,
-        patientType: "OPD",
-      })
-        .sort({ createdAt: -1 })
-        .select("caseId");
-
-    } else if (patientType === "Outside") {
-      if (!cityName) throw new Error("City name is required");
-
-      const city = await City.findOne({ cityName });
-      if (!city) throw new Error("City not found");
-
-      const state = await State.findById(city.stateId);
-      if (!state) throw new Error("State not found");
-
-      stateCode = state.stateCode;
-      cityCode = city.cityCode;
-
-      lastPatient = await Patient.findOne({
-        centerId,
-        patientType: "Outside",
-      })
-        .sort({ createdAt: -1 })
-        .select("caseId");
-
-    } else {
-      throw new Error("Invalid patient type");
-    }
-
-    if (lastPatient?.caseId) {
-      const lastSeq = lastPatient.caseId.split("-").pop();
-      sequenceNumber = parseInt(lastSeq, 10) + 1;
-    }
-
-    const paddedSeq = sequenceNumber.toString().padStart(7, "0");
-
-    if (patientType === "OPD") {
-      return `${stateCode}-${cityCode}-${centerCode}-${formattedDate}-${paddedSeq}`;
-    }
-
-    return `${stateCode}-${cityCode}-${centerCode}-O-${formattedDate}-${paddedSeq}`;
-  } catch (err) {
-    console.error("Error generating caseId:", err);
-    throw err;
+    stateCode = state.stateCode;
+    cityCode = city.cityCode;
+  } else {
+    throw new Error("Invalid patient type");
   }
+
+  const seq = await getNextSequence(centerId, patientType, formattedDate);
+  const paddedSeq = seq.toString().padStart(7, "0");
+
+  return patientType === "OPD"
+    ? `${stateCode}-${cityCode}-${center.centerCode}-${formattedDate}-${paddedSeq}`
+    : `${stateCode}-${cityCode}-${center.centerCode}-O-${formattedDate}-${paddedSeq}`;
 };
+
 
 
 

@@ -120,7 +120,8 @@ export const getInvoicesExcel = async (req, res) => {
       invoices.map(async (invoice) => {
         if (invoice.appointmentId) {
           const appointment = await Appointment.findById(invoice.appointmentId);
-          invoice.patientName = appointment?.title || null;
+          const patientApt = await Patient.findById(appointment.patientId);
+          invoice.patientName = patientApt?.patientName || null;
         }
 
         if (invoice.patientId) {
@@ -277,7 +278,8 @@ export const getPaginatedInvoices = async (req, res) => {
       invoices.map(async (invoice) => {
         if (invoice.appointmentId) {
           const appointment = await Appointment.findById(invoice.appointmentId);
-          invoice.patientName = appointment?.title || null;
+          const patientApt = await Patient.findById(appointment.patientId);
+          invoice.patientName = patientApt?.patientName || null;
         }
 
         if (invoice.patientId) {

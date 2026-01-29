@@ -42,46 +42,22 @@ const auth = new google.auth.GoogleAuth({
 
 const uploadToDrive = async (zipPath) => {
   const drive = google.drive({ version: 'v3', auth: await auth.getClient() });
-  const fileName = 'mongo-backup.zip';
+  const fileName = `mongo-backup-${new Date().toISOString().slice(0,10)}.zip`;
   const folderId = process.env.GOOGLE_FOLDER_ID; // This should be a Shared Drive folder ID
 
-  // Check if file already exists in the shared drive folder
-  const existing = await drive.files.list({
-    q: `'${folderId}' in parents and name='${fileName}' and trashed=false`,
-    fields: 'files(id)',
-    supportsAllDrives: true,
-    includeItemsFromAllDrives: true,
-    corpora: 'allDrives',
-  });
-
-  let fileId;
-  if (existing.data.files.length > 0) {
-    fileId = existing.data.files[0].id;
-    await drive.files.update({
-      fileId,
-      media: {
-        mimeType: 'application/zip',
-        body: fs.createReadStream(zipPath),
-      },
-      supportsAllDrives: true,
-    });
-    console.log('🔁 Updated existing file on Shared Drive');
-  } else {
-    const response = await drive.files.create({
-      requestBody: {
-        name: fileName,
-        parents: [folderId],
-        mimeType: 'application/zip',
-      },
-      media: {
-        mimeType: 'application/zip',
-        body: fs.createReadStream(zipPath),
-      },
-      supportsAllDrives: true,
-    });
-    fileId = response.data.id;
-    console.log('✅ Uploaded new file to Shared Drive');
-  }
+  const response = await drive.files.create({
+  requestBody: {
+    name: fileName,
+    parents: [folderId],
+    mimeType: 'application/zip',
+  },
+  media: {
+    mimeType: 'application/zip',
+    body: fs.createReadStream(zipPath),
+  },
+  supportsAllDrives: true,
+});
+  const fileId = response.data.id;
 
   // Optional: Set public view permission (if needed)
   await drive.permissions.create({
@@ -102,6 +78,35 @@ const uploadToDrive = async (zipPath) => {
 
   return result.data.webViewLink;
 };
+
+const cleanupOldBackups = async () => {
+  const drive = google.drive({ version: 'v3', auth: await auth.getClient() });
+  const folderId = process.env.GOOGLE_FOLDER_ID;
+
+  const res = await drive.files.list({
+    q: `'${folderId}' in parents and name contains 'mongo-backup-' and trashed=false`,
+    fields: 'files(id, name, createdTime)',
+    orderBy: 'createdTime asc', // oldest first
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+    corpora: 'allDrives',
+  });
+
+  const files = res.data.files || [];
+
+  if (files.length <= 15) return;
+
+  const filesToDelete = files.slice(0, files.length - 15);
+
+  for (const file of filesToDelete) {
+    await drive.files.delete({
+      fileId: file.id,
+      supportsAllDrives: true,
+    });
+    console.log(`🗑️ Deleted old backup: ${file.name}`);
+  }
+};
+
 
 
 export const backupMongoDB = () => {
@@ -132,6 +137,8 @@ export const backupMongoDB = () => {
         console.log(`✅ ZIP created: ${zipPath} (${archive.pointer()} bytes)`);
 
         const link = await uploadToDrive(zipPath);
+
+        await cleanupOldBackups();
 
   
         // Send email with link instead of attachment
@@ -164,6 +171,9 @@ export const backupMongoDB = () => {
           }
         });
       });
+
+      
+
   
       archive.on('error', err => {
         console.error('❌ Archiving error:', err);

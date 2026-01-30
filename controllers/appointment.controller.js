@@ -1195,6 +1195,7 @@ const sendWhatsApp = async (payload) => {
         $lt: moment(today).endOf("day").toDate()
       },
       status: "Scheduled",
+      appointmentType:"OPD"
     });
   
     for (const appt of missedAppointments) {
@@ -1258,7 +1259,8 @@ const sendWhatsApp = async (payload) => {
         $gte: tomorrow.toDate(),
         $lt: moment(tomorrow).endOf("day").toDate()
       },
-      isFollowUp: true
+      isFollowUp: true,
+      appointmentType:"OPD"
     });
   
     for (const appt of followups) {
@@ -1338,7 +1340,8 @@ const sendWhatsApp = async (payload) => {
           $lt: tomorrowEnd.toISOString()     // Convert to ISO string for comparison
         }
       }
-    }
+    },
+    appointmentType:"OPD"
   });
 
 for (const appt of procedureAppointments) {

@@ -9,6 +9,7 @@ export const addDoctor = async (req, res) => {
       doctorName,
       doctorDescription,
       doctorImage,
+      altText,
       doctorPhone,
       doctorEmail,
       speciality,
@@ -50,6 +51,7 @@ export const addDoctor = async (req, res) => {
       doctorName,
       doctorDescription,
       doctorImage: compressedDoctorBase64, // Store the base64 image data
+      altText,
       doctorPhone,
       doctorEmail,
       speciality,
@@ -118,7 +120,7 @@ export const getDoctors = async (req, res) => {
 export const getWebDoctors = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find().select(
-      "doctorName doctorDescription doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
+      "doctorName doctorDescription altText doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
     );
     if (!doctors) {
       return res
@@ -241,6 +243,7 @@ export const updateDoctor = async (req, res) => {
       doctorName,
       doctorDescription,
       doctorImage,
+      altText,
       doctorPhone,
       doctorEmail,
       speciality,
@@ -296,6 +299,7 @@ export const updateDoctor = async (req, res) => {
       doctorName,
       doctorDescription,
       ...(compressedDoctorBase64 && { doctorImage: compressedDoctorBase64 }), // Only update image if new image is provided
+      altText,
       doctorUrl,
       doctorPhone,
       doctorEmail,

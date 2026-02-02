@@ -8,6 +8,10 @@ const adminDoctorSchema = new mongoose.Schema(
       type: String, // Store image as base64 or use a URL reference
       required: true,
     },
+    altText: {
+      type: String,
+      required: false,
+    },
     doctorPhone: {
       type: String, // Store image as base64 or use a URL reference
       required: true,

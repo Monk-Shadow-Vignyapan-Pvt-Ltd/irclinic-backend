@@ -81,7 +81,7 @@ export const addDoctor = async (req, res) => {
 export const getDoctors = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find().select(
-      "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
+      "doctorName doctorDescription altText doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
     );
     if (!doctors) {
       return res

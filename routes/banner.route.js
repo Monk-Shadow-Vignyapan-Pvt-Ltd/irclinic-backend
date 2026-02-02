@@ -1,5 +1,7 @@
 import express from "express";
-import { addBanner, getBanners,getMobileBanners,getDesktopBanners,getMobileAboutBanners,getDesktopAboutBanners, getBannerById, deleteBanner, updateBanner, getBannerImage, getBannerMobileImage} from "../controllers/banner.controller.js";
+import { addBanner, getBanners,getMobileBanners,getDesktopBanners,getMobileAboutBanners,
+    getDesktopAboutBanners, getBannerById, deleteBanner, updateBanner,
+     getBannerImage, getBannerMobileImage,getAboutBannerImage,getAboutBannerMobileImage} from "../controllers/banner.controller.js";
 
 const router = express.Router();
 
@@ -12,7 +14,9 @@ router.route("/getDesktopAboutBanners").get( getDesktopAboutBanners);
 router.route("/getBannerById/:id").put( getBannerById);
 router.route("/updateBanner/:id").post( updateBanner);
 router.route("/deleteBanner/:id").delete(deleteBanner);
-router.route("/getBannerMobileImage/:id").delete(getBannerMobileImage);
-router.route("/getBannerImage/:id").delete(getBannerImage);
+router.route("/getBannerMobileImage/:id").get(getBannerMobileImage);
+router.route("/getBannerImage/:id").get(getBannerImage);
+router.route("/getAboutBannerImage/:id").get(getAboutBannerImage);
+router.route("/getAboutBannerMobileImage/:id").get(getAboutBannerMobileImage);
 
 export default router;

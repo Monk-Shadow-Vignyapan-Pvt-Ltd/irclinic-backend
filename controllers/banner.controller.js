@@ -37,7 +37,7 @@ export const getBanners = async (req, res) => {
 
 export const getMobileBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "Home" }).select("mobileImage bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "Home" }).select(" bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -47,7 +47,7 @@ export const getMobileBanners = async (req, res) => {
 
 export const getDesktopBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "Home" }).select("image bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "Home" }).select(" bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -57,7 +57,7 @@ export const getDesktopBanners = async (req, res) => {
 
 export const getMobileAboutBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "About" }).select("mobileImage bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "About" }).select(" bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -67,7 +67,7 @@ export const getMobileAboutBanners = async (req, res) => {
 
 export const getDesktopAboutBanners = async (req, res) => {
     try {
-        const banners = await Banner.find({ bannerinPage: "About" }).select("image bannerUrl altText");
+        const banners = await Banner.find({ bannerinPage: "About" }).select(" bannerUrl altText");
         if (!banners) return res.status(404).json({ message: "Banner not found", success: false });
         return res.status(200).json({ banners });
     } catch (error) {
@@ -170,6 +170,59 @@ export const getBannerImage = async (req, res) => {
 };
 
 export const getBannerMobileImage = async (req, res) => {
+    try {
+        const bannerId = req.params.id;
+        const banner = await Banner.findById(bannerId).select('mobileImage');
+
+        if (!banner || !banner.mobileImage) {
+            return res.status(404).json({ message: "Banner or mobile image not found!", success: false });
+        }
+
+        const matches = banner.mobileImage.match(/^data:(.+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+            return res.status(400).send('Invalid image format');
+        }
+
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        res.set('Content-Type', mimeType);
+        res.send(buffer);
+    } catch (error) {
+        console.error('Error fetching mobile banner image:', error);
+        res.status(500).json({ message: 'Failed to fetch mobile banner image', success: false });
+    }
+};
+
+export const getAboutBannerImage = async (req, res) => {
+    try {
+        const bannerId = req.params.id;
+        const banner = await Banner.findById(bannerId).select('image');
+
+        if (!banner || !banner.image) {
+            return res.status(404).json({ message: "Banner or image not found!", success: false });
+        }
+
+        // Reuse the parsing logic from getBlogImage
+        const matches = banner.image.match(/^data:(.+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+            return res.status(400).send('Invalid image format');
+        }
+
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        res.set('Content-Type', mimeType);
+        res.send(buffer);
+    } catch (error) {
+        console.error('Error fetching banner image:', error);
+        res.status(500).json({ message: 'Failed to fetch banner image', success: false });
+    }
+};
+
+export const getAboutBannerMobileImage = async (req, res) => {
     try {
         const bannerId = req.params.id;
         const banner = await Banner.findById(bannerId).select('mobileImage');

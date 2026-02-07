@@ -40,37 +40,39 @@ export const addDoctor = async (req, res) => {
 
 // Get all doctors
 export const getDoctors = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const doctors = await Doctor.find({ centerId: id });
-        if (!doctors ) {
-            return res.status(404).json({ message: "No doctors found", success: false });
-        }
-        const reverseddoctors = doctors.reverse();
-        const page = parseInt(req.query.page) || 1;
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
 
-        // Define the number of items per page
-        const limit = 12;
+    const filter = { centerId: id };
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+    const doctors = await Doctor.find(filter)
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
 
-        // Paginate the reversed movies array
-        const paginateddoctors = reverseddoctors.slice(startIndex, endIndex);
-        return res.status(200).json({
-            doctors:paginateddoctors,
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(doctors.length / limit),
-            totaldoctors: doctors.length,
-        },});
-    } catch (error) {
-        console.error('Error fetching doctors:', error);
-        res.status(500).json({ message: 'Failed to fetch doctors', success: false });
-    }
+    const totalDoctors = await Doctor.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      doctors,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalDoctors / limit),
+        totalDoctors,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching doctors:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch doctors",
+    });
+  }
 };
+
 
 export const getAllDoctors = async (req, res) => {
     try {

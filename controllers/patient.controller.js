@@ -101,96 +101,121 @@ export const addPatient = async (req, res) => {
 
 // Get all patients
 export const getOPDPatients = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const patients = await Patient.find({ centerId: id,patientType:"OPD" });
-        if (!patients) {
-            return res.status(404).json({ message: 'No patients found', success: false });
-        }
-        //const outsidePatients = patients.filter(patient => patient.patientType === "Outside")
-        const reversedpatients = patients.reverse();
-        const page = parseInt(req.query.page) || 1;
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
 
-        // Define the number of items per page
-        const limit = 12;
+    const filter = {
+      centerId: id,
+      patientType: "OPD",
+    };
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+    // Fetch paginated patients (latest first)
+    const patients = await Patient.find(filter)
+      .sort({ createdAt: -1 }) // newest first
+      .skip(skip)
+      .limit(limit);
 
-        // Paginate the reversed movies array
-        const paginatedpatients = reversedpatients.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            patients:paginatedpatients, 
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(patients.length / limit),
-            totalpatients: patients.length,
-        },});
-    } catch (error) {
-        console.error('Error fetching patients:', error);
-        res.status(500).json({ message: 'Failed to fetch patients', success: false });
-    }
+    const totalPatients = await Patient.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      patients,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalPatients / limit),
+        totalPatients,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching patients:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch patients",
+    });
+  }
 };
+
 
 export const getOutSidePatients = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const patients = await Patient.find({ centerId: id,patientType:"Outside" });
-        if (!patients) {
-            return res.status(404).json({ message: 'No patients found', success: false });
-        }
-        const outsidePatients = patients.filter(patient => patient.patientType === "Outside")
-        const reversedpatients = patients.reverse();
-        const page = parseInt(req.query.page) || 1;
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
 
-        // Define the number of items per page
-        const limit = 12;
+    const filter = {
+      centerId: id,
+      patientType: "Outside",
+    };
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+    // Fetch paginated outside patients (latest first)
+    const patients = await Patient.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-        // Paginate the reversed movies array
-        const paginatedpatients = reversedpatients.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            patients:paginatedpatients, 
-            outsidePatients:outsidePatients,
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(patients.length / limit),
-            totalpatients: patients.length,
-        },});
-    } catch (error) {
-        console.error('Error fetching patients:', error);
-        res.status(500).json({ message: 'Failed to fetch patients', success: false });
-    }
+    const totalPatients = await Patient.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      patients,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalPatients / limit),
+        totalPatients,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching outside patients:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch patients",
+    });
+  }
 };
+
 
 export const getCampPatients = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const patients = await Patient.find({ centerId: id,patientType:"OPD",fromCamp:true }).sort({ createdAt: -1 });;
-        if (!patients) {
-            return res.status(404).json({ message: 'No patients found', success: false });
-        }
-        
-        return res.status(200).json({
-            patients: patients,
-            success: true,
-            pagination: {
-                currentPage: 1,
-                totalPages: Math.ceil(patients.length / 12),
-                totalPatients: patients.length,
-            },
-        });
-    } catch (error) {
-        console.error('Error fetching patients:', error);
-        res.status(500).json({ message: 'Failed to fetch patients', success: false });
-    }
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
+
+    const filter = {
+      centerId: id,
+      patientType: "OPD",
+      fromCamp: true,
+    };
+
+    const patients = await Patient.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalPatients = await Patient.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      patients,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalPatients / limit),
+        totalPatients,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching camp patients:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch patients",
+    });
+  }
 };
+
 
 export const getAllPatients = async (req, res) => {
     try {

@@ -33,37 +33,39 @@ export const addHospital = async (req, res) => {
 
 // Get all hospitals
 export const getHospitals = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const hospitals = await Hospital.find({ centerId: id });
-        if (!hospitals ) {
-            return res.status(404).json({ message: "No hospitals found", success: false });
-        }
-        const reversedHospitals = hospitals.reverse();
-        const page = parseInt(req.query.page) || 1;
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
 
-        // Define the number of items per page
-        const limit = 12;
+    const filter = { centerId: id };
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+    const hospitals = await Hospital.find(filter)
+      .sort({ createdAt: -1 }) // latest first
+      .skip(skip)
+      .limit(limit);
 
-        // Paginate the reversed movies array
-        const paginatedHospitals = reversedHospitals.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            hospitals:paginatedHospitals, 
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(hospitals.length / limit),
-            totalHospitals: hospitals.length,
-        },});
-    } catch (error) {
-        console.error('Error fetching hospitals:', error);
-        res.status(500).json({ message: 'Failed to fetch hospitals', success: false });
-    }
+    const totalHospitals = await Hospital.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      hospitals,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalHospitals / limit),
+        totalHospitals,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching hospitals:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch hospitals",
+    });
+  }
 };
+
 
 export const getAllHospitals = async (req, res) => {
     try {

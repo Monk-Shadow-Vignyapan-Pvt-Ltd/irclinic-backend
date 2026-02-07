@@ -33,44 +33,65 @@ export const addInventory = async (req, res) => {
 
 // Get all inventory items
 export const getInventories = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const inventories = await Inventory.find({ centerId: id });
-        if (!inventories) {
-            return res.status(404).json({ message: 'No inventory items found', success: false });
-        }
-        const medicines = inventories.filter(inventory => inventory.inventoryType === "Medicine");
-        const instruments = inventories.filter(inventory => inventory.inventoryType === "Instrument")
-        const reversedinventories = medicines.reverse();
-        const reversedinstruments = instruments.reverse();
-        const page = parseInt(req.query.page) || 1;
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 12;
+    const skip = (page - 1) * limit;
 
-        // Define the number of items per page
-        const limit = 12;
+    const baseFilter = { centerId: id };
 
-        // Calculate the start and end indices for pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = page * limit;
+    const medicineFilter = {
+      ...baseFilter,
+      inventoryType: "Medicine",
+    };
 
-        // Paginate the reversed movies array
-        const paginatedinventories = reversedinventories.slice(startIndex, endIndex);
-        const paginatedinstruments = reversedinstruments.slice(startIndex, endIndex);
-        return res.status(200).json({ 
-            medicines:paginatedinventories, 
-            instruments:paginatedinstruments,
-            success: true ,
-            pagination: {
-            currentPage: page,
-            totalMedicinePages: Math.ceil(medicines.length / limit),
-            totalInstrumentPages: Math.ceil(instruments.length / limit),
-            totalmedicines: medicines.length,
-            totalinstruments:instruments.length
-        },});
-    } catch (error) {
-        console.error('Error fetching inventory items:', error);
-        res.status(500).json({ message: 'Failed to fetch inventory items', success: false });
-    }
+    const instrumentFilter = {
+      ...baseFilter,
+      inventoryType: "Instrument",
+    };
+
+    const [
+      medicines,
+      instruments,
+      totalMedicines,
+      totalInstruments,
+    ] = await Promise.all([
+      Inventory.find(medicineFilter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Inventory.find(instrumentFilter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Inventory.countDocuments(medicineFilter),
+      Inventory.countDocuments(instrumentFilter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      medicines,
+      instruments,
+      pagination: {
+        currentPage: page,
+        totalMedicinePages: Math.ceil(totalMedicines / limit),
+        totalInstrumentPages: Math.ceil(totalInstruments / limit),
+        totalMedicines,
+        totalInstruments,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching inventory items:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch inventory items",
+    });
+  }
 };
+
 
 export const getAllInventories = async (req, res) => {
     try {

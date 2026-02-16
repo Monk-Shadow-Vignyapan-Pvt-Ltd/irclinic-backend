@@ -232,21 +232,31 @@ export const getEstimatesExcel = async (req, res) => {
 
     // 🔁 Enrich with patient/appointment names
     const enhancedEstimates = await Promise.all(
-      estimates.map(async (estimate) => {
-        if (estimate.appointmentId) {
-          const appointment = await Appointment.findById(estimate.appointmentId);
-          const patientApt = await Patient.findById(appointment.patientId);
-          estimate.patientName = patientApt?.patientName || null;
-        }
+  estimates.map(async (estimate) => {
+    let patientName = null;
 
-        if (estimate.patientId) {
-          const patient = await Patient.findById(estimate.patientId);
-          estimate.patientName = patient?.patientName || null;
-        }
+    // If appointmentId exists
+    if (estimate.appointmentId) {
+      const appointment = await Appointment.findById(estimate.appointmentId);
+      if (appointment?.patientId) {
+        const patient = await Patient.findById(appointment.patientId);
+        patientName = patient?.patientName || null;
+      }
+    }
 
-        return estimate;
-      })
-    );
+    // If direct patientId exists (priority override)
+    if (!patientName && estimate.patientId) {
+      const patient = await Patient.findById(estimate.patientId);
+      patientName = patient?.patientName || null;
+    }
+
+    return {
+      ...estimate,
+      patientName,
+    };
+  })
+);
+
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Invoices');

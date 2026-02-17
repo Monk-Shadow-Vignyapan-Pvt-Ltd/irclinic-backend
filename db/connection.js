@@ -138,7 +138,7 @@ export const backupMongoDB = () => {
 
         const link = await uploadToDrive(zipPath);
 
-        await cleanupOldBackups();
+       // await cleanupOldBackups();
 
   
         // Send email with link instead of attachment

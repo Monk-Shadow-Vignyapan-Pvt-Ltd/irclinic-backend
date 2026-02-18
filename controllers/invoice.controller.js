@@ -328,24 +328,30 @@ export const updateInvoice = async (req, res) => {
     const { id } = req.params;
     const { invoicePlan, appointmentId, userId, centerId } = req.body;
 
-    // Build updated data
-    const updatedData = {
-      ...(invoicePlan && { invoicePlan }),
-      appointmentId,
-      ...(userId && { userId }),
-      centerId
-    };
+    const updatedData = {};
 
-    const invoice = await Invoice.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
+    if (invoicePlan !== undefined) updatedData.invoicePlan = invoicePlan;
+    if (appointmentId !== undefined) updatedData.appointmentId = appointmentId;
+    if (userId !== undefined) updatedData.userId = userId;
+    if (centerId !== undefined) updatedData.centerId = centerId;
+
+    const invoice = await Invoice.findByIdAndUpdate(
+      id,
+      { $set: updatedData },
+      { new: true, runValidators: true }
+    );
+
     if (!invoice) {
       return res.status(404).json({ message: 'Invoice not found', success: false });
     }
+
     res.status(200).json({ invoice, success: true });
   } catch (error) {
     console.error('Error updating invoice:', error);
     res.status(400).json({ message: 'Failed to update invoice', success: false });
   }
 };
+
 
 // Delete invoice by ID
 export const deleteInvoice = async (req, res) => {

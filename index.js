@@ -8,6 +8,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import routes from "./routes/index.js";
 import { startWhatsAppReminderCron } from "./controllers/appointment.controller.js";
+import { startInvoiceUpdateCron } from "./controllers/appointment.controller.js";
 
 dotenv.config();
 // connect db
@@ -112,6 +113,8 @@ app.use("/api/v1/staff", routes.staffRoute);
 app.use("/api/v1/authors", routes.authorRoute);
 
 startWhatsAppReminderCron();
+
+startInvoiceUpdateCron();
 
 // Start the server
 server.listen(PORT, () => {

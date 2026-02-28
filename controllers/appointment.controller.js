@@ -395,6 +395,7 @@ export const getAppointmentsByPatientId = async (req, res) => {
                     }
 
                     const invoicesData = invoices.map(inv => ({
+                        invoiceId: inv._id,
                         invoicePlan: inv.invoicePlan,
                         invoiceDate: inv.createdAt,
                         invoiceUserId: inv.userId
@@ -421,6 +422,7 @@ export const getAppointmentsByPatientId = async (req, res) => {
 
 
                    const invoicesData = invoices.map(inv => ({
+                        invoiceId: inv._id,
                         invoicePlan: inv.invoicePlan,
                         invoiceDate: inv.createdAt,
                         invoiceUserId: inv.userId
@@ -1421,6 +1423,31 @@ for (const appt of procedureAppointments) {
 }
   
     console.log("✅ WhatsApp Cron Completed");
+  });
+}
+
+export const startInvoiceUpdateCron = async () => {
+  cron.schedule("0 22 * * *", async () => {
+    console.log("🔁 Invoice Update Cron Job Running @ 10:00 PM");
+
+    const usedInvoiceIds = await Appointment.distinct("invoiceId");
+
+const unusedInvoices = await Invoice.find({
+  _id: { $nin: usedInvoiceIds }
+}).select("appointmentId");
+
+
+for (const invoice of unusedInvoices) {
+  await Appointment.findByIdAndUpdate(
+  invoice.appointmentId,
+  {
+    $addToSet: { invoiceId: invoice._id }
+  },
+  { new: true }
+);
+}
+
+console.log("✅ Invoice Update Cron Completed");
   });
 }
 

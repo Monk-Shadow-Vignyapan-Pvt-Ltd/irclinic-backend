@@ -614,7 +614,7 @@ const cashAmountRow = invoice.invoicePlan[0].cashAmount > 0 ? `
             class="object-contain  max-w-full"
             style="width: 300px !important; height:120px !important" />
     <div class="text-right min-w-[200px] max-w-sm">
-      <h1 class="text-xl font-bold">IR CLINIC</h1>
+      <h1 class="text-xl font-bold">IR CLINIC LLP</h1>
       <address class="text-sm not-italic" style="width: 300px !important; ">
         ${center.centerAddress}<br />
         PH: +91 ${center.adminPhoneNo}

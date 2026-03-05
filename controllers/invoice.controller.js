@@ -156,7 +156,7 @@ export const getInvoicesExcel = async (req, res) => {
           : '',
         receiptNo: invoice?.invoicePlan[0].receiptNo,
         patientName: invoice?.patientName || 'N/A',
-         procedures: invoice?.estimatePlan?.map(section => section.procedureName).join(", ") || "",
+         procedures: invoice?.invoicePlan?.map(section => section.procedureName).join(", ") || "",
         totalAmount: invoice?.invoicePlan.reduce((total, section) => total + (section.qty * section.cost), 0),
         totalDiscount: invoice?.invoicePlan[0].totalDiscount != null ? invoice?.invoicePlan[0].totalDiscount : invoice?.invoicePlan.reduce((total, section) => total + section.discountAmount, 0),
         payableAmount: (invoice?.invoicePlan[0].totalDiscount != null ? (invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0) - invoice?.invoicePlan[0].totalDiscount) : invoice?.invoicePlan.reduce((total, section) => total + section.procedureTotal, 0)),

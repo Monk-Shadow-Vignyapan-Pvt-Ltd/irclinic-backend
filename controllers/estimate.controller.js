@@ -265,6 +265,7 @@ export const getEstimatesExcel = async (req, res) => {
       { header: 'Est. DATE', key: 'createdAt', width: 20 },
       { header: 'PATIENT NAME', key: 'patientName', width: 30 },
       { header: 'HOSPITAL NAME', key: 'hospitalName', width: 30 },
+      { header: 'Procedures', key: 'procedures', width: 30 },
       { header: 'GRAND TOTAL', key: 'grandTotal', width: 30 },
        { header: 'TOTAL DISCOUNT', key: 'totalDiscount', width: 30 },
       { header: 'Total AMOUNT', key: 'totalAmount', width: 15 },
@@ -282,6 +283,7 @@ export const getEstimatesExcel = async (req, res) => {
         hospitalName: invoice?.estimatePlan?.length > 0 && invoice.estimatePlan[0]?.hospital
         ? invoice.estimatePlan[0].hospital.name
         : "",
+        procedures: invoice?.estimatePlan?.map(section => section.procedureName).join(", ") || "",
         grandTotal:invoice?.estimatePlan.reduce((total, section) => total + (section.qty * section.cost), 0),
         totalDiscount: invoice?.estimatePlan.reduce((total, section) => total + section.discountAmount, 0),
         totalAmount:  invoice?.estimatePlan.reduce((total, section) => total + section.procedureTotal, 0),

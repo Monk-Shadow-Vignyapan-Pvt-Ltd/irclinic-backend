@@ -598,7 +598,7 @@ export const getStockinsExcel = async (req, res) => {
     const excelData = stockins.map(stockin => ({
       'Vendor Name': stockin.vendorId ? stockin.vendorId.vendorName : 'N/A',
       'Inventory Name': stockin.inventoryId ? stockin.inventoryId.inventoryName : 'N/A',
-      'Total Stock': stockin.totalStock,
+      'Total Stock': stockin.others.length,
       'Others': JSON.stringify(stockin.others), // Stringify 'others' object for clarity
       'Created At': stockin.createdAt.toISOString(),
     }));
@@ -697,7 +697,7 @@ export const getDateWiseStockExcelWithOverallTotal = async (req, res) => {
         stockOut: 0
       };
 
-      dataMap[date][invId].stockIn += s.totalStock || 0;
+      dataMap[date][invId].stockIn += s.others.length || 0;
     }
 
     // STOCK OUT

@@ -397,6 +397,20 @@ export const updateStockout = async (req, res) => {
     }
 };
 
+export const deleteStockout = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const stockout = await Stockout.findByIdAndDelete(id);
+        if (!stockout) {
+            return res.status(404).json({ message: 'Stockout not found', success: false });
+        }
+        res.status(200).json({ stockout, success: true });
+    } catch (error) {
+        console.error('Error deleting stockout:', error);
+        res.status(500).json({ message: 'Failed to delete stockout', success: false });
+    }
+};
+
 export const searchStockouts = async (req, res) => {
     try {
         const { id: vendorId } = req.params;

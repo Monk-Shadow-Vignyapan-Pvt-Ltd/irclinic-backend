@@ -265,10 +265,10 @@ export const getDoctorsExcel = async (req, res) => {
     if (centerId) {
       filter.centerId = centerId;
     }
-    if (speciality) {
-      // Assuming speciality is an object with a 'label' field, adjust if the schema is different
-      filter['speciality.label'] = speciality;
-    }
+   if (speciality) {
+        const specialities = speciality.split(",");
+        filter["speciality.label"] = { $in: specialities };
+        }
     if (address) {
       // Assuming address is an object with a 'label' field, adjust if the schema is different
       filter['address.label'] = address;

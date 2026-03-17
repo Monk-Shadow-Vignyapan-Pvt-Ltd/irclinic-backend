@@ -296,6 +296,8 @@ export const getDoctorsExcel = async (req, res) => {
       { header: 'Hospital', key: 'hospital', width: 30 },
       { header: 'Contact Number', key: 'contactNumber', width: 20 },
       { header: 'Address', key: 'address', width: 30 },
+      { header: 'State', key: 'state', width: 20 },
+      { header: 'City', key: 'city', width: 15 },
       { header: 'Email', key: 'email', width: 30 },
     ];
 
@@ -307,6 +309,8 @@ export const getDoctorsExcel = async (req, res) => {
         hospital: doctor.company || 'N/A',     // Assuming hospital is an object with a 'label' field
         contactNumber: doctor.phoneNo,
         address: doctor.address?.label || 'N/A', // Assuming address is an object with a 'label' field
+        state:doctor.state || 'N/A',
+        city:doctor.city || 'N/A',
         email: doctor.email || 'N/A',
       });
     });
@@ -319,7 +323,7 @@ export const getDoctorsExcel = async (req, res) => {
     // Dynamically set filename based on filters if needed, or keep it simple
     let filename = 'doctors';
     if (centerId) filename += `_center_${centerId}`;
-    if (speciality) filename += `_speciality_${speciality}`;
+    if (speciality) filename += `_speciality_${speciality.map(s => s.label).join(", ")}`;
     if (address) filename += `_address_${address}`;
     filename += '.xlsx';
 

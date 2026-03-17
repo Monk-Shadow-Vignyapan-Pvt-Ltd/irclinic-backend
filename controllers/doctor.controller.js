@@ -258,7 +258,7 @@ export const searchDoctors = async (req, res) => {
 // New controller function to export doctors to Excel with filters
 export const getDoctorsExcel = async (req, res) => {
   try {
-    const { centerId, speciality, address } = req.query;
+    const { centerId, speciality, address,city,state } = req.query;
 
     const filter = {};
 
@@ -273,6 +273,16 @@ export const getDoctorsExcel = async (req, res) => {
       // Assuming address is an object with a 'label' field, adjust if the schema is different
       filter['address.label'] = address;
     }
+
+    if(city){
+        filter.city = city
+    }
+
+    if(state){
+        filter.state = state
+    }
+
+
 
     const doctors = await Doctor.find(filter); // Apply filters
 

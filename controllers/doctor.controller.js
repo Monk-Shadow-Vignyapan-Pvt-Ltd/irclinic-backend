@@ -323,7 +323,6 @@ export const getDoctorsExcel = async (req, res) => {
     // Dynamically set filename based on filters if needed, or keep it simple
     let filename = 'doctors';
     if (centerId) filename += `_center_${centerId}`;
-    if (speciality) filename += `_speciality_${speciality.map(s => s.label).join(", ")}`;
     if (address) filename += `_address_${address}`;
     filename += '.xlsx';
 

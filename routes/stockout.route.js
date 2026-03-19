@@ -1,5 +1,5 @@
 import express from "express";
-import { addStockout, getStockouts,getStockoutById,getStockoutsByVendorId,
+import { addStockout, getStockouts,getStockoutById,getStockoutByBarcode,getStockoutsByVendorId,
     getAllStockoutsByVendorId,updateStockout,deleteStockout, searchStockouts,getStockoutsExcel,
     getEtoStock,updateEtoItem,removeFromEto} from "../controllers/stockout.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
@@ -10,6 +10,7 @@ const router = express.Router();
 router.route("/addStockout").post( addStockout);
 router.route("/getStockouts/:id").get( getStockouts);
 router.route("/getStockoutById/:id").put( getStockoutById);
+router.route("/getStockoutByBarcode").get( getStockoutByBarcode);
 router.route("/getStockoutsByVendorId/:id").get( getStockoutsByVendorId);
 router.route("/getAllStockoutsByVendorId/:id").get( getAllStockoutsByVendorId);
 router.route("/updateStockout/:id").post( updateStockout);

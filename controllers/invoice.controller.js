@@ -116,22 +116,41 @@ export const getInvoicesExcel = async (req, res) => {
     ]);
 
     // 🔁 Enrich with patient/appointment names
+  
     const enhancedInvoices = await Promise.all(
-      invoices.map(async (invoice) => {
-        if (invoice.appointmentId) {
-          const appointment = await Appointment.findById(invoice.appointmentId);
-          const patientApt = await Patient.findById(appointment.patientId);
-          invoice.patientName = patientApt?.patientName || null;
-        }
-
-        if (invoice.patientId) {
-          const patient = await Patient.findById(invoice.patientId);
-          invoice.patientName = patient?.patientName || null;
-        }
-
-        return invoice;
-      })
-    );
+          invoices.map(async (invoice) => {
+            let patientName = "N/A";
+    
+            try {
+              // Case 1: From appointment
+              if (invoice?.appointmentId) {
+                const appointment = await Appointment.findById(invoice.appointmentId);
+    
+                if (appointment?.patientId) {
+                  const patientApt = await Patient.findById(appointment.patientId);
+                  if (patientApt?.patientName) {
+                    patientName = patientApt.patientName;
+                  }
+                }
+              }
+    
+              // Case 2: Direct patientId (override if exists)
+              if (invoice?.patientId) {
+                const patient = await Patient.findById(invoice.patientId);
+                if (patient?.patientName) {
+                  patientName = patient.patientName;
+                }
+              }
+    
+            } catch (err) {
+              console.error("Error processing invoice:", err);
+            }
+    
+            invoice.patientName = patientName;
+    
+            return invoice;
+          })
+        );
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Invoices');
@@ -277,21 +296,39 @@ export const getPaginatedInvoices = async (req, res) => {
 
     // 🔁 Enrich with patient/appointment names
     const enhancedInvoices = await Promise.all(
-      invoices.map(async (invoice) => {
-        if (invoice.appointmentId) {
-          const appointment = await Appointment.findById(invoice.appointmentId);
-          const patientApt = await Patient.findById(appointment.patientId);
-          invoice.patientName = patientApt?.patientName || null;
-        }
-
-        if (invoice.patientId) {
-          const patient = await Patient.findById(invoice.patientId);
-          invoice.patientName = patient?.patientName || null;
-        }
-
-        return invoice;
-      })
-    );
+          invoices.map(async (invoice) => {
+            let patientName = "N/A";
+    
+            try {
+              // Case 1: From appointment
+              if (invoice?.appointmentId) {
+                const appointment = await Appointment.findById(invoice.appointmentId);
+    
+                if (appointment?.patientId) {
+                  const patientApt = await Patient.findById(appointment.patientId);
+                  if (patientApt?.patientName) {
+                    patientName = patientApt.patientName;
+                  }
+                }
+              }
+    
+              // Case 2: Direct patientId (override if exists)
+              if (invoice?.patientId) {
+                const patient = await Patient.findById(invoice.patientId);
+                if (patient?.patientName) {
+                  patientName = patient.patientName;
+                }
+              }
+    
+            } catch (err) {
+              console.error("Error processing invoice:", err);
+            }
+    
+            invoice.patientName = patientName;
+    
+            return invoice;
+          })
+        );
 
     res.status(200).json({
       invoices: enhancedInvoices,

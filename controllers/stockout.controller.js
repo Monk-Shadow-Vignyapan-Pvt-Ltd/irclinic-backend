@@ -8,6 +8,8 @@ import { User } from '../models/user.model.js';
 import mongoose from "mongoose";
 import { io } from "../index.js";
 import ExcelJS from 'exceljs';
+import { Appointment } from '../models/appointment.model.js';
+import { Patient } from '../models/patient.model.js';
 
 dotenv.config();
 
@@ -188,6 +190,51 @@ export const getStockoutById = async (req, res) => {
             return res.status(404).json({ message: 'stockout not found', success: false });
         }
         res.status(200).json({ stockout, success: true });
+    } catch (error) {
+        console.error('Error fetching stockout:', error);
+        res.status(500).json({ message: 'Failed to fetch stockout', success: false });
+    }
+};
+
+export const getStockoutByBarcode = async (req, res) => {
+    try {
+        const { barcodeCode } = req.query;
+        if (!barcodeCode) {
+        return res.status(400).json({
+            message: "Barcode is required",
+            success: false
+        });
+        }
+        const stockout = await Stockout.findOne({
+            others: {
+                $elemMatch: {
+                "stock.barcodeCode": barcodeCode
+                }
+            }
+            });
+        if (!stockout) {
+            return res.status(404).json({ message: 'stockout not found', success: false });
+        }
+
+        let patientName = "N/A";
+            
+                    try {
+                      // Case 1: From appointment
+                      if (stockout?.appointmentId) {
+                        const appointment = await Appointment.findById(stockout.appointmentId);
+            
+                        if (appointment?.patientId) {
+                          const patientApt = await Patient.findById(appointment.patientId);
+                          if (patientApt?.patientName) {
+                            patientName = patientApt.patientName;
+                          }
+                        }
+                      }
+            
+                    } catch (err) {
+                      console.error("Error processing patientName:", err);
+                    }
+        res.status(200).json({ stockout,patientName, success: true });
     } catch (error) {
         console.error('Error fetching stockout:', error);
         res.status(500).json({ message: 'Failed to fetch stockout', success: false });

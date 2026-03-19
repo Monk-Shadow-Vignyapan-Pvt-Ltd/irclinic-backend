@@ -232,30 +232,39 @@ export const getEstimatesExcel = async (req, res) => {
 
     // 🔁 Enrich with patient/appointment names
     const enhancedEstimates = await Promise.all(
-  estimates.map(async (estimate) => {
-    let patientName = null;
+      estimates.map(async (estimate) => {
+        let patientName = "N/A";
 
-    // If appointmentId exists
-    if (estimate.appointmentId) {
-      const appointment = await Appointment.findById(estimate.appointmentId);
-      if (appointment?.patientId) {
-        const patient = await Patient.findById(appointment.patientId);
-        patientName = patient?.patientName || null;
-      }
-    }
+        try {
+          // Case 1: From appointment
+          if (estimate?.appointmentId) {
+            const appointment = await Appointment.findById(estimate.appointmentId);
 
-    // If direct patientId exists (priority override)
-    if (!patientName && estimate.patientId) {
-      const patient = await Patient.findById(estimate.patientId);
-      patientName = patient?.patientName || null;
-    }
+            if (appointment?.patientId) {
+              const patientApt = await Patient.findById(appointment.patientId);
+              if (patientApt?.patientName) {
+                patientName = patientApt.patientName;
+              }
+            }
+          }
 
-    return {
-      ...estimate,
-      patientName,
-    };
-  })
-);
+          // Case 2: Direct patientId (override if exists)
+          if (estimate?.patientId) {
+            const patient = await Patient.findById(estimate.patientId);
+            if (patient?.patientName) {
+              patientName = patient.patientName;
+            }
+          }
+
+        } catch (err) {
+          console.error("Error processing estimate:", err);
+        }
+
+        estimate.patientName = patientName;
+
+        return estimate;
+      })
+    );
 
 
     const workbook = new ExcelJS.Workbook();
@@ -415,16 +424,34 @@ export const getPaginatedEstimates = async (req, res) => {
     // 🔁 Enrich with patient/appointment names
     const enhancedEstimates = await Promise.all(
       estimates.map(async (estimate) => {
-        if (estimate.appointmentId) {
-          const appointment = await Appointment.findById(estimate.appointmentId);
-          const patientApt = await Patient.findById(appointment.patientId);
-          estimate.patientName = patientApt?.patientName || null;
+        let patientName = "N/A";
+
+        try {
+          // Case 1: From appointment
+          if (estimate?.appointmentId) {
+            const appointment = await Appointment.findById(estimate.appointmentId);
+
+            if (appointment?.patientId) {
+              const patientApt = await Patient.findById(appointment.patientId);
+              if (patientApt?.patientName) {
+                patientName = patientApt.patientName;
+              }
+            }
+          }
+
+          // Case 2: Direct patientId (override if exists)
+          if (estimate?.patientId) {
+            const patient = await Patient.findById(estimate.patientId);
+            if (patient?.patientName) {
+              patientName = patient.patientName;
+            }
+          }
+
+        } catch (err) {
+          console.error("Error processing estimate:", err);
         }
 
-        if (estimate.patientId) {
-          const patient = await Patient.findById(estimate.patientId);
-          estimate.patientName = patient?.patientName || null;
-        }
+        estimate.patientName = patientName;
 
         return estimate;
       })

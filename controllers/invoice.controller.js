@@ -7,27 +7,37 @@ import moment from 'moment';
 import mongoose from 'mongoose';
 import ExcelJS from 'exceljs';
 import { User } from '../models/user.model.js';
+import { generateReceiptNo } from "../utils/receipt.js";
 
 // Add a new invoice
 export const addInvoice = async (req, res) => {
   try {
     const { invoicePlan, appointmentId, userId, centerId } = req.body;
 
-    // Validate required fields
     if (!invoicePlan) {
       return res.status(400).json({ message: 'Invoice plan is required', success: false });
     }
 
-    // Create a new invoice
+    // 🔥 Generate receipt number ONCE
+    const receiptNo = await generateReceiptNo(centerId);
+
+    // Attach receiptNo to all sections
+    const updatedPlan = invoicePlan.map(item => ({
+      ...item,
+      receiptNo
+    }));
+
     const invoice = new Invoice({
-      invoicePlan,
+      invoicePlan: updatedPlan,
       appointmentId,
       userId,
       centerId
     });
 
     await invoice.save();
+
     res.status(201).json({ invoice, success: true });
+
   } catch (error) {
     console.error('Error adding invoice:', error);
     res.status(500).json({ message: 'Failed to add invoice', success: false });

@@ -400,6 +400,16 @@ export const getAppointmentsByPatientId = async (req, res) => {
                         invoiceDate: inv.createdAt,
                         invoiceUserId: inv.userId
                     }));
+                    let estimatePlan1 = [];
+                    let estimateDate1 = null;
+
+
+                    if (appointment.estimateId) {
+                        const estimate = await Estimate.findOne({ _id: appointment.estimateId });
+                         estimatePlan1 = estimate.estimatePlan;
+                         estimateDate1 = estimate.createdAt;
+                        
+                    } 
 
                     if(appointment.quicknoteId){
                         const qn = await Quicknote.findOne({ _id: appointment.quicknoteId });
@@ -408,9 +418,9 @@ export const getAppointmentsByPatientId = async (req, res) => {
                             audio: qn.audio ? qn.audio.toString("base64") : null,
                         };
                         const quicknoteDate = qn.createdAt;
-                        return { ...appointment.toObject(), invoices: invoicesData, quicknote: quicknoteWithAudio, quicknoteDate }; // Convert Mongoose document to plain object
+                        return { ...appointment.toObject(), invoices: invoicesData, quicknote: quicknoteWithAudio, quicknoteDate,estimatePlan:estimatePlan1,estimateDate:estimateDate1 }; // Convert Mongoose document to plain object
                     } else {
-                        return { ...appointment.toObject(), invoices: invoicesData }; // Convert Mongoose document to plain object
+                        return { ...appointment.toObject(), invoices: invoicesData ,estimatePlan:estimatePlan1,estimateDate:estimateDate1}; // Convert Mongoose document to plain object
                     }
                 }
                 else if(appointment.invoiceId && !Array.isArray(appointment.invoiceId) ){

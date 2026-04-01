@@ -19,8 +19,46 @@ import { Service } from '../models/service.model.js';
 import { Stockin } from '../models/stockin.model.js';
 import { Stockout } from '../models/stockout.model.js';
 import sharp from 'sharp';
+import { CaseCounter } from '../models/caseCounter.model.js';
 
 dotenv.config();
+
+const getNextSequence = async (centerId, patientType, date) => {
+  const counter = await CaseCounter.findOneAndUpdate(
+    { centerId, patientType, date },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  return counter.seq;
+};
+
+
+const generateCaseId = async (centerId, patientType) => {
+  const center = await Center.findById(centerId);
+  if (!center) throw new Error("Center not found");
+
+  const istNow = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  const formattedDate = istNow
+    .toLocaleDateString("en-GB")
+    .replace(/\//g, "");
+
+  let stateCode, cityCode;
+
+  if (patientType === "OPD") {
+    stateCode = center.stateCode;
+    cityCode = center.cityCode;
+  } else {
+    throw new Error("Invalid patient type");
+  }
+
+  const seq = await getNextSequence(centerId, patientType, formattedDate);
+  const paddedSeq = seq.toString().padStart(7, "0");
+
+  return patientType === "OPD"
+    ? `${stateCode}-${cityCode}-${center.centerCode}-ON-${formattedDate}-${paddedSeq}`
+    : `${stateCode}-${cityCode}-${center.centerCode}-O-${formattedDate}-${paddedSeq}`;
+};
 
 const firebaseConfig = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS, "base64").toString("utf8"));
 
@@ -204,26 +242,12 @@ export const addOnlineAppointment = async (req, res) => {
         let patient = await Patient.findOne({ phoneNo: patientPhoneNo, centerId: center });
 
         if (!patient) {
-            // Find last online patient for generating caseId
-            const latestOnlinePatient = await Patient.findOne({
-                centerId: center,
-                isOnline: true,
-                caseId: { $regex: `${selectedCenter.centerCode}-ON-` }
-            })
-            .sort({ createdAt: -1 })
-            .lean();
-
-            let sequenceNumber = 1;
-            if (latestOnlinePatient) {
-                const lastSeq = parseInt(latestOnlinePatient.caseId.slice(-7), 10);
-                sequenceNumber = lastSeq + 1;
-            }
-
-            const formattedDate = new Date(appointmentDate)
-                .toLocaleDateString('en-GB')
-                .replace(/\//g, '');
-
-            const paddedSequence = sequenceNumber.toString().padStart(7, '0');
+               let newcaseId;
+                try {
+                newcaseId = await generateCaseId(center, "OPD");
+                } catch (error) {
+                return res.status(400).json({ message: error.message, success: false });
+                }
 
             // Create new patient
             patient = new Patient({
@@ -234,17 +258,14 @@ export const addOnlineAppointment = async (req, res) => {
                 patientType: "OPD",
                 centerId: center,
                 isOnline: true,
-                caseId: `${selectedCenter.centerCode}-ON-${formattedDate}-${paddedSequence}`,
+                caseId: newcaseId,
             });
             await patient.save();
         }
 
         // ✅ Find doctors
         const doctors = await Doctor.find({
-            $or: [
-                { centerId: center, isPartner: false },
-                { superDoctor: true }
-            ]
+             centerId: center, isPartner: false 
         });
 
         let doctor = null;
@@ -258,29 +279,17 @@ export const addOnlineAppointment = async (req, res) => {
         }
 
         
-        const [hours, minutes] = appointmentTime.split(":").map(Number);
+       const [year, month, day] = appointmentDate.split("-").map(Number);
+          const [hours, minutes] = appointmentTime.split(":").map(Number);
 
-        // Parse the appointmentDate string
-        const appointmentDateObj = new Date(appointmentDate);
+          // Create IST date (server local time)
+          const istDate = new Date(year, month - 1, day, hours, minutes, 0);
 
-        // ⚡ Extract date in IST (not UTC!)
-        const istYear = appointmentDateObj.getUTCFullYear();
-        const istMonth = appointmentDateObj.getUTCMonth();
-        const istDate = appointmentDateObj.getUTCDate() + 1; // adjust since picker gave UTC midnight of previous day
+          // Convert to UTC
+          const start = new Date(istDate.toISOString());
 
-        // Build datetime in IST
-        const selectedDateTime = new Date(
-          istYear,
-          istMonth,
-          istDate,
-          hours,
-          minutes,
-          0
-        );
-
-        // Convert to UTC for DB (Mongo stores ISO UTC automatically)
-        const start = new Date(selectedDateTime.getTime() - (5.5 * 60 * 60 * 1000)); 
-        const end = new Date(start.getTime() + 15 * 60000);
+          // 15 min slot
+          const end = new Date(start.getTime() + 15 * 60000);
 
           if (isNaN(start.getTime())) {
             return res.status(400).json({ message: "Invalid time selected", success: false });

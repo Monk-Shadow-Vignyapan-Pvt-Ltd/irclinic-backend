@@ -279,21 +279,16 @@ export const addOnlineAppointment = async (req, res) => {
         }
 
         
-       const [year, month, day] = appointmentDate.split("-").map(Number);
-          const [hours, minutes] = appointmentTime.split(":").map(Number);
+        const [year, month, day] = appointmentDate.split("-").map(Number);
+        const [hours, minutes] = appointmentTime.split(":").map(Number);
 
-          // Create IST date (server local time)
-          const istDate = new Date(year, month - 1, day, hours, minutes, 0);
+        // ✅ Create directly (NO ISO conversion)
+        const start = new Date(Date.UTC(year, month - 1, day, hours - 5, minutes - 30));
+        const end = new Date(start.getTime() + 15 * 60000);
 
-          // Convert to UTC
-          const start = new Date(istDate.toISOString());
-
-          // 15 min slot
-          const end = new Date(start.getTime() + 15 * 60000);
-
-          if (isNaN(start.getTime())) {
-            return res.status(400).json({ message: "Invalid time selected", success: false });
-          }
+        if (isNaN(start.getTime())) {
+          return res.status(400).json({ message: "Invalid time selected", success: false });
+        }
 
           // Save in DB
           const appointment = new Appointment({

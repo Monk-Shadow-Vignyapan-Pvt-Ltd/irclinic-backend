@@ -240,13 +240,31 @@ export const searchDoctors = async (req, res) => {
             return res.status(404).json({ message: 'No Doctors found', success: false });
         }
 
+          const sortedDoctors = doctors.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.firstName)) return 1;
+                if (regex.test(doc.lastName)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.firstName || '').localeCompare(b.firstName || '');
+        });
+
         return res.status(200).json({
-            doctors: doctors,
+            doctors: sortedDoctors,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(doctors.length / 12),
-                totalDoctors: doctors.length,
+                totalPages: Math.ceil(sortedDoctors.length / 12),
+                totalDoctors: sortedDoctors.length,
             },
         });
     } catch (error) {

@@ -24,7 +24,7 @@ if (!admin.apps.length) {
 // Add a new stockin
 export const addStockout = async (req, res) => {
     try {
-        const { vendorId,inventoryId, totalStock,others, centerId,appointmentId,appointmentType,hospitalId } = req.body;
+        const { vendorId,inventoryId, totalStock,others, centerId,appointmentId,appointmentType,hospitalId,userId } = req.body;
 
         // Validate required fields
         if (!vendorId || !inventoryId  || !centerId || !appointmentType) {
@@ -138,7 +138,7 @@ export const addStockout = async (req, res) => {
         
 
         // Create a new stockin
-        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId,appointmentId,appointmentType,hospitalId });
+        const stockout = new Stockout({vendorId, inventoryId, totalStock,others, centerId,appointmentId,appointmentType,hospitalId ,userId});
 
         await stockout.save();
         res.status(201).json({ stockout, success: true });
@@ -317,7 +317,7 @@ export const getAllStockoutsByVendorId = async (req, res) => {
 export const updateStockout = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId,inventoryId, totalStock,others,invoiceId, centerId ,appointmentId,appointmentType,hospitalId} = req.body;
+        const { vendorId,inventoryId, totalStock,others,invoiceId, centerId ,appointmentId,appointmentType,hospitalId,userId} = req.body;
 
         // Build updated data
         const updatedData = {
@@ -328,7 +328,7 @@ export const updateStockout = async (req, res) => {
              invoiceId,
             ...(centerId && { centerId }),
             appointmentId,
-            appointmentType,hospitalId
+            appointmentType,hospitalId,userId
         };
 
         const stockout = await Stockout.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

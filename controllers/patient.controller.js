@@ -433,13 +433,31 @@ export const searchOPDPatients = async (req, res) => {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
 
+        const sortedPatients = filterPatients.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.patientName)) return 1;
+                if (regex.test(doc.phoneNo)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.patientName || '').localeCompare(b.patientName || '');
+        });
+
         return res.status(200).json({
-            patients: filterPatients,
+            patients: sortedPatients,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(filterPatients.length / 12),
-                totalPatients: filterPatients.length,
+                totalPages: Math.ceil(sortedPatients.length / 12),
+                totalPatients: sortedPatients.length,
             },
         });
     } catch (error) {
@@ -528,14 +546,31 @@ export const searchOutSidePatients = async (req, res) => {
         if (!filterPatients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
+        const sortedPatients = filterPatients.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.patientName)) return 1;
+                if (regex.test(doc.phoneNo)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.patientName || '').localeCompare(b.patientName || '');
+        });
 
         return res.status(200).json({
-            patients: filterPatients,
+            patients: sortedPatients,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(filterPatients.length / 12),
-                totalPatients: filterPatients.length,
+                totalPages: Math.ceil(sortedPatients.length / 12),
+                totalPatients: sortedPatients.length,
             },
         });
     } catch (error) {
@@ -624,14 +659,31 @@ export const searchCampPatients = async (req, res) => {
         if (!filterPatients) {
             return res.status(404).json({ message: 'No patients found', success: false });
         }
+        const sortedPatients = filterPatients.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.patientName)) return 1;
+                if (regex.test(doc.phoneNo)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.patientName || '').localeCompare(b.patientName || '');
+        });
 
         return res.status(200).json({
-            patients: filterPatients,
+            patients: sortedPatients,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(filterPatients.length / 12),
-                totalPatients: filterPatients.length,
+                totalPages: Math.ceil(sortedPatients.length / 12),
+                totalPatients: sortedPatients.length,
             },
         });
     } catch (error) {

@@ -286,13 +286,31 @@ export const searchVendors = async (req, res) => {
             return res.status(404).json({ message: 'No vendors found', success: false });
         }
 
+        const sortedVendors = filteredVendors.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.vendorName)) return 1;
+                if (regex.test(doc.email)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.vendorName || '').localeCompare(b.vendorName || '');
+        });
+
         return res.status(200).json({
-            vendors: filteredVendors,
+            vendors: sortedVendors,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(filteredVendors.length / 12),
-                totalVendors: filteredVendors.length,
+                totalPages: Math.ceil(sortedVendors.length / 12),
+                totalVendors: sortedVendors.length,
             },
         });
     } catch (error) {

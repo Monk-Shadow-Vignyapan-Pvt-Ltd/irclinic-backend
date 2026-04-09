@@ -216,13 +216,31 @@ export const searchInventories = async (req, res) => {
             return res.status(404).json({ message: 'No inventories found', success: false });
         }
 
+        const sortedInventories = inventories.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.inventoryName)) return 1;
+                if (regex.test(doc.inventoryType)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.inventoryName || '').localeCompare(b.inventoryName || '');
+        });
+
         return res.status(200).json({
-            inventories: inventories,
+            inventories: sortedInventories,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(inventories.length / 12),
-                totalInventories: inventories.length,
+                totalPages: Math.ceil(sortedInventories.length / 12),
+                totalInventories: sortedInventories.length,
             },
         });
     } catch (error) {

@@ -275,13 +275,31 @@ export const searchStaff = async (req, res) => {
       return res.status(404).json({ message: "No staff found", success: false });
     }
 
+    const sortedStaff = staffList.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.firstName)) return 1;
+                if (regex.test(doc.lastName)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.firstName || '').localeCompare(b.firstName || '');
+        });
+
     res.status(200).json({
-      staff: staffList,
+      staff: sortedStaff,
       success: true,
       pagination: {
         currentPage: 1,
-        totalPages: Math.ceil(staffList.length / 12),
-        totalStaff: staffList.length,
+        totalPages: Math.ceil(sortedStaff.length / 12),
+        totalStaff: sortedStaff.length,
       },
     });
 

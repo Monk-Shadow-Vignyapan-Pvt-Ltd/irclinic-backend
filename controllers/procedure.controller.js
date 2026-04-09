@@ -227,13 +227,31 @@ export const searchProcedures = async (req, res) => {
             return res.status(404).json({ message: 'No procedures found', success: false });
         }
 
+        const sortedProcedures = procedures.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.procedureName)) return 1;
+                if (regex.test(doc.notes)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.procedureName || '').localeCompare(b.procedureName || '');
+        });
+
         return res.status(200).json({
-            procedures: procedures,
+            procedures: sortedProcedures,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(procedures.length / 12),
-                totalProcedures: procedures.length,
+                totalPages: Math.ceil(sortedProcedures.length / 12),
+                totalProcedures: sortedProcedures.length,
             },
         });
     } catch (error) {

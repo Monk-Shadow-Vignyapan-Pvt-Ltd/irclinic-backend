@@ -171,13 +171,31 @@ export const searchHospitals = async (req, res) => {
             return res.status(404).json({ message: 'No hospitals found', success: false });
         }
 
+        const sortedHospitals = hospitals.sort((a, b) => {
+            const getPriority = (doc) => {
+                if (regex.test(doc.hospitalName)) return 1;
+                if (regex.test(doc.hospitalAddress)) return 2;
+                return 3;
+            };
+
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+
+            // Optional: secondary sort alphabetically
+            return (a.hospitalName || '').localeCompare(b.hospitalName || '');
+        });
+
         return res.status(200).json({
-            hospitals: hospitals,
+            hospitals: sortedHospitals,
             success: true,
             pagination: {
                 currentPage: 1,
-                totalPages: Math.ceil(hospitals.length / 12),
-                totalHospitals: hospitals.length,
+                totalPages: Math.ceil(sortedHospitals.length / 12),
+                totalHospitals: sortedHospitals.length,
             },
         });
     } catch (error) {

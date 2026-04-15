@@ -1,4 +1,5 @@
 import { Stockin } from '../models/stockin.model.js'; // Update the path as per your project structure
+import {Stockindelete} from "../models/stockindelete.model.js";
 import { Inventory } from '../models/inventory.model.js';
 import mongoose from "mongoose";
 import ExcelJS from 'exceljs';
@@ -286,6 +287,36 @@ export const updateStockin = async (req, res) => {
     const { id } = req.params;
     const { vendorId, inventoryId, totalStock, others = [], centerId, userId } = req.body;
 
+     const existingStock = await Stockin.findById(id);
+
+    if (!existingStock) {
+      return res.status(404).json({
+        message: "Stockin not found",
+        success: false
+      });
+    }
+
+    // 🧠 OLD vs NEW comparison
+    const oldOthers = existingStock.others || [];
+
+    const removedItems = oldOthers.filter(oldItem =>
+      !others.some(newItem => newItem.barcodeCode === oldItem.barcodeCode)
+    );
+
+    // ✅ SAVE REMOVED ITEMS
+    if (removedItems.length > 0) {
+      await Stockindelete.create({
+        stockinId: id,
+        totalStock:removedItems.length,
+        centerId: existingStock.centerId,
+        inventoryId: existingStock.inventoryId,
+        vendorId: existingStock.vendorId,
+        others: removedItems,
+        deleteType: "PARTIAL",
+        userId:userId
+      });
+    }
+
     // Always start fresh! 🔥
     let updatedOthers = [];
 
@@ -333,12 +364,31 @@ export const updateStockin = async (req, res) => {
 // Delete stockin by ID
 export const deleteStockin = async (req, res) => {
     try {
-        const { id } = req.params;
-        const stockin = await Stockin.findByIdAndDelete(id);
-        if (!stockin) {
-            return res.status(404).json({ message: 'Stockin not found', success: false });
-        }
-        res.status(200).json({ stockin, success: true });
+        const { id, } = req.params;
+        const { userId } = req.body;
+         const stockin = await Stockin.findById(id);
+
+          if (!stockin) {
+            return res.status(404).json({
+              message: 'Stockin not found',
+              success: false
+            });
+          }
+
+          // ✅ SAVE INTO DELETE COLLECTION
+          await Stockindelete.create({
+            stockinId: id,
+            totalStock:stockin.totalStock,
+            centerId: stockin.centerId,
+            inventoryId: stockin.inventoryId,
+            vendorId: stockin.vendorId,
+            others: stockin.others,
+            userId:userId,
+            deleteType: "FULL" // custom field
+          });
+        const deleted = await Stockin.findByIdAndDelete(id);
+        
+        res.status(200).json({ stockin:deleted, success: true });
     } catch (error) {
         console.error('Error deleting stockin:', error);
         res.status(500).json({ message: 'Failed to delete stockin', success: false });

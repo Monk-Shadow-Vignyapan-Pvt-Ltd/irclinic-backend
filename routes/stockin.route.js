@@ -15,7 +15,7 @@ router.route("/getAllStockins/:id").get( getAllStockins);
 router.route("/getStockinById/:id").put( getStockinById);
 router.route("/getStockinsByInventoryId/:id").put( getStockinsByInventoryId);
 router.route("/updateStockin/:id").post( updateStockin);
-router.route("/deleteStockin/:id").delete(deleteStockin);
+router.route("/deleteStockin/:id").post(deleteStockin);
 router.route("/dashboardStockins/:id").get( dashboardStockins);
 router.route("/searchStockins/:id").post( searchStockins);
 router.route("/getExpiringStockins/:id").get( getExpiringStockins);

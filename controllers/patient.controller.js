@@ -5,6 +5,7 @@ import { Center } from '../models/center.model.js'; // You'll need this model
 import { City } from '../models/city.model.js'; // You'll need this model
 import { State } from '../models/state.model.js'; // You'll need this model
 import { CaseCounter } from '../models/caseCounter.model.js';
+import ExcelJS from 'exceljs';
 
 const getNextSequence = async (centerId, patientType, date) => {
   const counter = await CaseCounter.findOneAndUpdate(
@@ -834,6 +835,105 @@ export const searchPatient = async (req, res) => {
       success: false,
       message: "Failed to search patient"
     });
+  }
+};
+
+export const getCampPatientsExcel = async (req, res) => {
+  try {
+    const { centerId, address,city,state } = req.query;
+
+    const filter = {};
+
+    if (centerId) {
+      filter.centerId = centerId;
+    }
+    if (address) {
+      // Assuming address is an object with a 'label' field, adjust if the schema is different
+      //filter['area.label'] = address;
+      filter.address = address;
+    }
+
+    if(city){
+        filter.city = city
+    }
+
+    if(state){
+        filter.state = state
+    }
+      filter.patientType = "OPD";
+      filter.fromCamp = true;
+
+
+
+    const patients = await Patient.find(filter); // Apply filters
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Patients');
+
+    // Define columns for the Excel sheet
+    worksheet.columns = [
+      { header: "Case ID", key: "caseId", width: 25 },
+      { header: "Patient Name", key: "patientName", width: 30 },
+      { header: "Gender", key: "gender", width: 10 },
+      { header: "Phone No", key: "phoneNo", width: 15 },
+      { header: "Alternate Phone", key: "alterphoneNo", width: 18 },
+      { header: "Age", key: "age", width: 8 },
+      { header: "Address", key: "address", width: 20 },
+      { header: "Area", key: "area", width: 15 },
+      { header: "City", key: "city", width: 15 },
+      { header: "State", key: "state", width: 15 },
+      { header: "Patient Type", key: "patientType", width: 12 },
+       { header: "From Camp", key: "fromCamp", width: 20 },
+      { header: "Reference Doctor", key: "referenceLabel", width: 25 },
+      { header: "Ref. Phone No", key: "referencePhoneNo", width: 18 },
+      { header: "Created At", key: "createdAt", width: 22 },
+    ];
+
+    // Populate the worksheet with doctor data
+    patients.forEach((patient) => {
+      worksheet.addRow({
+        caseId: patient.caseId,
+        patientName: patient.patientName,
+        gender: patient.gender,
+        phoneNo: patient.phoneNo,
+        alterphoneNo: patient.alterphoneNo || "-",
+        age: patient.age,
+        address: patient.address,
+        area: patient?.area?.label || "-",
+        city: patient.city,
+        state: patient.state,
+        patientType: patient.patientType,
+        fromCamp: patient.fromCamp ? "Yes" : "No",
+        referenceLabel: patient.reference?.label || "-",
+        referencePhoneNo: patient.reference?.referencePhoneNo || "-",
+        createdAt: new Date(patient.createdAt).toLocaleString(),
+      });
+    });
+
+
+    // Set response headers for Excel download
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    // Dynamically set filename based on filters if needed, or keep it simple
+    let filename = 'patients';
+    if (centerId) filename += `_center_${centerId}`;
+    if (address) filename += `_address_${address}`;
+    filename += '.xlsx';
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${filename}`
+    );
+
+    // Write the Excel file to the response
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Error exporting patients to Excel:', error);
+    res.status(500).json({ message: 'Failed to export patients', success: false });
   }
 };
 

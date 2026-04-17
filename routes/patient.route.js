@@ -2,7 +2,7 @@ import express from "express";
 import { addPatient, getOPDPatients,getOutSidePatients,getCampPatients,getAllPatients,
      getPatientById,getPatientsByCenterId, deletePatient, updatePatient, dashboardPatients,
       searchOPDPatients,searchOutSidePatients,searchCampPatients,clonePatientToCenter,
-    searchPatient} from "../controllers/patient.controller.js";
+    searchPatient,getCampPatientsExcel} from "../controllers/patient.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -23,5 +23,6 @@ router.route("/searchOutSidePatients/:id").post( searchOutSidePatients);
 router.route("/searchCampPatients/:id").post( searchCampPatients);
 router.route("/clonePatientToCenter").post( clonePatientToCenter);
 router.route("/searchPatient").post( searchPatient);
+router.route("/getCampPatientsExcel").get(getCampPatientsExcel);
 
 export default router;

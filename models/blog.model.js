@@ -53,8 +53,9 @@ const blogSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: false,
     },
+     createdAt: Date,
+     updatedAt: Date,
   },
-  { timestamps: true }
 );
 
 export const Blog = mongoose.model("Blog", blogSchema);

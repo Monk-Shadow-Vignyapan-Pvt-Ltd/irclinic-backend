@@ -17,6 +17,8 @@ export const addBlog = async (req, res) => {
       reviewedBy,
       userId,
       tags,
+      createdAt,
+      updatedAt
     } = req.body;
     // Validate blog content (e.g., check for base64 image or URL)
     if (!content || typeof content !== "string") {
@@ -53,6 +55,8 @@ export const addBlog = async (req, res) => {
       reviewedBy,
       seoDescription,
       schema,
+      createdAt,
+      updatedAt
     });
 
     await newBlog.save();
@@ -224,6 +228,8 @@ export const updateBlog = async (req, res) => {
       seoDescription,
       schema,
       userId,
+      createdAt,
+      updatedAt
     } = req.body;
 
     // Validate blog content
@@ -260,6 +266,8 @@ export const updateBlog = async (req, res) => {
       seoTitle,
       seoDescription,
       schema,
+      createdAt,
+      updatedAt
     };
 
     const updatedBlog = await Blog.findByIdAndUpdate(id, updatedData, {

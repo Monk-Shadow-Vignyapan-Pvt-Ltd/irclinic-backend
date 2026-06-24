@@ -17,6 +17,7 @@ export const addCategory = async (req, res) => {
             categoryUrl,
             seoTitle,
             seoDescription,
+            keywords,
             schema,
         } = req.body;
 
@@ -35,6 +36,7 @@ export const addCategory = async (req, res) => {
             categoryUrl,
             seoTitle,
             seoDescription,
+            keywords,
             schema,
             rank,
         });
@@ -127,7 +129,7 @@ export const updateCategory = async (req, res) => {
     try {
         const { id } = req.params;
         const { categoryName, imageBase64, categoryGif, rank, categoryDescription, userId, categoryUrl,
-            seoTitle, seoDescription,schema } = req.body;
+            seoTitle, seoDescription,keywords,schema } = req.body;
 
         const existingCategory = await Category.findById(id);
         if (!existingCategory) {
@@ -154,7 +156,7 @@ export const updateCategory = async (req, res) => {
             rank,
             categoryUrl,
             oldUrls,
-            seoTitle, seoDescription,schema,
+            seoTitle, seoDescription,schema,keywords,
             categoryGif,
             ...(imageBase64 && { categoryImage: imageBase64 }) // Only update image if new image is provided
         };

@@ -3,7 +3,7 @@ import { Center } from '../models/center.model.js'; // Update the path as per yo
 // Add a new center
 export const addCenter = async (req, res) => {
     try {
-        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,videoUrls ,doctors} = req.body;
+        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,keywords,schema,videoUrls ,doctors} = req.body;
 
         // Validate required fields
         if (!centerName || !adminPhoneNo || !accountPhoneNo || !centerEmail || !centerAddress || !stateCode || !cityCode || !centerCode || !centerSeoUrl) {
@@ -26,7 +26,7 @@ export const addCenter = async (req, res) => {
             videoUrls,
             doctors,
             centerCode: upperCaseCenterCode,
-            userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema
+            userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,keywords,schema
         });
 
         await center.save();
@@ -118,7 +118,7 @@ export const getCenterByUrl = async (req, res) => {
 export const updateCenter = async (req, res) => {
     try {
         const { id } = req.params;
-        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,videoUrls ,doctors} = req.body;
+        const { centerName, adminPhoneNo, accountPhoneNo, centerEmail, centerAddress, centerTiming, centerOpenOn, stateCode, cityCode, centerCode, userId, centerImage, centerMapUrl, centerSeoUrl, seoTitle, seoDescription,schema,keywords,videoUrls ,doctors} = req.body;
 
         const upperCaseCenterCode = centerCode.toUpperCase();
 
@@ -146,7 +146,7 @@ export const updateCenter = async (req, res) => {
              ...(videoUrls && { videoUrls }),
               ...(doctors && { doctors }),
             ...(upperCaseCenterCode && { centerCode: upperCaseCenterCode }),
-            ...(userId && { userId }), centerImage, centerMapUrl, centerSeoUrl, oldUrls, seoTitle, seoDescription, schema
+            ...(userId && { userId }), centerImage, centerMapUrl, centerSeoUrl, oldUrls, seoTitle, seoDescription,keywords, schema
         };
 
         const center = await Center.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });

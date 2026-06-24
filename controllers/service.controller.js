@@ -13,7 +13,7 @@ export const addService = async (req, res) => {
     try {
         let { serviceName, serviceDescription, symptomId, serviceImage, serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
-            whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription,schema, userId } = req.body;
+            whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription,keywords,schema, userId } = req.body;
 
         // Validate base64 image data
         if (!serviceImage || !serviceImage.startsWith('data:image')) {
@@ -107,7 +107,7 @@ export const addService = async (req, res) => {
             diseaseId,
             serviceEnabled,
             serviceUrl,
-            seoTitle, seoDescription,schema,
+            seoTitle, seoDescription,schema,keywords,
             userId
         });
 
@@ -414,7 +414,7 @@ export const updateService = async (req, res) => {
         const { id } = req.params;
         let { serviceName, serviceDescription, symptomId, serviceImage, serviceType,
             proceduresPerformedTotal, successRatePercentage, yearsExperienceTotal, patientSatisfactionRatePercentage, educationalVideoTitle, educationalVideoDescription, educationalVideoUrl,
-            whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle, seoDescription,schema, userId } = req.body;
+            whyChoose, whyChooseName, howWorks, howWorksName, beforeAfterGallary = [], others, procedureId, categoryId, diseaseId, serviceEnabled, serviceUrl, seoTitle,keywords, seoDescription,schema, userId } = req.body;
 
         const existingService = await Service.findById(id);
         if (!existingService) {
@@ -517,7 +517,7 @@ export const updateService = async (req, res) => {
             categoryId,
             diseaseId,
             serviceEnabled,
-            serviceUrl, seoTitle, seoDescription,schema,
+            serviceUrl, seoTitle, seoDescription,schema,keywords,
             userId,
             oldUrls
         };
@@ -558,6 +558,7 @@ export const onOffService = async (req, res) => {
             serviceUrl: existingService.serviceUrl,
             seoTitle: existingService.seoTitle,
             seoDescription: existingService.seoDescription,
+            keywords:existingService.keywords,
             schema:existingService.schema,
             userId: existingService.userId,
             oldUrls: existingService.oldUrls

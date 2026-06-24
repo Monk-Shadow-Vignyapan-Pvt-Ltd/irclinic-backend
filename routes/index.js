@@ -46,6 +46,8 @@ import diagnosisRoute from "./diagnosis.route.js";
 import occupationRoute from "./occupation.route.js";
 import staffRoute from "./staff.route.js";
 import authorRoute from "./author.route.js";
+import keywordRoute from "./keyword.route.js";
+import seoRoute from "./seo.route.js";
 
 const routes = {
   adminDoctorRoute,
@@ -95,7 +97,9 @@ const routes = {
   diagnosisRoute,
   occupationRoute,
   staffRoute,
-  authorRoute
+  authorRoute,
+  keywordRoute,
+  seoRoute
 };
 
 export default routes;

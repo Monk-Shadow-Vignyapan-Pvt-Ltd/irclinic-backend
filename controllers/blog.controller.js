@@ -12,6 +12,7 @@ export const addBlog = async (req, res) => {
       blogUrl,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       authors,
       reviewedBy,
@@ -54,6 +55,7 @@ export const addBlog = async (req, res) => {
       authors,
       reviewedBy,
       seoDescription,
+      keywords,
       schema,
       createdAt,
       updatedAt
@@ -226,6 +228,7 @@ export const updateBlog = async (req, res) => {
       reviewedBy,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       userId,
       createdAt,
@@ -265,6 +268,7 @@ export const updateBlog = async (req, res) => {
       reviewedBy,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       createdAt,
       updatedAt

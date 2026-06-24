@@ -22,6 +22,7 @@ export const addDoctor = async (req, res) => {
       oldUrls,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       userId,
     } = req.body;
@@ -64,6 +65,7 @@ export const addDoctor = async (req, res) => {
       oldUrls,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       userId,
     });
@@ -81,7 +83,7 @@ export const addDoctor = async (req, res) => {
 export const getDoctors = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find().select(
-      "doctorName doctorDescription altText doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
+      "doctorName doctorDescription altText doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription keywords"
     );
     if (!doctors) {
       return res
@@ -120,7 +122,7 @@ export const getDoctors = async (req, res) => {
 export const getWebDoctors = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find().select(
-      "doctorName doctorDescription altText doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription"
+      "doctorName doctorDescription altText doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription keywords"
     );
     if (!doctors) {
       return res
@@ -255,6 +257,7 @@ export const updateDoctor = async (req, res) => {
       doctorUrl,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       userId
     } = req.body;
@@ -311,6 +314,7 @@ export const updateDoctor = async (req, res) => {
       linkedinUrl,
       seoTitle,
       seoDescription,
+      keywords,
       schema,
       userId,
       oldUrls,
@@ -354,7 +358,7 @@ export const getDoctorsFrontend = async (req, res) => {
   try {
     const doctors = await AdminDoctor.find()
       .select(
-        "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl seoDescription seoTitle schema"
+        "doctorName doctorDescription doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl seoDescription seoTitle schema keywords"
       )
 
     if (!doctors)

@@ -48,6 +48,10 @@ const adminDoctorSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    keywords: {
+                  type: mongoose.Schema.Types.Mixed,  // Use Mixed for flexible structure (JSON-like object)
+                  required: false
+              },
     schema: {
       type: String, // Store image as base64 or use a URL reference
       required: false,

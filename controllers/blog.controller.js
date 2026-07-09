@@ -213,6 +213,21 @@ export const getBlogByUrl = async (req, res) => {
   }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const blogUrl = req.params.id;
+    const blog = await Blog.findOne({ blogUrl }).select("seoTitle seoDescription keywords schema")
+   
+    if (!blog)
+      return res
+        .status(404)
+        .json({ message: "Blog not found!", success: false });
+    return res.status(200).json({ blog, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch Blog", success: false });
+  }
+};
 // Update blog by ID
 export const updateBlog = async (req, res) => {
   try {

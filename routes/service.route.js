@@ -3,7 +3,7 @@ import {
      addService, getServices,getWebServices, getEnabledServices, getServiceName, searchServices,searchWebServices, getServiceById, getServiceByUrl, getServicesByCategory,
      deleteService, updateService, onOffService, getServicesFrontend, getServicesBeforeAfter, cloneService, addServiceRanking,
      getServiceRanking, getServicesAfterRanking, addServiceInSearch, getServiceInSearch, getServicesAfterInSearch,getAllServices,
-     getServiceImage,updateServiceRank, getWithoutBasicServices
+     getServiceImage,updateServiceRank, getWithoutBasicServices,getSeoByUrl
 } from "../controllers/service.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
@@ -36,5 +36,6 @@ router.route("/getAllServices").get(getAllServices);
 router.route("/getServiceImage/:id").get(getServiceImage);
 router.route("/updateServiceRank").post( updateServiceRank);
 router.route("/getWithoutBasicServices").get(getWithoutBasicServices);
+router.route("/getSeoByUrl/:id").get(getSeoByUrl);
 
 export default router;

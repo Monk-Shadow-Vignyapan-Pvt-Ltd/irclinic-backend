@@ -5,6 +5,7 @@ import {
   getWebBlogs,
   getBlogById,
   getBlogByUrl,
+  getSeoByUrl,
   deleteBlog,
   getBlogsFrontend,
   getRecentBlog,
@@ -22,6 +23,7 @@ router.route("/getBlogUrls").get(getBlogUrls);
 router.route("/getRecentBlog").get(getRecentBlog);
 router.route("/getBlogById/:id").put(getBlogById);
 router.route("/getBlogByUrl/:id").post(getBlogByUrl);
+router.route("/getSeoByUrl/:id").get(getSeoByUrl);
 router.route("/updateBlog/:id").post(updateBlog);
 router.route("/getBlogsFrontend").get(getBlogsFrontend);
 router.route("/deleteBlog/:id").delete(deleteBlog);

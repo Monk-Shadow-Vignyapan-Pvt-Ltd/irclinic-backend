@@ -114,6 +114,23 @@ export const getCenterByUrl = async (req, res) => {
     }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const centerSeoUrl = req.params.id;
+    const center = await Center.findOne({ centerSeoUrl }).select("seoTitle seoDescription keywords schema")
+   
+    if (!center)
+      return res
+        .status(404)
+        .json({ message: "center not found!", success: false });
+    return res.status(200).json({ center, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch center", success: false });
+  }
+};
+
+
 // Update center by ID
 export const updateCenter = async (req, res) => {
     try {

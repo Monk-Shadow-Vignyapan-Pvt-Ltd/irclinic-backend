@@ -237,6 +237,22 @@ export const getDoctorByUrl = async (req, res) => {
   }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const doctorUrl = req.params.id;
+    const doctor = await AdminDoctor.findOne({ doctorUrl }).select("seoTitle seoDescription keywords schema")
+   
+    if (!doctor)
+      return res
+        .status(404)
+        .json({ message: "doctor not found!", success: false });
+    return res.status(200).json({ doctor, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch doctor", success: false });
+  }
+};
+
 // Update doctor by ID
 export const updateDoctor = async (req, res) => {
   try {

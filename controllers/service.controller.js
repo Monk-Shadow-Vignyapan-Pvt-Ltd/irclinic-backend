@@ -393,6 +393,22 @@ export const getServiceByUrl = async (req, res) => {
     }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const serviceUrl = req.params.id;
+    const service = await Service.findOne({ serviceUrl }).select("seoTitle seoDescription keywords schema")
+   
+    if (!service)
+      return res
+        .status(404)
+        .json({ message: "service not found!", success: false });
+    return res.status(200).json({ service, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch service", success: false });
+  }
+};
+
 export const getServicesByCategory = async (req, res) => {
     try {
         const { id } = req.params; // Extract the service ID from the request parameters

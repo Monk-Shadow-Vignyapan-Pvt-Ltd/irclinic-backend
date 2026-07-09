@@ -263,6 +263,22 @@ export const getDiseaseByUrl = async (req, res) => {
   }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const diseaseURL = req.params.id;
+    const disease = await Disease.findOne({ diseaseURL }).select("seoTitle seoDescription keywords schema")
+   
+    if (!disease)
+      return res
+        .status(404)
+        .json({ message: "disease not found!", success: false });
+    return res.status(200).json({ disease, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch disease", success: false });
+  }
+};
+
 // Update disease by ID
 export const updateDisease = async (req, res) => {
   try {

@@ -295,6 +295,22 @@ export const getSymptomByUrl = async (req, res) => {
   }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const symptomURL = req.params.id;
+    const symptom = await Symptom.findOne({ symptomURL }).select("seoTitle seoDescription keywords schema")
+   
+    if (!symptom)
+      return res
+        .status(404)
+        .json({ message: "symptom not found!", success: false });
+    return res.status(200).json({ symptom, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch symptom", success: false });
+  }
+};
+
 
 // Update symptom by ID
 export const updateSymptom = async (req, res) => {

@@ -211,6 +211,7 @@ const connectDB = async () => {
                 centerAddress: "405,406 - 4th Floor Zenon Building, Opp Unique Hospital, Ring Rd, Surat, Gujarat-395001",
                 centerCode: defaultCenterCode,
                 centerEmail: "irclinic2018@gmail.com",
+                centerSeoUrl:"surat-clinic",
                 centerName: "Surat Clinic",
                 cityCode: "SU",
                 stateCode: "GJ"

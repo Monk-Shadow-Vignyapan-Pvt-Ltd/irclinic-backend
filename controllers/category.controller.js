@@ -124,6 +124,22 @@ export const getCategoryByUrl = async (req, res) => {
     }
 };
 
+export const getSeoByUrl = async (req, res) => {
+  try {
+    const categoryUrl = req.params.id;
+    const category = await Category.findOne({ categoryUrl }).select("seoTitle seoDescription keywords schema")
+   
+    if (!category)
+      return res
+        .status(404)
+        .json({ message: "category not found!", success: false });
+    return res.status(200).json({ category, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Failed to fetch category", success: false });
+  }
+};
+
 // Update category by ID
 export const updateCategory = async (req, res) => {
     try {

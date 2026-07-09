@@ -6,6 +6,7 @@ import {
   getSymptomById,
   getSymptomName,
   getSymptomByUrl,
+  getSeoByUrl,
   deleteSymptom,
   updateSymptom,
   getDashboardSymptoms,
@@ -29,5 +30,6 @@ router.route("/getSymptomById/:id").put(getSymptomById);
 router.route("/updateSymptom/:id").post(updateSymptom);
 router.route("/deleteSymptom/:id").delete(deleteSymptom);
 router.route("/getAllSymptoms").get(getAllSymptoms);
+router.route("/getSeoByUrl/:id").get(getSeoByUrl);
 
 export default router;

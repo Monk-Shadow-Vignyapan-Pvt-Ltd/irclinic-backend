@@ -6,6 +6,7 @@ import {
   getDiseaseById,
   getDiseaseName,
   getDiseaseByUrl,
+  getSeoByUrl,
   deleteDisease,
   updateDisease,
   searchDiseases,
@@ -21,6 +22,7 @@ router.route("/searchDiseases").post(searchDiseases);
 router.route("/getDiseases").get(getDiseases);
 router.route("/getDiseaseUrls").get(getDiseaseUrls);
 router.route("/getDiseaseByUrl/:id").put(getDiseaseByUrl);
+router.route("/getSeoByUrl/:id").get(getSeoByUrl);
 router.route("/getDiseasesFrontend").get(getDiseasesFrontend);
 router.route("/getDiseaseName").get(getDiseaseName);
 router.route("/getDiseaseById/:id").put(getDiseaseById);

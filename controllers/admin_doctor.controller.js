@@ -82,9 +82,7 @@ export const addDoctor = async (req, res) => {
 
 export const getDoctors = async (req, res) => {
   try {
-    const doctors = await AdminDoctor.find().select(
-      "doctorName doctorDescription altText doctorImage doctorPhone doctorEmail speciality doctorDegree doctorTraining doctorUrl fbUrl instaUrl linkedinUrl oldUrls seoTitle seoDescription keywords"
-    );
+    const doctors = await AdminDoctor.find();
     if (!doctors) {
       return res
         .status(404)

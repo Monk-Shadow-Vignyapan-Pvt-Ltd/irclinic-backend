@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import routes from "./routes/index.js";
 import { startWhatsAppReminderCron } from "./controllers/appointment.controller.js";
 import { startInvoiceUpdateCron } from "./controllers/appointment.controller.js";
+import googleAuth from "./services/googleAuth.js";
 
 dotenv.config();
 // connect db
@@ -63,6 +64,7 @@ app.use(
 );
 
 // API Routes
+app.use("/auth", googleAuth);
 app.use("/api/v1/auth", routes.authRoute);
 app.use("/api/v1/adminDoctors", routes.adminDoctorRoute);
 app.use("/api/v1/blogs", routes.blogRoute);

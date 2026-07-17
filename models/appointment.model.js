@@ -88,6 +88,15 @@ const appointmentSchema = new mongoose.Schema(
       type: Boolean,
       required: false,
     },
+    isOnlineConsultation:{
+      type: Boolean,
+      required: false,
+      default:false
+    },
+    meetingLink: {
+        type: String,
+        required: false,
+    },
     consentImage: {
         type: String, // Store image as base64 or use a URL reference
         required: false,

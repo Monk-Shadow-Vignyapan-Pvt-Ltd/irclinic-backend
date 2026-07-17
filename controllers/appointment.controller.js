@@ -20,6 +20,7 @@ import { Stockin } from '../models/stockin.model.js';
 import { Stockout } from '../models/stockout.model.js';
 import sharp from 'sharp';
 import { CaseCounter } from '../models/caseCounter.model.js';
+import { createGoogleMeet } from '../services/googleMeet.service.js';
 
 dotenv.config();
 
@@ -71,10 +72,22 @@ if (!admin.apps.length) {
 // Add a new appointment
 export const addAppointment = async (req, res) => {
     try {
-        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp } = req.body;
+        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp,isOnlineConsultation,meetingLink } = req.body;
 
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
+        }
+
+        let finalMeetingLink = null;
+
+        if (isOnlineConsultation) {
+            const meet = await createGoogleMeet({
+                title,
+                start,
+                end,
+            });
+
+            finalMeetingLink = meet.meetingLink;
         }
 
 
@@ -93,7 +106,8 @@ export const addAppointment = async (req, res) => {
             userId: userId || null,
             status: status || "Scheduled",
             isFollowUp,
-            isOnline:false
+            isOnline:false,
+            isOnlineConsultation,meetingLink:finalMeetingLink
         });
 
         await appointment.save();
@@ -227,7 +241,7 @@ export const addAppointment = async (req, res) => {
 
 export const addOnlineAppointment = async (req, res) => {
     try {
-        const { fullName, gender, center, age, appointmentDate, appointmentTime, patientPhoneNo } = req.body;
+        const { fullName, gender, center, age, appointmentDate, appointmentTime, patientPhoneNo,isOnlineConsultation,meetingLink } = req.body;
 
         if (!fullName || !patientPhoneNo || !appointmentDate || !appointmentTime) {
             return res.status(400).json({ message: 'Required Fields are missing', success: false });
@@ -290,6 +304,18 @@ export const addOnlineAppointment = async (req, res) => {
           return res.status(400).json({ message: "Invalid time selected", success: false });
         }
 
+        let finalMeetingLink = null;
+
+        if (isOnlineConsultation) {
+            const meet = await createGoogleMeet({
+                title,
+                start,
+                end,
+            });
+
+            finalMeetingLink = meet.meetingLink;
+        }
+
           // Save in DB
           const appointment = new Appointment({
             patientId: patient._id,
@@ -300,7 +326,8 @@ export const addOnlineAppointment = async (req, res) => {
             start,   // UTC ISO string (e.g. 2025-09-06T04:30:00.000Z)
             end,
             status: "Scheduled",
-            isOnline: true
+            isOnline: true,
+            isOnlineConsultation,meetingLink:finalMeetingLink
           });
           await appointment.save();
 
@@ -580,7 +607,7 @@ export const getAppointmentById = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp,checkInTime,checkOutTime } = req.body;
+        const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp,checkInTime,checkOutTime,isOnlineConsultation,meetingLink } = req.body;
 
          
 
@@ -600,6 +627,7 @@ export const updateAppointment = async (req, res) => {
             ...(status && { status }),
             isFollowUp,
             checkInTime,checkOutTime,
+            isOnlineConsultation,meetingLink
         };
 
         const existingAppointment = await Appointment.findById(id);

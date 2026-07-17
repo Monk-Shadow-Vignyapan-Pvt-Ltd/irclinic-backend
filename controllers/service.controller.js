@@ -135,7 +135,7 @@ export const getServices = async (req, res) => {
         // Get total count for pagination
         const totalServices = await Service.countDocuments();
 
-        if (!services || services.length === 0) {
+        if (!services ) {
             return res.status(404).json({ message: 'No services found', success: false });
         }
 

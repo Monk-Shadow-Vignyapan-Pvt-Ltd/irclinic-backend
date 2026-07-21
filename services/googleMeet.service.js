@@ -48,8 +48,11 @@ export const createGoogleMeet = async ({ title, start, end }) => {
             p => p.entryPointType === "video"
         )?.uri || null;
 
+    const customMeetingLink =
+    `${meetingLink}?title=${encodeURIComponent(title)}&start=${encodeURIComponent(start)}`;
+
     return {
-        meetingLink,
+        meetingLink:customMeetingLink,
         eventId: response.data.id,
     };
 };

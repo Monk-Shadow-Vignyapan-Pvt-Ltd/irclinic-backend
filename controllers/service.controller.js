@@ -900,6 +900,41 @@ export const updateServiceRank = async (req, res) => {
     }
 };
 
+export const updateServiceRankById = async (req, res) => {
+    try {
+        const { rank, serviceId } = req.body;
+
+        const updateService = await Service.findByIdAndUpdate(
+            serviceId,
+            {
+                rank,
+            },
+            {
+                new: true,
+                runValidators: true,
+            }
+        );
+
+        if (!updateService) {
+            return res.status(404).json({
+                success: false,
+                message: "Service not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            service: updateService,
+        });
+    } catch (error) {
+        console.error("Error updating service rank:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Server Error",
+        });
+    }
+};
+
 
 
 

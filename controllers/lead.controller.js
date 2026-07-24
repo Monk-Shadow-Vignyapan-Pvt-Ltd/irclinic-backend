@@ -1,0 +1,332 @@
+import axios from "axios";
+import { Lead } from "../models/lead.model.js";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+
+const buildLeadRecord = (type, leadId, payload = {}, leadDetails = null, normalizedLeadData = null) => ({
+  type,
+  leadId,
+  pageId: payload.page_id || payload.pageId || null,
+  formId: payload.form_id || payload.formId || null,
+  adId: payload.ad_id || payload.adId || null,
+  campaignId: payload.campaign_id || payload.campaignId || null,
+  webhookSource: payload.webhookSource || null,
+  leadDetails,
+  normalizedLeadData,
+  rawPayload: payload,
+  receivedAt: new Date(),
+});
+
+const upsertLead = async (leadData) => {
+  return Lead.findOneAndUpdate(
+    { type: leadData.type, leadId: leadData.leadId },
+    { $set: leadData },
+    {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+};
+
+const normalizeMetaFieldData = (fieldData = []) => {
+  if (!Array.isArray(fieldData)) {
+    return fieldData;
+  }
+
+  return fieldData.reduce((accumulator, item) => {
+    if (!item?.name) {
+      return accumulator;
+    }
+
+    accumulator[item.name] = Array.isArray(item.values) && item.values.length === 1
+      ? item.values[0]
+      : item.values || null;
+
+    return accumulator;
+  }, {});
+};
+
+const normalizeGoogleLeadData = (userColumnData = []) => {
+  if (!Array.isArray(userColumnData)) return {};
+
+  return userColumnData.reduce((acc, item) => {
+    const key =
+      item.column_id ||
+      item.column_name ||
+      item.name;
+
+    if (!key) return acc;
+
+    acc[key] =
+      item.string_value ??
+      item.value ??
+      item.column_value ??
+      "";
+
+    return acc;
+  }, {});
+};
+
+const fetchMetaLeadDetails = async (leadId) => {
+  if (!process.env.META_ACCESS_TOKEN) {
+    return null;
+  }
+
+  const response = await axios.get(
+    `https://graph.facebook.com/${process.env.META_GRAPH_API_VERSION}/${leadId}`,
+    {
+      params: {
+        access_token: process.env.META_ACCESS_TOKEN,
+        fields: "field_data,created_time",
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const verifyMetaWebhook = (req, res) => {
+
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (
+    mode === "subscribe" &&
+    token === process.env.META_VERIFY_TOKEN
+  ) {
+    return res.status(200).send(challenge);
+  }
+
+
+  return res.status(403).json({
+    success: false,
+    message: "Invalid Meta webhook verification request",
+  });
+};
+
+export const receiveMetaLeadWebhook = async (req, res) => {
+  try {
+    const { body } = req;
+
+    if (body.object !== "page" || !Array.isArray(body.entry)) {
+      return res.status(400).json({
+        message: "Invalid Meta webhook payload",
+        success: false,
+      });
+    }
+
+    const storedLeads = [];
+
+    for (const entry of body.entry) {
+      const changes = Array.isArray(entry?.changes) ? entry.changes : [];
+
+      for (const change of changes) {
+        if (change?.field !== "leadgen" || !change?.value?.leadgen_id) {
+          continue;
+        }
+
+        const metaPayload = {
+          ...change.value,
+          page_id: change.value.page_id || entry.id,
+          webhookSource: "meta-webhook",
+        };
+
+        let leadDetails = null;
+        try {
+          leadDetails = await fetchMetaLeadDetails(change.value.leadgen_id);
+        } catch (error) {
+            console.error("================================");
+            console.error("Status:", error.response?.status);
+            console.error("Data:", JSON.stringify(error.response?.data, null, 2));
+            console.error("Message:", error.message);
+            console.error("================================");
+            }
+
+        const normalizedLeadData = normalizeMetaFieldData(leadDetails?.field_data);
+        const savedLead = await upsertLead(
+          buildLeadRecord("meta", change.value.leadgen_id, metaPayload, leadDetails, normalizedLeadData)
+        );
+
+        storedLeads.push(savedLead);
+      }
+    }
+
+    return res.status(200).json({
+      message: "Meta webhook processed successfully",
+      success: true,
+      count: storedLeads.length,
+      leads: storedLeads,
+    });
+  } catch (error) {
+    console.error("Error processing Meta webhook:", error);
+    return res.status(500).json({
+      message: "Failed to process Meta webhook",
+      success: false,
+    });
+  }
+};
+
+export const receiveGoogleLeadWebhook = async (req, res) => {
+  try {
+    const payload = req.body || {};
+
+    console.log(
+      "Google Lead Received:",
+      JSON.stringify(payload, null, 2)
+    );
+
+    // ---------------------------------------
+    // Validate Webhook Key
+    // ---------------------------------------
+
+    if (
+      process.env.GOOGLE_ADS_WEBHOOK_KEY &&
+      payload.google_key !== process.env.GOOGLE_ADS_WEBHOOK_KEY
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid Google Webhook Key",
+      });
+    }
+
+    // ---------------------------------------
+    // Ignore Test Leads (optional)
+    // ---------------------------------------
+
+    if (payload.is_test === true) {
+      return res.status(200).json({
+        success: true,
+        message: "Test lead received",
+      });
+    }
+
+    // ---------------------------------------
+    // Lead ID
+    // ---------------------------------------
+
+    const leadId =
+      payload.lead_id ||
+      payload.resource_name ||
+      payload.gclid;
+
+    if (!leadId) {
+      return res.status(400).json({
+        success: false,
+        message: "Lead ID missing",
+      });
+    }
+
+    // ---------------------------------------
+    // Normalize Lead Data
+    // ---------------------------------------
+
+    const normalizedLeadData = normalizeGoogleLeadData(
+      payload.user_column_data || []
+    );
+
+    // ---------------------------------------
+    // Prevent Duplicate Leads
+    // ---------------------------------------
+
+    const existingLead = await Lead.findOne({
+      type: "google",
+      leadId: String(leadId),
+    });
+
+    if (existingLead) {
+      return res.status(200).json({
+        success: true,
+        message: "Lead already exists",
+      });
+    }
+
+    // ---------------------------------------
+    // Save Lead
+    // ---------------------------------------
+
+    const lead = await Lead.create({
+      type: "google",
+
+      leadId: String(leadId),
+
+      pageId: null,
+
+      formId:
+        payload.form_id ||
+        payload.formId ||
+        null,
+
+      adId:
+        payload.ad_id ||
+        payload.adId ||
+        null,
+
+      campaignId:
+        payload.campaign_id ||
+        payload.campaignId ||
+        null,
+
+      webhookSource: "google-webhook",
+
+      leadDetails: payload,
+
+      normalizedLeadData,
+
+      rawPayload: payload,
+
+      receivedAt: new Date(),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Lead stored successfully",
+      lead,
+    });
+  } catch (error) {
+    console.error("Google Lead Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+export const getLeads = async (req, res) => {
+  try {
+    const { type, page = 1 } = req.query;
+    const limit = 20;
+    const skip = (Number(page) - 1) * limit;
+
+    const filter = {};
+    if (type) {
+      filter.type = type;
+    }
+
+    const [leads, total] = await Promise.all([
+      Lead.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Lead.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      leads,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(total / limit),
+        totalLeads: total,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching leads:", error);
+    return res.status(500).json({
+      message: "Failed to fetch leads",
+      success: false,
+    });
+  }
+};

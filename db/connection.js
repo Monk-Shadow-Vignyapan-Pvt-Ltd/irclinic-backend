@@ -261,6 +261,8 @@ const connectDB = async () => {
                     { name: "Staff", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "ETO", actions: { view: true, create: true, edit: true, delete: true } },
                     { name: "Consignment", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Web", actions: { view: true, create: true, edit: true, delete: true } },
+                    { name: "Leads", actions: { view: true, create: true, edit: true, delete: true } },
                 ],
             });
 

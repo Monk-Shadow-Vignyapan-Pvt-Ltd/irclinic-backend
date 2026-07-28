@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Lead } from "../models/lead.model.js";
+import ExcelJS from 'exceljs';
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -299,8 +300,8 @@ export const receiveGoogleLeadWebhook = async (req, res) => {
 
 export const getLeads = async (req, res) => {
   try {
-    const { type, page = 1 } = req.query;
-    const limit = 20;
+    const { type, page = 1 ,limit=25} = req.query;
+    
     const skip = (Number(page) - 1) * limit;
 
     const filter = {};
@@ -328,5 +329,93 @@ export const getLeads = async (req, res) => {
       message: "Failed to fetch leads",
       success: false,
     });
+  }
+};
+
+export const downloadLeadsExcel = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Validate required date fields
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        message: 'Please provide startDate and endDate in query params (YYYY-MM-DD)',
+        success: false
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // Include end of the day
+
+    // Fetch contacts within the date range
+    const leads = await Lead.find({
+      createdAt: { $gte: start, $lte: end }
+    }).sort({ createdAt: -1 });
+
+    if (leads.length === 0) {
+      return res.status(404).json({ message: 'No leads found in this date range', success: false });
+    }
+
+    // Create Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Leads');
+
+    // Add header row
+    worksheet.columns = [
+      { header: 'Name', key: 'name', width: 20 },
+      { header: 'Phone', key: 'phone', width: 15 },
+      { header: 'Email', key: 'email', width: 25 },
+      { header: 'Status', key: 'status', width: 25 },
+      { header: 'Created At', key: 'createdAt', width: 20 }
+    ];
+
+    // Add data rows
+    leads.forEach(lead => {
+      worksheet.addRow({
+        name: lead.leadDetails.field_data[1].values[0] || "N/A",
+        phone: "N/A",
+        email: lead.leadDetails.field_data[0].values[0],
+        status:lead.followups[invoice.followups.length - 1].followStatus,
+        createdAt: contact.createdAt.toISOString().split('T')[0]
+      });
+    });
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=leads_${startDate}_to_${endDate}.xlsx`);
+
+    // Write to response stream
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Error generating Excel:', error);
+    res.status(500).json({ message: 'Failed to generate Excel', success: false });
+  }
+};
+
+export const updateLead = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      followups,
+    } = req.body;
+
+    const updatedData = {
+      followups,
+    };
+
+    const lead = await Lead.findByIdAndUpdate(id, updatedData, {
+      new: true,
+      runValidators: true,
+    });
+    if (!lead)
+      return res
+        .status(404)
+        .json({ message: "Lead not found!", success: false });
+    return res.status(200).json({ lead, success: true });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ message: error.message, success: false });
   }
 };

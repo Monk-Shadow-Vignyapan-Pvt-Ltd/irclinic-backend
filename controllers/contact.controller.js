@@ -80,8 +80,8 @@ export const addContact = async (req, res) => {
 // Get all contacts
 export const getContacts = async (req, res) => {
   try {
-    const { page = 1, search = "", } = req.query;
-    const limit = 10;
+    const { page = 1, search = "",limit=25 } = req.query;
+
     const skip = (page - 1) * limit;
 
     // Create a search filter

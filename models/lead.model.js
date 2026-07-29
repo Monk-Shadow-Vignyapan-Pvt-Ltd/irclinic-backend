@@ -57,7 +57,12 @@ const leadSchema = new mongoose.Schema(
     followups: {
       type: mongoose.Schema.Types.Mixed,
       required: false,
+      default:[]
     },
+    userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: false,
+        },
   },
   {
     timestamps: true,

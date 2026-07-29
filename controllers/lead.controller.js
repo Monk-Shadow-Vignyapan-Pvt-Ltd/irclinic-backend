@@ -18,6 +18,7 @@ const buildLeadRecord = (type, leadId, payload = {}, leadDetails = null, normali
   normalizedLeadData,
   rawPayload: payload,
   receivedAt: new Date(),
+  followups:[]
 });
 
 const upsertLead = async (leadData) => {
@@ -279,6 +280,7 @@ export const receiveGoogleLeadWebhook = async (req, res) => {
       normalizedLeadData,
 
       rawPayload: payload,
+      followups:[],
 
       receivedAt: new Date(),
     });
@@ -332,9 +334,18 @@ export const getLeads = async (req, res) => {
   }
 };
 
+
+
+
 export const downloadLeadsExcel = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate,type } = req.query;
+
+    const filter = {};
+    if (type) {
+      filter.type = type;
+    }
+
 
     // Validate required date fields
     if (!startDate || !endDate) {
@@ -348,10 +359,10 @@ export const downloadLeadsExcel = async (req, res) => {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999); // Include end of the day
 
+    filter.createdAt= { $gte: start, $lte: end }
+
     // Fetch contacts within the date range
-    const leads = await Lead.find({
-      createdAt: { $gte: start, $lte: end }
-    }).sort({ createdAt: -1 });
+    const leads = await Lead.find(filter).sort({ createdAt: -1 });
 
     if (leads.length === 0) {
       return res.status(404).json({ message: 'No leads found in this date range', success: false });
@@ -372,12 +383,22 @@ export const downloadLeadsExcel = async (req, res) => {
 
     // Add data rows
     leads.forEach(lead => {
+
+      const fieldData = lead.leadDetails?.field_data || [];
+
+      const getFieldValue = (name) => {
+  const field = fieldData.find(f => f.name === name);
+  return field?.values?.[0] || "N/A";
+};
       worksheet.addRow({
-        name: lead.leadDetails.field_data[1].values[0] || "N/A",
-        phone: "N/A",
-        email: lead.leadDetails.field_data[0].values[0],
-        status:lead.followups[invoice.followups.length - 1].followStatus,
-        createdAt: contact.createdAt.toISOString().split('T')[0]
+        name: getFieldValue("full_name"),
+        phone: getFieldValue("phone_number"),
+        email: getFieldValue("email"),
+        status:
+          lead.followups?.length > 0
+            ? lead.followups[lead.followups.length - 1].followStatus
+            : "N/A",
+        createdAt: lead.createdAt.toISOString().split('T')[0]
       });
     });
 
@@ -399,10 +420,12 @@ export const updateLead = async (req, res) => {
     const { id } = req.params;
     const {
       followups,
+      userId
     } = req.body;
 
     const updatedData = {
       followups,
+      userId
     };
 
     const lead = await Lead.findByIdAndUpdate(id, updatedData, {

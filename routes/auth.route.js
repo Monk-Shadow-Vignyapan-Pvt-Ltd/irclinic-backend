@@ -1,6 +1,7 @@
 import express from "express";
 import {auth} from "../middleware/auth.js"
 import { addUser, login, tokenIsValid, getUser,getUsers,updateUser,updatePassword,updateUserPassword,deleteUser,updateDashboard,updateNotifications,searchUsers,getAllUsers,verifyTurnstile} from "../controllers/auth.controller.js";
+import {initiateIciciPayment,checkIciciPaymentStatus} from "../controllers/iciciPayment.controller.js";
 
 const router = express.Router();
 
@@ -18,5 +19,14 @@ router.route("/updateNotifications/:id").post( updateNotifications);
 router.route("/searchUsers").post( searchUsers);
 router.route("/getAllUsers").get( getAllUsers);
 router.route("/verifyTurnstile").post( verifyTurnstile);
+router.route("/initiateIciciPayment").post( initiateIciciPayment);
+router.route("/checkIciciPaymentStatus").post( checkIciciPaymentStatus);
+
+router.post("/payment-callback", async (req, res) => {
+  
+  return res.redirect(
+    `https://irclinicindia.com/thank-you-booking-appointment?txn=${req.query.txn}`
+  );
+});
 
 export default router;

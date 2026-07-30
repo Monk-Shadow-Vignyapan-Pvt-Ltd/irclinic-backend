@@ -357,7 +357,7 @@ export const getAppointments = async (req, res) => {
             centerId: id,
             start: { $gte: new Date(start) },
             end: { $lte: new Date(end) },
-        }).populate('patientId', 'patientName');
+        }).populate('patientId');
 
         const mappedAppointments = appointments.map(app => ({
             ...app._doc,

@@ -541,3 +541,305 @@ const formattedTime = appointmentDate.format('hh:mm A');
         console.error("WhatsApp API Error:", err.response?.data || err.message);
     }
 };
+
+export const initiateAdPayment = async (req, res) => {
+  try {
+    const {
+      amount,
+      customerName,
+      customerMobileNo,
+      leadData,
+    } = req.body;
+
+    // VALIDATION
+    if (!amount || !customerName || !customerMobileNo) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter all required fields",
+      });
+    }
+
+    const ICICI_URL =
+      "https://pgpay.icicibank.com/pg/api/v2/initiateSale";
+
+    const SECRET_KEY =
+      process.env.PGPAY_SECRET_KEY;
+
+    // YYYYMMDDHHmmss
+    const now = new Date();
+
+    const txnDate =
+      now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, "0") +
+      String(now.getDate()).padStart(2, "0") +
+      String(now.getHours()).padStart(2, "0") +
+      String(now.getMinutes()).padStart(2, "0") +
+      String(now.getSeconds()).padStart(2, "0");
+
+    const merchantTxnNo = Date.now().toString();
+
+    const payload = {
+      merchantId: "100000000484660",
+      aggregatorID: "100000000484659",
+      merchantTxnNo,
+      amount: Number(amount).toFixed(2),
+      currencyCode: "356",
+      payType: "0",
+      transactionType: "SALE",
+
+      // Change this to your callback URL
+      returnURL:
+        `https://api.interventionalradiology.co.in/api/v1/auth/adpayment-callback?txn=${merchantTxnNo}`,
+
+      txnDate,
+
+      customerMobileNo,
+      customerName,
+
+      addlParam1: "ABCD",
+      addlParam2: "111",
+    };
+
+    // HASH ORDER
+    const sortedKeys = [
+      "addlParam1",
+      "addlParam2",
+      "aggregatorID",
+      "amount",
+      "currencyCode",
+      "customerMobileNo",
+      "customerName",
+      "merchantId",
+      "merchantTxnNo",
+      "payType",
+      "returnURL",
+      "transactionType",
+      "txnDate",
+    ];
+
+    let hashText = "";
+
+    sortedKeys.forEach((key) => {
+      if (
+        payload[key] !== undefined &&
+        payload[key] !== null &&
+        payload[key] !== ""
+      ) {
+        hashText += payload[key];
+      }
+    });
+
+    const secureHash = crypto
+      .createHmac(
+        "sha256",
+        Buffer.from(SECRET_KEY.trim(), "utf8")
+      )
+      .update(hashText, "ascii")
+      .digest("hex")
+      .toLowerCase();
+
+    payload.secureHash = secureHash;
+
+    // SAVE INITIAL PAYMENT
+    const paymentDoc = await IciciPayment.create({
+      merchantTxnNo,
+      amount,
+      customerName,
+      customerMobileNo,
+      leadData,
+      txnDate,
+      secureHash,
+      hashText,
+      requestPayload: payload,
+      status: "INITIATED",
+    });
+
+    try {
+      // CALL ICICI
+      const response = await axios.post(
+        ICICI_URL,
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      paymentDoc.iciciResponse = response.data;
+
+      // Payment is only initiated here
+      paymentDoc.status = "INITIATED";
+
+      await paymentDoc.save();
+
+      return res.status(200).json({
+        success: true,
+        paymentId: paymentDoc._id,
+        merchantTxnNo,
+        iciciResponse: response.data,
+      });
+    } catch (apiError) {
+      paymentDoc.status = "FAILED";
+
+      paymentDoc.errorResponse =
+        apiError.response?.data || {
+          message: apiError.message,
+        };
+
+      await paymentDoc.save();
+
+      return res.status(500).json({
+        success: false,
+        error:
+          apiError.response?.data ||
+          apiError.message,
+      });
+    }
+  } catch (err) {
+    console.error(
+      "ICICI ERROR:",
+      err.response?.data || err.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        err.response?.data || err.message,
+    });
+  }
+};
+
+export const checkAdPaymentStatus = async (
+  req,
+  res
+) => {
+  try {
+    const { merchantTxnNo } = req.body;
+
+    if (!merchantTxnNo) {
+      return res.status(400).json({
+        success: false,
+        message: "merchantTxnNo is required",
+      });
+    }
+
+    // FIND PAYMENT
+    const payment =
+      await IciciPayment.findOne({
+        merchantTxnNo,
+      });
+
+
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment not found",
+      });
+    }
+
+    const ICICI_STATUS_URL =
+      "https://pgpay.icicibank.com/pg/api/command";
+
+    const SECRET_KEY =
+      process.env.PGPAY_SECRET_KEY;
+
+    // STATUS PAYLOAD
+    const payload = {
+      merchantId: "100000000484660",
+
+      aggregatorID: "100000000484659",
+
+      merchantTxnNo,
+
+      transactionType: "STATUS",
+
+      originalTxnNo: merchantTxnNo,
+    };
+
+    /*
+      HASH ORDER FOR STATUS API
+      IMPORTANT:
+      Use EXACT order provided by ICICI
+    */
+
+    const hashText =
+      payload.aggregatorID +
+      payload.merchantId +
+      payload.merchantTxnNo +
+      payload.originalTxnNo +
+      payload.transactionType;
+
+    // GENERATE HASH
+    const secureHash = crypto
+      .createHmac(
+        "sha256",
+        Buffer.from(SECRET_KEY.trim(), "utf8")
+      )
+      .update(hashText, "ascii")
+      .digest("hex")
+      .toLowerCase();
+
+    payload.secureHash = secureHash;
+
+    // ICICI STATUS API CALL
+    const response = await axios.post(
+      ICICI_STATUS_URL,
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // SAVE STATUS RESPONSE
+    payment.statusCheckResponse =
+      response.data;
+
+    /*
+      SUCCESS RESPONSE CODE MAY DIFFER
+      CHECK YOUR ICICI DOC / RESPONSE
+    */
+
+      const iciciData = response.data;
+
+        if (
+        iciciData?.txnStatus === "SUC" ||
+        iciciData?.responseCode === "000" ||
+        iciciData?.txnResponseCode === "0000"
+        ) {
+        payment.status = "SUCCESS";
+    
+        } else if (
+        iciciData?.txnStatus === "PENDING"
+        ) {
+        payment.status = "PENDING";
+        } else {
+        payment.status = "FAILED";
+        }
+
+    
+
+    await payment.save();
+
+    return res.status(200).json({
+      success: true,
+      paymentStatus: payment.status,
+      iciciResponse: response.data,
+      paymentInfo:payment
+    });
+  } catch (err) {
+    console.log(
+      "ICICI STATUS ERROR:",
+      err?.response?.data || err.message
+    );
+
+    return res.status(500).json({
+      success: false,
+      error:
+        err?.response?.data || err.message,
+    });
+  }
+};

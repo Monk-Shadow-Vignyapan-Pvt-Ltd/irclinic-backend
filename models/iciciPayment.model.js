@@ -52,6 +52,9 @@ const iciciPaymentSchema = new mongoose.Schema(
 
     appointmentData:{
       type: Object,
+    },
+    leadData:{
+      type: Object,
     }
   },
   {

@@ -91,7 +91,7 @@ export const getAllCenters = async (req, res) => {
 export const getCenterById = async (req, res) => {
     try {
         const { id } = req.params;
-        const center = await Center.findById(id);
+        const center = await Center.findById(id).select("-centerImage"); // Exclude centerImage field
         if (!center) {
             return res.status(404).json({ message: "Center not found", success: false });
         }

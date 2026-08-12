@@ -35,7 +35,7 @@ export const addAd = async (req, res) => {
     });
 
     if (existingAd) {
-      return res.status(409).json({
+      return res.status(201).json({
         message: "An ad for this patient has already been added within the last 7 days",
         success: true,
         ad: existingAd,

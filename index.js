@@ -116,6 +116,7 @@ app.use("/api/v1/authors", routes.authorRoute);
 app.use("/api/v1/keywords", routes.keywordRoute);
 app.use("/api/v1/seos", routes.seoRoute);
 app.use("/api/v1/leads", routes.leadRoute);
+app.use("/api/v1/ads", routes.adRoute);
 
 startWhatsAppReminderCron();
 

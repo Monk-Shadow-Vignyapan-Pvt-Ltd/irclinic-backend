@@ -1,6 +1,7 @@
 import axios from "axios";
 import crypto from "crypto";
 import {IciciPayment} from "../models/iciciPayment.model.js";
+import { Ad } from '../models/ad.model.js';
 import { Appointment } from '../models/appointment.model.js'; 
 import { CaseCounter } from '../models/caseCounter.model.js';
 import { Center } from '../models/center.model.js';
@@ -548,7 +549,7 @@ export const initiateAdPayment = async (req, res) => {
       amount,
       customerName,
       customerMobileNo,
-      leadData,
+      adData,
     } = req.body;
 
     // VALIDATION
@@ -646,7 +647,7 @@ export const initiateAdPayment = async (req, res) => {
       amount,
       customerName,
       customerMobileNo,
-      leadData,
+      adData,
       txnDate,
       secureHash,
       hashText,
@@ -672,6 +673,13 @@ export const initiateAdPayment = async (req, res) => {
       paymentDoc.status = "INITIATED";
 
       await paymentDoc.save();
+
+      await Ad.findByIdAndUpdate(adData._id, {
+        paymentStatus: "Pending",
+        paymentId: paymentDoc._id,
+        paymentAmount:amount,
+        merchantTxnNo:merchantTxnNo
+      });
 
       return res.status(200).json({
         success: true,
@@ -805,12 +813,20 @@ export const checkAdPaymentStatus = async (
 
       const iciciData = response.data;
 
+
+
         if (
         iciciData?.txnStatus === "SUC" ||
         iciciData?.responseCode === "000" ||
         iciciData?.txnResponseCode === "0000"
         ) {
         payment.status = "SUCCESS";
+        await Ad.findByIdAndUpdate(payment.adData._id, {
+          paymentStatus: "Paid",
+          paymentId: payment._id,
+          paymentAmount:iciciData.amount,
+          paymentMode:iciciData.paymentMode
+        });
     
         } else if (
         iciciData?.txnStatus === "PENDING"
@@ -818,9 +834,14 @@ export const checkAdPaymentStatus = async (
         payment.status = "PENDING";
         } else {
         payment.status = "FAILED";
+        await Ad.findByIdAndUpdate(payment.adData._id, {
+          paymentStatus: "Failed",
+          paymentId: payment._id,
+          paymentAmount:iciciData.amount,
+          paymentMode:iciciData.paymentMode
         }
-
-    
+        );
+      }
 
     await payment.save();
 

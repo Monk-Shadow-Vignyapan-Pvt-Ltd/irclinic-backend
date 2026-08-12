@@ -49,6 +49,7 @@ import authorRoute from "./author.route.js";
 import keywordRoute from "./keyword.route.js";
 import seoRoute from "./seo.route.js";
 import leadRoute from "./lead.route.js";
+import adRoute from "./ad.route.js";
 
 const routes = {
   adminDoctorRoute,
@@ -101,7 +102,8 @@ const routes = {
   authorRoute,
   keywordRoute,
   seoRoute,
-  leadRoute
+  leadRoute,
+  adRoute
 };
 
 export default routes;

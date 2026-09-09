@@ -141,94 +141,147 @@ export const getEstimates = async (req, res) => {
 
 export const getEstimatesExcel = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { startDate, endDate } = req.query;
-    const search = req.query.search || "";
-    const status = req.query.status || "";
+     const { id } = req.params;
+        const { startDate, endDate, doctorId } = req.query;
 
-    const filter = {};
+        const search = req.query.search || "";
+        const status = req.query.status || "";
 
-    let patientIds = [];
-    let appointmentIds = [];
+        let patientIds = [];
+        let appointmentIds = [];
 
-    if (search) {
-      const matchedPatients = await Patient.find({
-        patientName: { $regex: search, $options: "i" },
-      }).select("_id");
+        // 🔎 Search
+        if (search) {
+            const matchedPatients = await Patient.find({
+                patientName: { $regex: search, $options: "i" },
+            }).select("_id");
 
-      patientIds = matchedPatients.map(p => p._id);
+            patientIds = matchedPatients.map(p => p._id);
 
-      const matchedAppointments = await Appointment.find({
-        title: { $regex: search, $options: "i" },
-      }).select("_id");
+            const matchedAppointments = await Appointment.find({
+                title: { $regex: search, $options: "i" },
+            }).select("_id");
 
-      appointmentIds = matchedAppointments.map(a => a._id);
-    }
+            appointmentIds = matchedAppointments.map(a => a._id);
+        }
 
-    const matchStage = {
-      centerId: new mongoose.Types.ObjectId(id),
-    };
+        // 👨‍⚕️ Doctor filter
+        let doctorAppointmentIds = [];
 
-    // 📅 Add date range condition
-    const istOffset = 5.5 * 60 * 60000; // 5.5 hours in milliseconds
+        if (doctorId) {
+            const doctorAppointments = await Appointment.find({
+                doctorId: new mongoose.Types.ObjectId(doctorId),
+                centerId: new mongoose.Types.ObjectId(id),
+            }).select("_id");
 
-    if (startDate && endDate) {
-      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
-      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
+            doctorAppointmentIds = doctorAppointments.map(a => a._id);
+        }
 
-      matchStage.createdAt = {
-        $gte: start,
-        $lte: end,
-      };
-    } else if (startDate) {
-      const start = new Date(new Date(startDate).setHours(0, 0, 0, 0) - istOffset);
-      matchStage.createdAt = { $gte: start };
-    } else if (endDate) {
-      const end = new Date(new Date(endDate).setHours(23, 59, 59, 999) - istOffset);
-      matchStage.createdAt = { $lte: end };
-    }
+        const matchStage = {
+            centerId: new mongoose.Types.ObjectId(id),
+        };
 
-      const orConditions = [];
+        // 👨‍⚕️ Apply doctor filter
+        if (doctorId) {
+            matchStage.appointmentId = {
+                $in: doctorAppointmentIds,
+            };
+        }
 
-    if (patientIds.length) {
-      orConditions.push({ patientId: { $in: patientIds } });
-    }
-    if (appointmentIds.length) {
-      orConditions.push({ appointmentId: { $in: appointmentIds } });
-    }
+        // 📅 Date range
+        const istOffset = 5.5 * 60 * 60000;
 
-    if (search) {
-      orConditions.push({
-        "estimatePlan.procedureName": { $regex: search, $options: "i" },
-      });
-    }
+        if (startDate && endDate) {
+            const start = new Date(
+                new Date(startDate).setHours(0, 0, 0, 0) - istOffset
+            );
 
-    if (search) {
-      orConditions.push({
-        "estimatePlan.hospital.name": { $regex: search, $options: "i" },
-      });
-    }
+            const end = new Date(
+                new Date(endDate).setHours(23, 59, 59, 999) - istOffset
+            );
 
-    if (orConditions.length) {
-      matchStage.$or = orConditions;
-    }
+            matchStage.createdAt = {
+                $gte: start,
+                $lte: end,
+            };
+        } else if (startDate) {
+            const start = new Date(
+                new Date(startDate).setHours(0, 0, 0, 0) - istOffset
+            );
 
-    const basePipeline = [
-      { $match: matchStage },
-      ...(status
-        ? [
-            { $addFields: { lastFollowup: { $arrayElemAt: ["$followups", -1] } } },
-            { $match: { "lastFollowup.followStatus": status } },
-          ]
-        : []),
-    ];
+            matchStage.createdAt = {
+                $gte: start,
+            };
+        } else if (endDate) {
+            const end = new Date(
+                new Date(endDate).setHours(23, 59, 59, 999) - istOffset
+            );
 
+            matchStage.createdAt = {
+                $lte: end,
+            };
+        }
 
-   const estimates = await Estimate.aggregate([
-      ...basePipeline,
-      { $sort: { _id: -1 } },
-      
-    ]);
+        // 🔎 Search conditions
+        const orConditions = [];
+
+        if (patientIds.length) {
+            orConditions.push({
+                patientId: { $in: patientIds },
+            });
+        }
+
+        if (appointmentIds.length) {
+            orConditions.push({
+                appointmentId: { $in: appointmentIds },
+            });
+        }
+
+        if (search) {
+            orConditions.push({
+                "estimatePlan.procedureName": {
+                    $regex: search,
+                    $options: "i",
+                },
+            });
+
+            orConditions.push({
+                "estimatePlan.hospital.name": {
+                    $regex: search,
+                    $options: "i",
+                },
+            });
+        }
+
+        if (orConditions.length) {
+            matchStage.$or = orConditions;
+        }
+
+        const basePipeline = [
+            { $match: matchStage },
+
+            ...(status
+                ? [
+                      {
+                          $addFields: {
+                              lastFollowup: {
+                                  $arrayElemAt: ["$followups", -1],
+                              },
+                          },
+                      },
+                      {
+                          $match: {
+                              "lastFollowup.followStatus": status,
+                          },
+                      },
+                  ]
+                : []),
+        ];
+
+        const estimates = await Estimate.aggregate([
+            ...basePipeline,
+            { $sort: { _id: -1 } },
+        ]);
 
     // 🔁 Enrich with patient/appointment names
     const enhancedEstimates = await Promise.all(
@@ -338,6 +391,7 @@ export const getPaginatedEstimates = async (req, res) => {
     const status = req.query.status || "";
     const startDate = req.query.startDate; // Format: 'YYYY-MM-DD'
     const endDate = req.query.endDate;     // Format: 'YYYY-MM-DD'
+    const doctorId = req.query.doctorId || null; // Optional doctor filter
     const limit = 10;
     const skip = (page - 1) * limit;
 
@@ -358,9 +412,26 @@ export const getPaginatedEstimates = async (req, res) => {
       appointmentIds = matchedAppointments.map(a => a._id);
     }
 
+     let doctorAppointmentIds = [];
+
+        if (doctorId) {
+            const doctorAppointments = await Appointment.find({
+                doctorId: new mongoose.Types.ObjectId(doctorId),
+            }).select("_id");
+
+            doctorAppointmentIds = doctorAppointments.map(a => a._id);
+        }
+
     const matchStage = {
       centerId: new mongoose.Types.ObjectId(id),
     };
+
+    // 👨‍⚕️ Apply doctor filter
+        if (doctorId) {
+            matchStage.appointmentId = {
+                $in: doctorAppointmentIds,
+            };
+        }
 
     // 📅 Add date range condition
      const istOffset = 5.5 * 60 * 60000; // 5.5 hours in milliseconds
@@ -434,17 +505,22 @@ export const getPaginatedEstimates = async (req, res) => {
     const enhancedEstimates = await Promise.all(
       estimates.map(async (estimate) => {
         let patientName = "N/A";
+        let doctorName = "N/A";
 
         try {
           // Case 1: From appointment
           if (estimate?.appointmentId) {
-            const appointment = await Appointment.findById(estimate.appointmentId);
+            const appointment = await Appointment.findById(estimate.appointmentId).populate('doctorId','firstName lastName');
 
             if (appointment?.patientId) {
               const patientApt = await Patient.findById(appointment.patientId);
               if (patientApt?.patientName) {
                 patientName = patientApt.patientName;
               }
+            }
+
+            if (appointment?.doctorId) {
+              doctorName = `${appointment.doctorId.firstName} ${appointment.doctorId.lastName}`;
             }
           }
 
@@ -461,6 +537,8 @@ export const getPaginatedEstimates = async (req, res) => {
         }
 
         estimate.patientName = patientName;
+        estimate.doctorName = doctorName;
+
 
         return estimate;
       })

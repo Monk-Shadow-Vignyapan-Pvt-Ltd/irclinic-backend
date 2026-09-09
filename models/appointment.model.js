@@ -18,6 +18,7 @@ const appointmentSchema = new mongoose.Schema(
     doctorId: {
       type: mongoose.Schema.Types.ObjectId,
       required: false,
+      ref:"Doctor"
     },
     centerId: {
       type: mongoose.Schema.Types.ObjectId,

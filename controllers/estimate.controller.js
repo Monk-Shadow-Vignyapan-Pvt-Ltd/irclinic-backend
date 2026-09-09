@@ -234,17 +234,22 @@ export const getEstimatesExcel = async (req, res) => {
     const enhancedEstimates = await Promise.all(
       estimates.map(async (estimate) => {
         let patientName = "N/A";
+        let doctorName = "N/A";
 
         try {
           // Case 1: From appointment
           if (estimate?.appointmentId) {
-            const appointment = await Appointment.findById(estimate.appointmentId);
+            const appointment = await Appointment.findById(estimate.appointmentId).populate('doctorId','firstName lastName');
 
             if (appointment?.patientId) {
               const patientApt = await Patient.findById(appointment.patientId);
               if (patientApt?.patientName) {
                 patientName = patientApt.patientName;
               }
+            }
+
+            if (appointment?.doctorId) {
+              doctorName = `${appointment.doctorId.firstName} ${appointment.doctorId.lastName}`;
             }
           }
 
@@ -261,6 +266,8 @@ export const getEstimatesExcel = async (req, res) => {
         }
 
         estimate.patientName = patientName;
+        estimate.doctorName = doctorName;
+
 
         return estimate;
       })
@@ -273,6 +280,7 @@ export const getEstimatesExcel = async (req, res) => {
     worksheet.columns = [
       { header: 'Est. DATE', key: 'createdAt', width: 20 },
       { header: 'PATIENT NAME', key: 'patientName', width: 30 },
+      { header: 'DOCTOR NAME', key: 'doctorName', width: 30 },
       { header: 'HOSPITAL NAME', key: 'hospitalName', width: 30 },
       { header: 'Procedures', key: 'procedures', width: 30 },
       { header: 'GRAND TOTAL', key: 'grandTotal', width: 30 },
@@ -289,6 +297,7 @@ export const getEstimatesExcel = async (req, res) => {
         ? new Date(invoice.createdAt).toLocaleDateString('en-GB').replace(/\//g, '-')
         : '',
         patientName: invoice?.patientName || 'N/A',
+        doctorName: invoice?.doctorName || 'N/A',
         hospitalName: invoice?.estimatePlan?.length > 0 && invoice.estimatePlan[0]?.hospital
         ? invoice.estimatePlan[0].hospital.name
         : "",

@@ -363,7 +363,8 @@ export const getAppointments = async (req, res) => {
             ...app._doc,
             title: app.patientId?.patientName || 'Unnamed Patient',
             patientId:app.patientId?._id,
-            patient:app.patientId
+            patient:app.patientId,
+            fromCamp: app.patientId?.fromCamp || false,
         }));
 
         res.status(200).json({ appointments:mappedAppointments, success: true });

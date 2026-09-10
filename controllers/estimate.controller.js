@@ -288,6 +288,7 @@ export const getEstimatesExcel = async (req, res) => {
       estimates.map(async (estimate) => {
         let patientName = "N/A";
         let doctorName = "N/A";
+        let patientPhone = "N/A";
 
         try {
           // Case 1: From appointment
@@ -298,6 +299,7 @@ export const getEstimatesExcel = async (req, res) => {
               const patientApt = await Patient.findById(appointment.patientId);
               if (patientApt?.patientName) {
                 patientName = patientApt.patientName;
+                patientPhone = patientApt.phoneNo || "N/A";
               }
             }
 
@@ -311,6 +313,7 @@ export const getEstimatesExcel = async (req, res) => {
             const patient = await Patient.findById(estimate.patientId);
             if (patient?.patientName) {
               patientName = patient.patientName;
+              patientPhone = patient.phoneNo || "N/A";
             }
           }
 
@@ -320,7 +323,7 @@ export const getEstimatesExcel = async (req, res) => {
 
         estimate.patientName = patientName;
         estimate.doctorName = doctorName;
-
+        estimate.patientPhone = patientPhone;
 
         return estimate;
       })
@@ -333,6 +336,7 @@ export const getEstimatesExcel = async (req, res) => {
     worksheet.columns = [
       { header: 'Est. DATE', key: 'createdAt', width: 20 },
       { header: 'PATIENT NAME', key: 'patientName', width: 30 },
+      { header: 'PATIENT PHONE', key: 'patientPhone', width: 20 },
       { header: 'DOCTOR NAME', key: 'doctorName', width: 30 },
       { header: 'HOSPITAL NAME', key: 'hospitalName', width: 30 },
       { header: 'Procedures', key: 'procedures', width: 30 },
@@ -350,6 +354,7 @@ export const getEstimatesExcel = async (req, res) => {
         ? new Date(invoice.createdAt).toLocaleDateString('en-GB').replace(/\//g, '-')
         : '',
         patientName: invoice?.patientName || 'N/A',
+        patientPhone: invoice?.patientPhone || 'N/A',
         doctorName: invoice?.doctorName || 'N/A',
         hospitalName: invoice?.estimatePlan?.length > 0 && invoice.estimatePlan[0]?.hospital
         ? invoice.estimatePlan[0].hospital.name

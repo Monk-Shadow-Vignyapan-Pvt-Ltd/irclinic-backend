@@ -640,12 +640,14 @@ export const updateAppointment = async (req, res) => {
 
         let reportsChanged = false;
 
-      if (reports && existingAppointment.reports) {
-          // ✅ If new reports count is greater → a new report was added
-          if (reports.length > existingAppointment.reports.length) {
-              reportsChanged = true;
-          }
-      }
+      const newReports = Array.isArray(reports) ? reports : [];
+    const oldReports = Array.isArray(existingAppointment.reports)
+        ? existingAppointment.reports
+        : [];
+
+    if (newReports.length > oldReports.length) {
+        reportsChanged = true;
+    }
 
         const appointment = await Appointment.findByIdAndUpdate(id, updatedData, { new: true, runValidators: true });
 
@@ -910,7 +912,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -921,42 +923,125 @@ const formattedTime = appointmentDate.format('hh:mm A');
 
     }
 
-    if (enrichedProcedures.length > 0) {
-        const procedureLines = enrichedProcedures.map(proc => {
-          if (proc.link) {
-            return `🔹 *${proc.name}*: ${proc.link}`;
-          }
-          return '';
-        });
+    // if (enrichedProcedures.length > 0) {
+    //     const procedureLines = enrichedProcedures.map(proc => {
+    //       if (proc.link) {
+    //         return `🔹 *${proc.name}*: ${proc.link}`;
+    //       }
+    //       return '';
+    //     });
       
-        // Join with commas instead of newlines
-        procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
-      }
+    //     // Join with commas instead of newlines
+    //     procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+    //   }
+
+    // const payload = {
+    //     apiKey: process.env.AISENSY_API_KEY,
+    //     campaignName: "Appointment Confirmation2",  // ✅ Must match your campaign in Aisensy
+    //     subCampaignName: appointment._id.toString(), // ✅ Unique per message
+    //     destination: `+91${patient.phoneNo}`,
+    //     userName: "IR Clinic",
+    //     templateParams: [
+    //       patient.patientName,
+    //       formattedDate,
+    //       formattedTime,
+    //       `${doctor.firstName} ${doctor.lastName}`,
+    //       center.centerAddress || "IR Clinic",
+    //       center.adminPhoneNo || "0000000000",
+    //       procedureSection.trim() || "https://irclinicindia.com/"
+    //     ],
+    //     source: "new-landing-page form",
+    //     paramsFallbackValue: {
+    //       FirstName: "user"
+    //     }
+    //   };
 
     const payload = {
-        apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Appointment Confirmation2",  // ✅ Must match your campaign in Aisensy
-        subCampaignName: appointment._id.toString(), // ✅ Unique per message
-        destination: `+91${patient.phoneNo}`,
-        userName: "IR Clinic",
-        templateParams: [
-          patient.patientName,
-          formattedDate,
-          formattedTime,
-          `${doctor.firstName} ${doctor.lastName}`,
-          center.centerAddress || "IR Clinic",
-          center.adminPhoneNo || "0000000000",
-          procedureSection.trim() || "https://irclinicindia.com/"
-        ],
-        source: "new-landing-page form",
-        paramsFallbackValue: {
-          FirstName: "user"
-        }
-      };
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "appointment_confirmation_ir",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: formattedDate
+                      },
+                      {
+                        type: "text",
+                        text: formattedTime
+                      },
+                      {
+                        type: "text",
+                        text: `${doctor.firstName} ${doctor.lastName}`
+                      },
+                      {
+                        type: "text",
+                        text: center.centerAddress || "IR Clinic"
+                      },
+                      {
+                        type: "text",
+                        text: center.adminPhoneNo || "0000000000"
+                      }
+                    ]
+                  },
+                  {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+
+                parameters: [
+                  {
+                    type: "text",
+                    text:enrichedProcedures.length>0 ? enrichedProcedures[0]?.link : "?t=1778583180000"
+                  }
+                ]
+              }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
 
     try {
-        const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+        //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
         //console.log("WhatsApp API Response:", data);
+
+        const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
     } catch (err) {
         console.error("WhatsApp API Error:", err.response?.data || err.message);
     }
@@ -990,7 +1075,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -1001,42 +1086,130 @@ const formattedTime = appointmentDate.format('hh:mm A');
 
     }
 
-    if (enrichedProcedures.length > 0) {
-        const procedureLines = enrichedProcedures.map(proc => {
-          if (proc.link) {
-            return `🔹 *${proc.name}*: ${proc.link}`;
-          }
-          return '';
-        });
+    // if (enrichedProcedures.length > 0) {
+    //     const procedureLines = enrichedProcedures.map(proc => {
+    //       if (proc.link) {
+    //         return `🔹 *${proc.name}*: ${proc.link}`;
+    //       }
+    //       return '';
+    //     });
       
-        // Join with commas instead of newlines
-        procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
-      }
+    //     // Join with commas instead of newlines
+    //     procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+    //   }
 
-    const payload = {
-        apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Followup Appointment Confirmation",  // ✅ Must match your campaign in Aisensy
-        subCampaignName: appointment._id.toString(), // ✅ Unique per message
-        destination: `+91${patient.phoneNo}`,
-        userName: "IR Clinic",
-        templateParams: [
-          patient.patientName,
-          formattedDate,
-          formattedTime,
-          `${doctor.firstName} ${doctor.lastName}`,
-          center.centerAddress || "IR Clinic",
-          center.adminPhoneNo || "0000000000",
-          procedureSection.trim() || "https://irclinicindia.com/"
-        ],
-        source: "new-landing-page form",
-        paramsFallbackValue: {
-          FirstName: "user"
-        }
-      };
+    // const payload = {
+    //     apiKey: process.env.AISENSY_API_KEY,
+    //     campaignName: "Followup Appointment Confirmation",  // ✅ Must match your campaign in Aisensy
+    //     subCampaignName: appointment._id.toString(), // ✅ Unique per message
+    //     destination: `+91${patient.phoneNo}`,
+    //     userName: "IR Clinic",
+    //     templateParams: [
+    //       patient.patientName,
+    //       formattedDate,
+    //       formattedTime,
+    //       `${doctor.firstName} ${doctor.lastName}`,
+    //       center.centerAddress || "IR Clinic",
+    //       center.adminPhoneNo || "0000000000",
+    //       procedureSection.trim() || "https://irclinicindia.com/"
+    //     ],
+    //     source: "new-landing-page form",
+    //     paramsFallbackValue: {
+    //       FirstName: "user"
+    //     }
+    //   };
+
+      const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "followup_appointment_confirmation_irclinic",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: formattedDate
+                      },
+                      {
+                        type: "text",
+                        text: formattedTime
+                      },
+                      {
+                        type: "text",
+                        text: `${doctor.firstName} ${doctor.lastName}`
+                      },
+                      {
+                        type: "text",
+                        text: center.centerAddress || "IR Clinic"
+                      },
+                      {
+                        type: "text",
+                        text: center.adminPhoneNo || "0000000000"
+                      }
+                    ]
+                  },
+                  {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+
+                parameters: [
+                  {
+                    type: "text",
+                    text:enrichedProcedures.length>0 ? enrichedProcedures[0]?.link : "?t=1778583180000"
+                  }
+                ]
+              }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
 
     try {
-        const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
-        //console.log("WhatsApp API Response:", data);
+        //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+        // const {data} = await axios.post(`https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}@api.exotel.com/v2/accounts/irclinic1/messages`, payload);
+        // console.log("WhatsApp API Response:", data);
+
+      const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+
+
+
+
     } catch (err) {
         console.error("WhatsApp API Error:", err.response?.data || err.message);
     }
@@ -1060,27 +1233,95 @@ const formattedTime = appointmentDate.format('hh:mm A');
 
   
 
-  const payload = {
-      apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Appointment Confirmation Reference1",  // ✅ Must match your campaign in Aisensy
-      subCampaignName: appointment._id.toString(), // ✅ Unique per message
-      destination: `+91${patient.reference.referencePhoneNo}`,
-      userName: "IR Clinic",
-      templateParams: [
-        patient.reference.label,
-        patient.patientName,
-        formattedDate,
-        formattedTime,
-        center.centerAddress || "IR Clinic",
-      ],
-      source: "new-landing-page form",
-      paramsFallbackValue: {
-        FirstName: "user"
+  // const payload = {
+  //     apiKey: process.env.AISENSY_API_KEY,
+  //     campaignName: "Appointment Confirmation Reference1",  // ✅ Must match your campaign in Aisensy
+  //     subCampaignName: appointment._id.toString(), // ✅ Unique per message
+  //     destination: `+91${patient.reference.referencePhoneNo}`,
+  //     userName: "IR Clinic",
+  //     templateParams: [
+  //       patient.reference.label,
+  //       patient.patientName,
+  //       formattedDate,
+  //       formattedTime,
+  //       center.centerAddress || "IR Clinic",
+  //     ],
+  //     source: "new-landing-page form",
+  //     paramsFallbackValue: {
+  //       FirstName: "user"
+  //     }
+  //   };
+
+    const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.reference.referencePhoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "appointment_confirmation_reference",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.reference.label
+                      },
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: formattedDate
+                      },
+                      {
+                        type: "text",
+                        text: formattedTime
+                      },
+                      {
+                        type: "text",
+                        text: center.centerAddress || "IR Clinic"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
       }
     };
 
   try {
-      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+
+// console.log("WhatsApp message sent to reference. Response:", response.data);
       //console.log("WhatsApp API Response:", data);
   } catch (err) {
       console.error("WhatsApp API Error:", err.response?.data || err.message);
@@ -1143,25 +1384,91 @@ const sendRefAppointmentImpression = async (patient, reports) => {
   const formattedDate = appointmentDate.format('DD/MM/YYYY');
   const formattedTime = appointmentDate.format('hh:mm A');
 
-  const payload = {
-    apiKey: process.env.AISENSY_API_KEY,
-    campaignName: "Follow Up Impression Reference1", 
-    subCampaignName: patient._id.toString(),
-    destination: `+91${patient.reference.referencePhoneNo}`,
-    userName: "IR Clinic",
-    templateParams: [
-      patient.reference.label,
-      formattedDate,
-      formattedTime,
-      patient.patientName,
-      lastReport.impression.replace(/<[^>]*>/g, '').trim(),  // ✅ LAST IMPRESSION
-    ],
-    source: "new-landing-page form",
-    paramsFallbackValue: { FirstName: "user" }
-  };
+  // const payload = {
+  //   apiKey: process.env.AISENSY_API_KEY,
+  //   campaignName: "Follow Up Impression Reference1", 
+  //   subCampaignName: patient._id.toString(),
+  //   destination: `+91${patient.reference.referencePhoneNo}`,
+  //   userName: "IR Clinic",
+  //   templateParams: [
+  //     patient.reference.label,
+  //     formattedDate,
+  //     formattedTime,
+  //     patient.patientName,
+  //     lastReport.impression.replace(/<[^>]*>/g, '').trim(),  // ✅ LAST IMPRESSION
+  //   ],
+  //   source: "new-landing-page form",
+  //   paramsFallbackValue: { FirstName: "user" }
+  // };
+
+   const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.reference.referencePhoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "followup_impression_reference_irclinic",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.reference.label
+                      },
+                      {
+                        type: "text",
+                        text: formattedDate
+                      },
+                      {
+                        type: "text",
+                        text: formattedTime
+                      },
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: lastReport.impression.replace(/<[^>]*>/g, '').trim()
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
 
   try {
-    await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+    //await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+    const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
   } catch (err) {
     console.error("WhatsApp API Error:", err.response?.data || err.message);
   }
@@ -1179,38 +1486,107 @@ const sendPatientInvoice = async (patient, invoiceId,center) => {
   }
 
 
+  // const payload = {
+  //     apiKey: process.env.AISENSY_API_KEY,
+  //     campaignName: "Patient Invoice Send1",  // ✅ Must match your campaign in Aisensy
+  //     subCampaignName: patient._id.toString(), // ✅ Unique per message
+  //     destination: `+91${patient.phoneNo}`,
+  //     userName: "IR Clinic",
+  //     templateParams: [
+  //       patient.patientName,
+  //       link
+  //     ],
+  //     source: "new-landing-page form",
+  //     paramsFallbackValue: {
+  //       FirstName: "user"
+  //     },
+  //      media: {
+  //     url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+  //     filename: `Invoice_${invoice.invoicePlan[0].receiptNo}.pdf`
+  //     },
+  //   //   media: [
+  //   //   {
+  //   //     type: "document",
+  //   //    // url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+  //   //    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  //   //    // filename: `Invoice_${invoice._id}.pdf`
+  //   //     filename: "Dummy_Invoice.pdf"
+  //   //   }
+  //   // ]
+  //   };
+
   const payload = {
-      apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Patient Invoice Send1",  // ✅ Must match your campaign in Aisensy
-      subCampaignName: patient._id.toString(), // ✅ Unique per message
-      destination: `+91${patient.phoneNo}`,
-      userName: "IR Clinic",
-      templateParams: [
-        patient.patientName,
-        link
-      ],
-      source: "new-landing-page form",
-      paramsFallbackValue: {
-        FirstName: "user"
-      },
-       media: {
-      url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
-      filename: `Invoice_${invoice.invoicePlan[0].receiptNo}.pdf`
-      },
-    //   media: [
-    //   {
-    //     type: "document",
-    //    // url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
-    //    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    //    // filename: `Invoice_${invoice._id}.pdf`
-    //     filename: "Dummy_Invoice.pdf"
-    //   }
-    // ]
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "patient_invoice_template",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                      "type": "header",
+                      "parameters": [
+                        {
+                          "type": "document",
+                          "document": {
+                            "link": `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+                            "filename": `Invoice_${invoice.invoicePlan[0].receiptNo}.pdf`
+                          }
+                        }
+                      ]
+                    },
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: link
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
     };
 
   try {
-      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
       //console.log("WhatsApp API Response:", data);
+
+      const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+
+
   } catch (err) {
       console.error("WhatsApp API Error:", err.response?.data || err.message);
   }
@@ -1220,8 +1596,19 @@ const sendPatientInvoice = async (patient, invoiceId,center) => {
 
 const sendWhatsApp = async (payload) => {
     try {
-      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
       //console.log("AISensy Response:", data);
+
+      const url =
+        `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+        `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+      const response = await axios.post(url, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      });
     } catch (err) {
       console.error("AISensy Error:", err.response?.data || err.message);
     }
@@ -1259,7 +1646,7 @@ const sendWhatsApp = async (payload) => {
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -1270,32 +1657,88 @@ const sendWhatsApp = async (payload) => {
 
     }
 
-    if (enrichedProcedures.length > 0) {
-        const procedureLines = enrichedProcedures.map(proc => {
-          if (proc.link) {
-            return `🔹 *${proc.name}*: ${proc.link}`;
-          }
-          return '';
-        });
+    // if (enrichedProcedures.length > 0) {
+    //     const procedureLines = enrichedProcedures.map(proc => {
+    //       if (proc.link) {
+    //         return `🔹 *${proc.name}*: ${proc.link}`;
+    //       }
+    //       return '';
+    //     });
       
-        // Join with commas instead of newlines
-        procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
-      }
+    //     // Join with commas instead of newlines
+    //     procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+    //   }
   
-      const payload = {
-        apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Missing Appointments1",
-        destination: `+91${patient.phoneNo}`,
-        userName: "IR Clinic",
-        templateParams: [
-          patient.patientName,
-          procedureSection.trim() || "https://irclinicindia.com/"
-        ],
-        source: "new-landing-page form",
-        paramsFallbackValue: {
-          FirstName: "user"
-        }
-      };
+      // const payload = {
+      //   apiKey: process.env.AISENSY_API_KEY,
+      //   campaignName: "Missing Appointments1",
+      //   destination: `+91${patient.phoneNo}`,
+      //   userName: "IR Clinic",
+      //   templateParams: [
+      //     patient.patientName,
+      //     procedureSection.trim() || "https://irclinicindia.com/"
+      //   ],
+      //   source: "new-landing-page form",
+      //   paramsFallbackValue: {
+      //     FirstName: "user"
+      //   }
+      // };
+       const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "missed_appointment_reminder_irclinic",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: today.format("DD/MM/YYYY")
+                      }
+                      
+                    ]
+                  },
+                  {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+
+                parameters: [
+                  {
+                    type: "text",
+                    text:enrichedProcedures.length>0 ? enrichedProcedures[0]?.link : "?t=1778583180000"
+                  }
+                ]
+              }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
       await sendWhatsApp(payload);
     }
   
@@ -1318,6 +1761,11 @@ const sendWhatsApp = async (payload) => {
       if (!patient || !doctor || !center) continue;
   
       const apptDate = moment(appt.start).format("DD/MM/YYYY");
+      const appointmentDate = moment.utc(appt.start).add(5, 'hours').add(30, 'minutes');
+
+        // Format date and time for message
+        const formattedDate = appointmentDate.format('DD/MM/YYYY');
+        const formattedTime = appointmentDate.format('hh:mm A');
       let procedureSection = '';
       let enrichedProcedures = [];
 
@@ -1330,7 +1778,7 @@ const sendWhatsApp = async (payload) => {
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `https://irclinicindia.com/procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || ""
                         };
                     }
                 }
@@ -1341,35 +1789,106 @@ const sendWhatsApp = async (payload) => {
 
     }
 
-    if (enrichedProcedures.length > 0) {
-        const procedureLines = enrichedProcedures.map(proc => {
-          if (proc.link) {
-            return `🔹 *${proc.name}*: ${proc.link}`;
-          }
-          return '';
-        });
+    // if (enrichedProcedures.length > 0) {
+    //     const procedureLines = enrichedProcedures.map(proc => {
+    //       if (proc.link) {
+    //         return `🔹 *${proc.name}*: ${proc.link}`;
+    //       }
+    //       return '';
+    //     });
       
-        // Join with commas instead of newlines
-        procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
-      }
+    //     // Join with commas instead of newlines
+    //     procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+    //   }
   
+      // const payload = {
+      //   apiKey: process.env.AISENSY_API_KEY,
+      //   campaignName: "Follow Up Appointments1",
+      //   destination: `+91${patient.phoneNo}`,
+      //   userName: "IR Clinic",
+      //   templateParams: [
+      //     patient.patientName,
+      //     apptDate,
+      //     `${doctor.firstName} ${doctor.lastName}`,
+      //     center.centerAddress || "IR Clinic",
+      //     procedureSection.trim() || "https://irclinicindia.com/"
+      //   ],
+      //   source: "new-landing-page form",
+      //   paramsFallbackValue: {
+      //     FirstName: "user"
+      //   }
+      // };
       const payload = {
-        apiKey: process.env.AISENSY_API_KEY,
-        campaignName: "Follow Up Appointments1",
-        destination: `+91${patient.phoneNo}`,
-        userName: "IR Clinic",
-        templateParams: [
-          patient.patientName,
-          apptDate,
-          `${doctor.firstName} ${doctor.lastName}`,
-          center.centerAddress || "IR Clinic",
-          procedureSection.trim() || "https://irclinicindia.com/"
-        ],
-        source: "new-landing-page form",
-        paramsFallbackValue: {
-          FirstName: "user"
-        }
-      };
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "followup_appointment_confirmation_irclinic",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: formattedDate
+                      },
+                      {
+                        type: "text",
+                        text: formattedTime
+                      },
+                      {
+                        type: "text",
+                        text: `${doctor.firstName} ${doctor.lastName}`
+                      },
+                      {
+                        type: "text",
+                        text: center.centerAddress || "IR Clinic"
+                      },
+                      {
+                        type: "text",
+                        text: center.adminPhoneNo || "0000000000"
+                      }
+                    ]
+                  },
+                  {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+
+                parameters: [
+                  {
+                    type: "text",
+                    text:enrichedProcedures.length>0 ? enrichedProcedures[0]?.link : "?t=1778583180000"
+                  }
+                ]
+              }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
       await sendWhatsApp(payload);
     }
   
@@ -1378,93 +1897,93 @@ const sendWhatsApp = async (payload) => {
    const tomorrowEnd = moment().add(1, 'day').endOf('day').toDate();
  
   // Find appointments with procedurePlan where dateTime as a string is within tomorrow's range
-  const procedureAppointments = await Appointment.find({
-    "procedurePlan": {
-      $elemMatch: {
-        dateTime: {
-          $gte: tomorrowStart.toISOString(),  // Convert to ISO string for comparison
-          $lt: tomorrowEnd.toISOString()     // Convert to ISO string for comparison
-        }
-      }
-    },
-    appointmentType:"OPD"
-  });
+//   const procedureAppointments = await Appointment.find({
+//     "procedurePlan": {
+//       $elemMatch: {
+//         dateTime: {
+//           $gte: tomorrowStart.toISOString(),  // Convert to ISO string for comparison
+//           $lt: tomorrowEnd.toISOString()     // Convert to ISO string for comparison
+//         }
+//       }
+//     },
+//     appointmentType:"OPD"
+//   });
 
-for (const appt of procedureAppointments) {
-  const [patient, doctor, center] = await Promise.all([
-    Patient.findById(appt.patientId),
-    Doctor.findById(appt.doctorId),
-    Center.findById(appt.centerId),
-  ]);
-  if (!patient || !doctor || !center) continue;
+// for (const appt of procedureAppointments) {
+//   const [patient, doctor, center] = await Promise.all([
+//     Patient.findById(appt.patientId),
+//     Doctor.findById(appt.doctorId),
+//     Center.findById(appt.centerId),
+//   ]);
+//   if (!patient || !doctor || !center) continue;
 
-  // 🔹 Get the first procedurePlan entry that matches tomorrow
-  const matchingProcedure = appt.procedurePlan.find(p => {
-    const dt = new Date(p.dateTime);
-    return dt >= tomorrowStart && dt < tomorrowEnd;
-  });
-  if (!matchingProcedure) continue;
+//   // 🔹 Get the first procedurePlan entry that matches tomorrow
+//   const matchingProcedure = appt.procedurePlan.find(p => {
+//     const dt = new Date(p.dateTime);
+//     return dt >= tomorrowStart && dt < tomorrowEnd;
+//   });
+//   if (!matchingProcedure) continue;
 
-  const procedureDate = moment(matchingProcedure.dateTime).format("DD/MM/YYYY");
-  const procedureTime = moment(matchingProcedure.dateTime).format("hh:mm A");
-  const procedureName = matchingProcedure.procedureName || "Procedure";
+//   const procedureDate = moment(matchingProcedure.dateTime).format("DD/MM/YYYY");
+//   const procedureTime = moment(matchingProcedure.dateTime).format("hh:mm A");
+//   const procedureName = matchingProcedure.procedureName || "Procedure";
 
-  let procedureSection = '';
-  let enrichedProcedures = [];
+//   let procedureSection = '';
+//   let enrichedProcedures = [];
 
-  if (appt.procedurePlan && Array.isArray(appt.procedurePlan)) {
-    enrichedProcedures = await Promise.all(
-      appt.procedurePlan.map(async (plan) => {
-        const isValidObjectId = mongoose.Types.ObjectId.isValid(plan.value);
-        if (plan.value && isValidObjectId) {
-           const procedure = await Procedure.findById(rea.value);
-                    if (procedure ) {
-                        return {
-                            name: procedure.procedureName || procedure.name || "Procedure",
-                            link: procedure.procedureUrl || ""
-                        };
-                    }
-        }
-        return null;
-      })
-    );
-    enrichedProcedures = enrichedProcedures.filter(p => p);
-  }
+//   if (appt.procedurePlan && Array.isArray(appt.procedurePlan)) {
+//     enrichedProcedures = await Promise.all(
+//       appt.procedurePlan.map(async (plan) => {
+//         const isValidObjectId = mongoose.Types.ObjectId.isValid(plan.value);
+//         if (plan.value && isValidObjectId) {
+//            const procedure = await Procedure.findById(rea.value);
+//                     if (procedure ) {
+//                         return {
+//                             name: procedure.procedureName || procedure.name || "Procedure",
+//                             link: procedure.procedureUrl || ""
+//                         };
+//                     }
+//         }
+//         return null;
+//       })
+//     );
+//     enrichedProcedures = enrichedProcedures.filter(p => p);
+//   }
   
 
-  if (enrichedProcedures.length > 0) {
-    const procedureLines = enrichedProcedures.map(proc => {
-      if (proc.link) {
-        return `🔹 *${proc.name}*: ${proc.link}`;
-      }
-      return '';
-    });
+//   if (enrichedProcedures.length > 0) {
+//     const procedureLines = enrichedProcedures.map(proc => {
+//       if (proc.link) {
+//         return `🔹 *${proc.name}*: ${proc.link}`;
+//       }
+//       return '';
+//     });
 
-    procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
-  }
+//     procedureSection = '📖 To learn more about your procedures: ' + procedureLines.filter(Boolean).join(' | ');
+//   }
 
-  const payload = {
-    apiKey: process.env.AISENSY_API_KEY,
-    campaignName: "Procedure Plan Appointments2",
-    destination: `+91${patient.phoneNo}`,
-    userName: "IR Clinic",
-    templateParams: [
-      patient.patientName,
-      procedureDate,
-      procedureTime,
-      procedureName,
-      `${doctor.firstName} ${doctor.lastName}`,
-      center.centerAddress || "IR Clinic",
-      procedureSection.trim() || "https://irclinicindia.com/"
-    ],
-    source: "new-landing-page form",
-    paramsFallbackValue: {
-      FirstName: "user"
-    }
-  };
+//   const payload = {
+//     apiKey: process.env.AISENSY_API_KEY,
+//     campaignName: "Procedure Plan Appointments2",
+//     destination: `+91${patient.phoneNo}`,
+//     userName: "IR Clinic",
+//     templateParams: [
+//       patient.patientName,
+//       procedureDate,
+//       procedureTime,
+//       procedureName,
+//       `${doctor.firstName} ${doctor.lastName}`,
+//       center.centerAddress || "IR Clinic",
+//       procedureSection.trim() || "https://irclinicindia.com/"
+//     ],
+//     source: "new-landing-page form",
+//     paramsFallbackValue: {
+//       FirstName: "user"
+//     }
+//   };
 
-  await sendWhatsApp(payload);
-}
+//   await sendWhatsApp(payload);
+// }
   
     console.log("✅ WhatsApp Cron Completed");
   });
@@ -1961,39 +2480,105 @@ export const sendPatientInvoiceWhatsapp = async (req, res) => {
 
   const link = center.centerName.split(" ")[0] === "Surat" ? "bit.ly/4kXqoYu" : center.centerName.split(" ")[0] === "Vadodara" ? "https://bit.ly/4nizdh5" : center.centerName.split(" ")[0] === "Bhopal" ? "https://bit.ly/4lsZd83" : "bit.ly/4kXqoYu"
 
+  // const payload = {
+  //     apiKey: process.env.AISENSY_API_KEY,
+  //     campaignName: "Patient Invoice Send1",  // ✅ Must match your campaign in Aisensy
+  //     subCampaignName: patient._id.toString(), // ✅ Unique per message
+  //     destination: `+91${patient.phoneNo}`,
+  //     userName: "IR Clinic",
+  //     templateParams: [
+  //       patient.patientName,
+  //       link
+  //     ],
+  //     source: "new-landing-page form",
+  //     paramsFallbackValue: {
+  //       FirstName: "user"
+  //     },
+  //      media: {
+  //     url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}?v=${Date.now()}`,
+  //     filename: `Invoice_${invoice.invoicePlan[0].receiptNo}_${Date.now()}.pdf`
+  //     },
+  //   //   media: [
+  //   //   {
+  //   //     type: "document",
+  //   //    // url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
+  //   //    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+  //   //    // filename: `Invoice_${invoice._id}.pdf`
+  //   //     filename: "Dummy_Invoice.pdf"
+  //   //   }
+  //   // ]
+  //   };
+
   const payload = {
-      apiKey: process.env.AISENSY_API_KEY,
-      campaignName: "Patient Invoice Send1",  // ✅ Must match your campaign in Aisensy
-      subCampaignName: patient._id.toString(), // ✅ Unique per message
-      destination: `+91${patient.phoneNo}`,
-      userName: "IR Clinic",
-      templateParams: [
-        patient.patientName,
-        link
-      ],
-      source: "new-landing-page form",
-      paramsFallbackValue: {
-        FirstName: "user"
-      },
-       media: {
-      url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}?v=${Date.now()}`,
-      filename: `Invoice_${invoice.invoicePlan[0].receiptNo}_${Date.now()}.pdf`
-      },
-    //   media: [
-    //   {
-    //     type: "document",
-    //    // url: `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}`,
-    //    url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-    //    // filename: `Invoice_${invoice._id}.pdf`
-    //     filename: "Dummy_Invoice.pdf"
-    //   }
-    // ]
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "patient_invoice_template",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                      "type": "header",
+                      "parameters": [
+                        {
+                          "type": "document",
+                          "document": {
+                            "link": `https://api.interventionalradiology.co.in/api/v1/invoices/getInvoiceUrl/${invoice._id}?v=${Date.now()}`,
+                            "filename": `Invoice_${invoice.invoicePlan[0].receiptNo}_${Date.now()}.pdf`
+                          }
+                        }
+                      ]
+                    },
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: link
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
     };
 
   try {
-      const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
       //console.log("WhatsApp API Response:", data);
-      res.status(201).json({ data, success: true });
+       const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+      res.status(201).json({ data:response.data, success: true });
   } catch (err) {
       console.error("WhatsApp API Error:", err.response?.data || err.message);
   }

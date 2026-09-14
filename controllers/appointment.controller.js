@@ -1445,7 +1445,7 @@ const sendRefAppointmentImpression = async (patient, reports) => {
                       },
                       {
                         type: "text",
-                        text: lastReport.impression.replace(/<[^>]*>/g, '').trim()
+                        text: lastReport.impression?.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim() || ''
                       }
                     ]
                   }

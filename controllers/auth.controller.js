@@ -4,6 +4,7 @@ import bcryptjs from "bcryptjs";
 import sharp from 'sharp';
 import dotenv from "dotenv";
 import { Staff } from "../models/staff.model.js";
+import axios from "axios";
 
 dotenv.config();
 
@@ -475,6 +476,586 @@ export const verifyTurnstile = async (req, res) => {
   } catch (err) {
     console.error("Turnstile verification error:", err);
     res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
+const EXOTEL_BASE_URL = "https://api.exotel.com";
+
+const EXOTEL_ACCOUNT_SID = "irclinic1";
+
+const exotelClient = axios.create({
+  baseURL: EXOTEL_BASE_URL,
+
+  auth: {
+    username: process.env.EXOTEL_API_KEY,
+    password: process.env.EXOTEL_API_TOKEN,
+  },
+
+  headers: {
+    Accept: "application/json",
+  },
+
+  timeout: 30000,
+});
+
+
+/**
+ * GET EXOTEL CALLS
+ *
+ * Supports:
+ *
+ * pageSize
+ * after
+ * before
+ *
+ * fromDate
+ * toDate
+ *
+ * search
+ * status
+ * direction
+ * phoneNumber
+ * customField
+ * sid
+ *
+ * sortBy
+ */
+export const getExotelCalls = async (req, res) => {
+  try {
+
+    if (!EXOTEL_ACCOUNT_SID) {
+      return res.status(500).json({
+        success: false,
+        message: "EXOTEL_ACCOUNT_SID is not configured",
+      });
+    }
+
+
+    // --------------------------------------------------
+    // QUERY PARAMETERS
+    // --------------------------------------------------
+
+    const {
+      pageSize = 50,
+
+      after,
+      before,
+
+      fromDate,
+      toDate,
+
+      search,
+
+      status,
+
+      direction,
+
+      phoneNumber,
+
+      customField,
+
+      sid,
+
+      sortBy = "DateCreated:desc",
+    } = req.query;
+
+
+    // --------------------------------------------------
+    // PAGE SIZE
+    // --------------------------------------------------
+
+    let limit = parseInt(pageSize, 10);
+
+    if (Number.isNaN(limit)) {
+      limit = 50;
+    }
+
+    // Exotel supports maximum 100 records per request
+    limit = Math.min(Math.max(limit, 1), 100);
+
+
+    // --------------------------------------------------
+    // BUILD PARAMETERS
+    // --------------------------------------------------
+
+    const params = {
+      PageSize: limit,
+    };
+
+
+    // --------------------------------------------------
+    // DATE RANGE
+    // --------------------------------------------------
+
+    if (fromDate || toDate) {
+
+      if (!fromDate || !toDate) {
+
+        return res.status(400).json({
+          success: false,
+          message:
+            "Both fromDate and toDate are required when using date range",
+        });
+
+      }
+
+
+      params.DateCreated =
+        `gte:${fromDate};lte:${toDate}`;
+    }
+
+
+    // --------------------------------------------------
+    // CURSOR PAGINATION
+    // --------------------------------------------------
+
+    if (after) {
+      params.After = after;
+    }
+
+    if (before) {
+      params.Before = before;
+    }
+
+
+    // --------------------------------------------------
+    // SORT
+    // --------------------------------------------------
+
+    const allowedSortFields = [
+      "DateCreated",
+      "DateUpdated",
+      "StartTime",
+      "EndTime",
+    ];
+
+    const [sortField, sortDirection] =
+      String(sortBy).split(":");
+
+
+    const safeSortField =
+      allowedSortFields.includes(sortField)
+        ? sortField
+        : "DateCreated";
+
+
+    const safeSortDirection =
+      sortDirection === "asc"
+        ? "asc"
+        : "desc";
+
+
+    params.SortBy =
+      `${safeSortField}:${safeSortDirection}`;
+
+
+    // --------------------------------------------------
+    // SEARCH BY SID
+    // --------------------------------------------------
+
+    if (sid) {
+      params.Sid = sid;
+    }
+
+
+    // --------------------------------------------------
+    // PHONE NUMBER
+    // --------------------------------------------------
+
+    if (phoneNumber) {
+      params.PhoneNumber = phoneNumber;
+    }
+
+
+    // --------------------------------------------------
+    // STATUS
+    // --------------------------------------------------
+
+    const allowedStatuses = [
+      "completed",
+      "busy",
+      "failed",
+      "no-answer",
+      "canceled",
+      "from_leg_unanswered",
+      "to_leg_unanswered",
+      "from_leg_cancelled",
+      "to_leg_no_dial",
+      "from_leg_no_dial",
+    ];
+
+    if (status) {
+
+      if (!allowedStatuses.includes(status)) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status",
+          allowedStatuses,
+        });
+
+      }
+
+      params.Status = status;
+    }
+
+
+    // --------------------------------------------------
+    // DIRECTION
+    // --------------------------------------------------
+
+    const allowedDirections = [
+      "inbound",
+      "outbound",
+    ];
+
+    if (direction) {
+
+      if (!allowedDirections.includes(direction)) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Invalid direction",
+          allowedDirections,
+        });
+
+      }
+
+      params.Direction = direction;
+    }
+
+
+    // --------------------------------------------------
+    // CUSTOM FIELD
+    // --------------------------------------------------
+
+    if (customField) {
+      params.CustomField = customField;
+    }
+
+
+    // --------------------------------------------------
+    // SEARCH
+    // --------------------------------------------------
+    //
+    // IMPORTANT:
+    // Exotel's v1 endpoint does not provide a general
+    // "search everywhere" parameter.
+    //
+    // Therefore, if search is supplied, we fetch the
+    // filtered Exotel page and perform matching on the
+    // returned records.
+    //
+    // This searches:
+    //
+    // Sid
+    // From
+    // To
+    // PhoneNumber
+    // CallerName
+    // CustomField
+    //
+    // --------------------------------------------------
+
+    const response = await exotelClient.get(
+      `/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Calls.json`,
+      {
+        params,
+      }
+    );
+
+
+    const data = response.data || {};
+
+
+    // --------------------------------------------------
+    // EXOTEL CALLS
+    // --------------------------------------------------
+
+    let calls = Array.isArray(data.Calls)
+      ? data.Calls
+      : [];
+
+
+    // --------------------------------------------------
+    // LOCAL SEARCH
+    // --------------------------------------------------
+
+    if (search) {
+
+      const searchText =
+        String(search).trim().toLowerCase();
+
+
+      calls = calls.filter((call) => {
+
+        const searchableValues = [
+          call.Sid,
+          call.From,
+          call.To,
+          call.PhoneNumber,
+          call.PhoneNumberSid,
+          call.CallerName,
+          call.CustomField,
+          call.Status,
+          call.Direction,
+        ];
+
+
+        return searchableValues.some((value) =>
+          String(value || "")
+            .toLowerCase()
+            .includes(searchText)
+        );
+
+      });
+
+    }
+
+
+    // --------------------------------------------------
+    // METADATA
+    // --------------------------------------------------
+
+    const metadata = data.Metadata || {};
+
+
+    // --------------------------------------------------
+    // RESPONSE
+    // --------------------------------------------------
+
+    return res.status(200).json({
+
+      success: true,
+
+      data: calls,
+
+      pagination: {
+
+        total: metadata.Total || null,
+
+        pageSize:
+          metadata.PageSize || limit,
+
+        firstPageUri:
+          metadata.FirstPageUri || null,
+
+        prevPageUri:
+          metadata.PrevPageUri || null,
+
+        nextPageUri:
+          metadata.NextPageUri || null,
+
+        // Extract cursor values so React
+        // doesn't have to parse Exotel URLs
+
+        nextCursor:
+          extractCursor(
+            metadata.NextPageUri,
+            "After"
+          ),
+
+        previousCursor:
+          extractCursor(
+            metadata.PrevPageUri,
+            "Before"
+          ),
+      },
+
+      filters: {
+
+        fromDate:
+          fromDate || null,
+
+        toDate:
+          toDate || null,
+
+        search:
+          search || null,
+
+        status:
+          status || null,
+
+        direction:
+          direction || null,
+
+        phoneNumber:
+          phoneNumber || null,
+
+        customField:
+          customField || null,
+
+        sid:
+          sid || null,
+
+        sortBy:
+          params.SortBy,
+      },
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Exotel Calls API Error:",
+      error.response?.data || error.message
+    );
+
+
+    // --------------------------------------------------
+    // EXOTEL RESPONSE ERROR
+    // --------------------------------------------------
+
+    if (error.response) {
+
+      return res.status(error.response.status).json({
+
+        success: false,
+
+        message:
+          "Exotel API request failed",
+
+        exotelStatus:
+          error.response.status,
+
+        error:
+          error.response.data,
+
+      });
+
+    }
+
+
+    // --------------------------------------------------
+    // NETWORK / TIMEOUT ERROR
+    // --------------------------------------------------
+
+    if (error.code === "ECONNABORTED") {
+
+      return res.status(504).json({
+
+        success: false,
+
+        message:
+          "Exotel API request timed out",
+
+      });
+
+    }
+
+
+    // --------------------------------------------------
+    // GENERAL ERROR
+    // --------------------------------------------------
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Failed to fetch Exotel calls",
+
+      error:
+        error.message,
+
+    });
+
+  }
+};
+
+
+/**
+ * Extract cursor from:
+ *
+ * /Calls.json?...&After=xxxxx
+ */
+function extractCursor(url, parameter) {
+
+  if (!url) {
+    return null;
+  }
+
+  try {
+
+    const parsed =
+      new URL(
+        url,
+        EXOTEL_BASE_URL
+      );
+
+    return parsed.searchParams.get(
+      parameter
+    );
+
+  } catch (error) {
+
+    return null;
+
+  }
+}
+
+export const getExotelRecording = async (req, res) => {
+  try {
+    const { callSid } = req.params;
+
+    if (!callSid) {
+      return res.status(400).json({
+        success: false,
+        message: "Call SID is required",
+      });
+    }
+
+    const accountSid = "irclinic1";
+
+    // Exotel recording URL
+    const recordingUrl =
+      `https://recordings.exotel.com/exotelrecordings/${accountSid}/${callSid}.mp3`;
+
+  //  console.log("Fetching recording:", recordingUrl);
+
+    const response = await axios.get(recordingUrl, {
+      auth: {
+        username: process.env.EXOTEL_API_KEY,
+        password: process.env.EXOTEL_API_TOKEN,
+      },
+
+      responseType: "stream",
+
+      timeout: 30000,
+    });
+
+    res.setHeader(
+      "Content-Type",
+      response.headers["content-type"] || "audio/mpeg"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${callSid}.mp3"`
+    );
+
+    response.data.pipe(res);
+
+  } catch (error) {
+
+    console.error(
+      "Exotel Recording Error:",
+      error.response?.status,
+      error.response?.data || error.message
+    );
+
+    if (error.response?.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: "Recording not found",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch recording",
+    });
   }
 };
 

@@ -1,6 +1,6 @@
 import express from "express";
 import {auth} from "../middleware/auth.js"
-import { addUser, login, tokenIsValid, getUser,getUsers,updateUser,updatePassword,updateUserPassword,deleteUser,updateDashboard,updateNotifications,searchUsers,getAllUsers,verifyTurnstile} from "../controllers/auth.controller.js";
+import { addUser, login, tokenIsValid, getUser,getUsers,updateUser,updatePassword,updateUserPassword,deleteUser,updateDashboard,updateNotifications,searchUsers,getAllUsers,verifyTurnstile,getExotelCalls,getExotelRecording} from "../controllers/auth.controller.js";
 import {initiateIciciPayment,checkIciciPaymentStatus,initiateAdPayment,checkAdPaymentStatus} from "../controllers/iciciPayment.controller.js";
 
 const router = express.Router();
@@ -19,6 +19,8 @@ router.route("/updateNotifications/:id").post( updateNotifications);
 router.route("/searchUsers").post( searchUsers);
 router.route("/getAllUsers").get( getAllUsers);
 router.route("/verifyTurnstile").post( verifyTurnstile);
+router.route("/getExotelCalls").get( getExotelCalls);
+router.route("/getExotelRecording/:callSid").get( getExotelRecording);
 router.route("/initiateIciciPayment").post( initiateIciciPayment);
 router.route("/checkIciciPaymentStatus").post( checkIciciPaymentStatus);
 

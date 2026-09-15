@@ -1618,18 +1618,25 @@ const sendWhatsApp = async (payload) => {
   cron.schedule("0 21 * * *", async () => {
     console.log("🔁 WhatsApp Cron Job Running @ 9:00 PM");
   
-    const today = moment().startOf("day");
-    const tomorrow = moment(today).add(1, "day");
-  
+     const now = moment.utc().add(5, "hours").add(30, "minutes");
+
+      // Today in IST
+      const today = now.clone().startOf("day");
+
+      // Tomorrow in IST
+      const tomorrow = now.clone().add(1, "day").startOf("day");
+
     // === 1. Missed Appointments Reminder (today's, not completed or cancelled)
     const missedAppointments = await Appointment.find({
-      start: {
-        $gte: today.toDate(),
-        $lt: moment(today).endOf("day").toDate()
-      },
-      status: "Scheduled",
-      appointmentType:"OPD"
-    });
+  start: {
+    $gte: today.clone().subtract(5, "hours").subtract(30, "minutes").toDate(),
+    $lt: today.clone().endOf("day").subtract(5, "hours").subtract(30, "minutes").toDate()
+  },
+  status: "Scheduled",
+  appointmentType: "OPD"
+});
+
+     //console.log(`Found missed appointments for today.`,missedAppointments.length);
   
     for (const appt of missedAppointments) {
       const patient = await Patient.findById(appt.patientId);
@@ -1744,13 +1751,15 @@ const sendWhatsApp = async (payload) => {
   
     // === 2. Follow-up Appointment Reminder (for tomorrow)
     const followups = await Appointment.find({
-      start: {
-        $gte: tomorrow.toDate(),
-        $lt: moment(tomorrow).endOf("day").toDate()
-      },
-      isFollowUp: true,
-      appointmentType:"OPD"
-    });
+  start: {
+    $gte: tomorrow.clone().subtract(5, "hours").subtract(30, "minutes").toDate(),
+    $lt: tomorrow.clone().endOf("day").subtract(5, "hours").subtract(30, "minutes").toDate()
+  },
+  isFollowUp: true,
+  appointmentType: "OPD"
+});
+
+     ////console.log(`Found ${followups.length} follow-up appointments for tomorrow.`,followups.length);
   
     for (const appt of followups) {
       const [patient, doctor, center] = await Promise.all([
@@ -1986,7 +1995,11 @@ const sendWhatsApp = async (payload) => {
 // }
   
     console.log("✅ WhatsApp Cron Completed");
-  });
+  },
+   {
+    timezone: "Asia/Kolkata"
+  }
+);
 }
 
 export const startInvoiceUpdateCron = async () => {
@@ -2011,6 +2024,8 @@ for (const invoice of unusedInvoices) {
 }
 
 console.log("✅ Invoice Update Cron Completed");
+  }, {
+    timezone: "Asia/Kolkata"
   });
 }
 

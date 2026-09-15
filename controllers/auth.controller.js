@@ -5,6 +5,9 @@ import sharp from 'sharp';
 import dotenv from "dotenv";
 import { Staff } from "../models/staff.model.js";
 import axios from "axios";
+import {CallMetadata} from "../models/callmetadata.model.js";
+import ExcelJS from "exceljs";
+
 
 dotenv.config();
 
@@ -500,30 +503,69 @@ const exotelClient = axios.create({
 });
 
 
-/**
- * GET EXOTEL CALLS
- *
- * Supports:
- *
- * pageSize
- * after
- * before
- *
- * fromDate
- * toDate
- *
- * search
- * status
- * direction
- * phoneNumber
- * customField
- * sid
- *
- * sortBy
- */
+function getLatestFollowStatus(followups) {
+  if (!Array.isArray(followups) || followups.length === 0) {
+    return "N/A";
+  }
+
+  let latest = null;
+  let latestTime = -Infinity;
+
+  for (const f of followups) {
+    const t = f?.updatedDate ? new Date(f.updatedDate).getTime() : -Infinity;
+    if (t > latestTime || latest === null) {
+      latestTime = t;
+      latest = f;
+    }
+  }
+
+  return latest?.followStatus || "N/A";
+}
+
+// --------------------------------------------------
+// HELPER: fetch one page from Exotel
+// --------------------------------------------------
+async function fetchExotelPage(params) {
+  const response = await exotelClient.get(
+    `/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Calls.json`,
+    { params }
+  );
+  return response.data || {};
+}
+
+function toExotelDate(input, endOfDay = false) {
+  if (!input) return null;
+
+  // If it's already got a space (Exotel format), just trim ms and tz
+  let str = String(input).trim();
+
+  // Strip timezone suffix like "Z" or "+05:30"
+  str = str.replace(/[zZ]$/, "").replace(/[+-]\d{2}:?\d{2}$/, "");
+
+  // Strip milliseconds
+  str = str.replace(/\.\d+/, "");
+
+  // Convert "T" to space
+  str = str.replace("T", " ");
+
+  // If only a date was given (length 10), append time
+  if (str.length === 10) {
+    str += endOfDay ? " 23:59:59" : " 00:00:00";
+  }
+
+  // If date+time but no seconds (e.g. "2026-09-01 10:30"), add seconds
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(str)) {
+    str += ":00";
+  }
+
+  return str;
+}
+
+// --------------------------------------------------
+// GET CALLS  (Exotel + followups, with status filter)
+// --------------------------------------------------
 export const getExotelCalls = async (req, res) => {
   try {
-
     if (!EXOTEL_ACCOUNT_SID) {
       return res.status(500).json({
         success: false,
@@ -531,467 +573,216 @@ export const getExotelCalls = async (req, res) => {
       });
     }
 
-
-    // --------------------------------------------------
-    // QUERY PARAMETERS
-    // --------------------------------------------------
-
     const {
       pageSize = 50,
-
       after,
       before,
-
       fromDate,
       toDate,
-
       search,
-
-      status,
-
+      status,          // Exotel status
       direction,
-
       phoneNumber,
-
       customField,
-
       sid,
-
       sortBy = "DateCreated:desc",
+      followStatus,    // <-- NEW: filter by latest followup status
     } = req.query;
 
-
-    // --------------------------------------------------
-    // PAGE SIZE
-    // --------------------------------------------------
-
     let limit = parseInt(pageSize, 10);
-
-    if (Number.isNaN(limit)) {
-      limit = 50;
-    }
-
-    // Exotel supports maximum 100 records per request
+    if (Number.isNaN(limit)) limit = 50;
     limit = Math.min(Math.max(limit, 1), 100);
 
+    const baseParams = { PageSize: limit };
 
-    // --------------------------------------------------
-    // BUILD PARAMETERS
-    // --------------------------------------------------
+    // Date range
+    // Date range
+if (fromDate || toDate) {
+  if (!fromDate || !toDate) {
+    return res.status(400).json({
+      success: false,
+      message: "Both fromDate and toDate are required when using date range",
+    });
+  }
 
-    const params = {
-      PageSize: limit,
-    };
+  const from = toExotelDate(fromDate, false);
+  const to = toExotelDate(toDate, true);
 
+  baseParams.DateCreated = `gte:${from};lte:${to}`;
+}
 
-    // --------------------------------------------------
-    // DATE RANGE
-    // --------------------------------------------------
+    // Sort
+    const allowedSortFields = ["DateCreated", "DateUpdated", "StartTime", "EndTime"];
+    const [sortField, sortDirection] = String(sortBy).split(":");
+    const safeSortField = allowedSortFields.includes(sortField) ? sortField : "DateCreated";
+    const safeSortDirection = sortDirection === "asc" ? "asc" : "desc";
+    baseParams.SortBy = `${safeSortField}:${safeSortDirection}`;
 
-    if (fromDate || toDate) {
-
-      if (!fromDate || !toDate) {
-
-        return res.status(400).json({
-          success: false,
-          message:
-            "Both fromDate and toDate are required when using date range",
-        });
-
-      }
-
-
-      params.DateCreated =
-        `gte:${fromDate};lte:${toDate}`;
-    }
-
-
-    // --------------------------------------------------
-    // CURSOR PAGINATION
-    // --------------------------------------------------
-
-    if (after) {
-      params.After = after;
-    }
-
-    if (before) {
-      params.Before = before;
-    }
-
-
-    // --------------------------------------------------
-    // SORT
-    // --------------------------------------------------
-
-    const allowedSortFields = [
-      "DateCreated",
-      "DateUpdated",
-      "StartTime",
-      "EndTime",
-    ];
-
-    const [sortField, sortDirection] =
-      String(sortBy).split(":");
-
-
-    const safeSortField =
-      allowedSortFields.includes(sortField)
-        ? sortField
-        : "DateCreated";
-
-
-    const safeSortDirection =
-      sortDirection === "asc"
-        ? "asc"
-        : "desc";
-
-
-    params.SortBy =
-      `${safeSortField}:${safeSortDirection}`;
-
-
-    // --------------------------------------------------
-    // SEARCH BY SID
-    // --------------------------------------------------
-
-    if (sid) {
-      params.Sid = sid;
-    }
-
-
-    // --------------------------------------------------
-    // PHONE NUMBER
-    // --------------------------------------------------
-
-    if (phoneNumber) {
-      params.PhoneNumber = phoneNumber;
-    }
-
-
-    // --------------------------------------------------
-    // STATUS
-    // --------------------------------------------------
+    if (sid) baseParams.Sid = sid;
+    if (phoneNumber) baseParams.PhoneNumber = phoneNumber;
 
     const allowedStatuses = [
-      "completed",
-      "busy",
-      "failed",
-      "no-answer",
-      "canceled",
-      "from_leg_unanswered",
-      "to_leg_unanswered",
-      "from_leg_cancelled",
-      "to_leg_no_dial",
-      "from_leg_no_dial",
+      "completed", "busy", "failed", "no-answer", "canceled",
+      "from_leg_unanswered", "to_leg_unanswered",
+      "from_leg_cancelled", "to_leg_no_dial", "from_leg_no_dial",
     ];
-
     if (status) {
-
       if (!allowedStatuses.includes(status)) {
-
-        return res.status(400).json({
-          success: false,
-          message: "Invalid status",
-          allowedStatuses,
-        });
-
+        return res.status(400).json({ success: false, message: "Invalid status", allowedStatuses });
       }
-
-      params.Status = status;
+      baseParams.Status = status;
     }
 
-
-    // --------------------------------------------------
-    // DIRECTION
-    // --------------------------------------------------
-
-    const allowedDirections = [
-      "inbound",
-      "outbound",
-    ];
-
+    const allowedDirections = ["inbound", "outbound"];
     if (direction) {
-
       if (!allowedDirections.includes(direction)) {
+        return res.status(400).json({ success: false, message: "Invalid direction", allowedDirections });
+      }
+      baseParams.Direction = direction;
+    }
 
-        return res.status(400).json({
-          success: false,
-          message: "Invalid direction",
-          allowedDirections,
+    if (customField) baseParams.CustomField = customField;
+
+    // --------------------------------------------------
+    // PAGINATED FETCH LOOP (needed because followStatus
+    // filter is applied AFTER fetching from Exotel)
+    // --------------------------------------------------
+    const WANT_FOLLOW_FILTER = !!followStatus;
+    const MAX_PAGES = WANT_FOLLOW_FILTER ? 10 : 1; // safety cap
+
+    let currentAfter = after || null;
+    let currentBefore = before || null;
+    let pagesFetched = 0;
+    let lastMeta = {};
+    let filteredCalls = [];
+
+    while (pagesFetched < MAX_PAGES) {
+      const params = { ...baseParams };
+      if (currentAfter) params.After = currentAfter;
+      if (currentBefore) params.Before = currentBefore;
+
+      const data = await fetchExotelPage(params);
+      lastMeta = data.Metadata || {};
+
+      let pageCalls = Array.isArray(data.Calls) ? data.Calls : [];
+
+      // Local search on this page
+      if (search) {
+        const searchText = String(search).trim().toLowerCase();
+        pageCalls = pageCalls.filter((call) => {
+          const values = [
+            call.Sid, call.From, call.To, call.PhoneNumber,
+            call.PhoneNumberSid, call.CallerName, call.CustomField,
+            call.Status, call.Direction,
+          ];
+          return values.some((v) =>
+            String(v || "").toLowerCase().includes(searchText)
+          );
         });
-
       }
 
-      params.Direction = direction;
-    }
+      // Merge followups for this page
+      const sids = pageCalls.map((c) => c.Sid).filter(Boolean);
+      const metas = sids.length
+        ? await CallMetadata.find({ callSid: { $in: sids } }).lean()
+        : [];
 
+      const metaMap = metas.reduce((acc, m) => {
+        acc[m.callSid] = m;
+        return acc;
+      }, {});
 
-    // --------------------------------------------------
-    // CUSTOM FIELD
-    // --------------------------------------------------
-
-    if (customField) {
-      params.CustomField = customField;
-    }
-
-
-    // --------------------------------------------------
-    // SEARCH
-    // --------------------------------------------------
-    //
-    // IMPORTANT:
-    // Exotel's v1 endpoint does not provide a general
-    // "search everywhere" parameter.
-    //
-    // Therefore, if search is supplied, we fetch the
-    // filtered Exotel page and perform matching on the
-    // returned records.
-    //
-    // This searches:
-    //
-    // Sid
-    // From
-    // To
-    // PhoneNumber
-    // CallerName
-    // CustomField
-    //
-    // --------------------------------------------------
-
-    const response = await exotelClient.get(
-      `/v1/Accounts/${EXOTEL_ACCOUNT_SID}/Calls.json`,
-      {
-        params,
-      }
-    );
-
-
-    const data = response.data || {};
-
-
-    // --------------------------------------------------
-    // EXOTEL CALLS
-    // --------------------------------------------------
-
-    let calls = Array.isArray(data.Calls)
-      ? data.Calls
-      : [];
-
-
-    // --------------------------------------------------
-    // LOCAL SEARCH
-    // --------------------------------------------------
-
-    if (search) {
-
-      const searchText =
-        String(search).trim().toLowerCase();
-
-
-      calls = calls.filter((call) => {
-
-        const searchableValues = [
-          call.Sid,
-          call.From,
-          call.To,
-          call.PhoneNumber,
-          call.PhoneNumberSid,
-          call.CallerName,
-          call.CustomField,
-          call.Status,
-          call.Direction,
-        ];
-
-
-        return searchableValues.some((value) =>
-          String(value || "")
-            .toLowerCase()
-            .includes(searchText)
-        );
-
+      let enriched = pageCalls.map((call) => {
+        const meta = metaMap[call.Sid];
+        const followups = meta?.followups || [];
+        return {
+          ...call,
+          followups,
+          latestFollowStatus: getLatestFollowStatus(followups),
+          metaId: meta?._id || null,
+        };
       });
 
+      // Apply followStatus filter
+      if (WANT_FOLLOW_FILTER) {
+        enriched = enriched.filter(
+          (c) => c.latestFollowStatus === followStatus
+        );
+      }
+
+      filteredCalls = filteredCalls.concat(enriched);
+      pagesFetched++;
+
+      // Stop if we have results, or there is no next page
+      if (!WANT_FOLLOW_FILTER) break;
+      if (filteredCalls.length > 0) break;
+
+      const nextCursor = extractCursor(lastMeta.NextPageUri, "After");
+      if (!nextCursor) break;
+
+      currentAfter = nextCursor;
+      currentBefore = null;
     }
-
-
-    // --------------------------------------------------
-    // METADATA
-    // --------------------------------------------------
-
-    const metadata = data.Metadata || {};
-
-
-    // --------------------------------------------------
-    // RESPONSE
-    // --------------------------------------------------
 
     return res.status(200).json({
-
       success: true,
-
-      data: calls,
-
+      data: filteredCalls,
       pagination: {
-
-        total: metadata.Total || null,
-
-        pageSize:
-          metadata.PageSize || limit,
-
-        firstPageUri:
-          metadata.FirstPageUri || null,
-
-        prevPageUri:
-          metadata.PrevPageUri || null,
-
-        nextPageUri:
-          metadata.NextPageUri || null,
-
-        // Extract cursor values so React
-        // doesn't have to parse Exotel URLs
-
-        nextCursor:
-          extractCursor(
-            metadata.NextPageUri,
-            "After"
-          ),
-
-        previousCursor:
-          extractCursor(
-            metadata.PrevPageUri,
-            "Before"
-          ),
+        total: lastMeta.Total || null,
+        pageSize: lastMeta.PageSize || limit,
+        firstPageUri: lastMeta.FirstPageUri || null,
+        prevPageUri: lastMeta.PrevPageUri || null,
+        nextPageUri: lastMeta.NextPageUri || null,
+        nextCursor: extractCursor(lastMeta.NextPageUri, "After"),
+        previousCursor: extractCursor(lastMeta.PrevPageUri, "Before"),
       },
-
       filters: {
-
-        fromDate:
-          fromDate || null,
-
-        toDate:
-          toDate || null,
-
-        search:
-          search || null,
-
-        status:
-          status || null,
-
-        direction:
-          direction || null,
-
-        phoneNumber:
-          phoneNumber || null,
-
-        customField:
-          customField || null,
-
-        sid:
-          sid || null,
-
-        sortBy:
-          params.SortBy,
+        fromDate: fromDate || null,
+        toDate: toDate || null,
+        search: search || null,
+        status: status || null,
+        direction: direction || null,
+        phoneNumber: phoneNumber || null,
+        customField: customField || null,
+        sid: sid || null,
+        followStatus: followStatus || null,
+        sortBy: baseParams.SortBy,
       },
-
     });
-
   } catch (error) {
-
-    console.error(
-      "Exotel Calls API Error:",
-      error.response?.data || error.message
-    );
-
-
-    // --------------------------------------------------
-    // EXOTEL RESPONSE ERROR
-    // --------------------------------------------------
-
+    console.error("Exotel Calls API Error:", error.response?.data || error.message);
     if (error.response) {
-
       return res.status(error.response.status).json({
-
         success: false,
-
-        message:
-          "Exotel API request failed",
-
-        exotelStatus:
-          error.response.status,
-
-        error:
-          error.response.data,
-
+        message: "Exotel API request failed",
+        exotelStatus: error.response.status,
+        error: error.response.data,
       });
-
     }
-
-
-    // --------------------------------------------------
-    // NETWORK / TIMEOUT ERROR
-    // --------------------------------------------------
-
     if (error.code === "ECONNABORTED") {
-
       return res.status(504).json({
-
         success: false,
-
-        message:
-          "Exotel API request timed out",
-
+        message: "Exotel API request timed out",
       });
-
     }
-
-
-    // --------------------------------------------------
-    // GENERAL ERROR
-    // --------------------------------------------------
-
     return res.status(500).json({
-
       success: false,
-
-      message:
-        "Failed to fetch Exotel calls",
-
-      error:
-        error.message,
-
+      message: "Failed to fetch Exotel calls",
+      error: error.message,
     });
-
   }
 };
 
-
-/**
- * Extract cursor from:
- *
- * /Calls.json?...&After=xxxxx
- */
+// --------------------------------------------------
+// HELPER: extract cursor
+// --------------------------------------------------
 function extractCursor(url, parameter) {
-
-  if (!url) {
-    return null;
-  }
-
+  if (!url) return null;
   try {
-
-    const parsed =
-      new URL(
-        url,
-        EXOTEL_BASE_URL
-      );
-
-    return parsed.searchParams.get(
-      parameter
-    );
-
-  } catch (error) {
-
+    const parsed = new URL(url, EXOTEL_BASE_URL);
+    return parsed.searchParams.get(parameter);
+  } catch {
     return null;
-
   }
 }
 
@@ -1058,6 +849,365 @@ export const getExotelRecording = async (req, res) => {
     });
   }
 };
+
+export const downloadCallsExcel = async (req, res) => {
+  try {
+    const {
+      fromDate,
+      toDate,
+      search,
+      status,
+      direction,
+      phoneNumber,
+      sid,
+      sortBy,
+      followStatus,
+    } = req.query;
+
+    // 1. Fetch all filtered calls
+    const calls = await fetchAllFilteredCalls({
+      fromDate,
+      toDate,
+      status,
+      direction,
+      phoneNumber,
+      sid,
+      sortBy,
+      search,
+      followStatus,
+    });
+
+    if (calls.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No calls found for the selected filters",
+      });
+    }
+
+    // 2. Build workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "IR Clinic";
+    workbook.created = new Date();
+
+    const sheet = workbook.addWorksheet("Calls");
+
+    sheet.columns = [
+      { header: "Call SID", key: "sid", width: 40 },
+      { header: "From", key: "from", width: 18 },
+      { header: "To", key: "to", width: 18 },
+      { header: "Direction", key: "direction", width: 14 },
+      { header: "Status", key: "status", width: 18 },
+      { header: "Duration (sec)", key: "duration", width: 14 },
+      { header: "Date Created", key: "dateCreated", width: 22 },
+      { header: "Latest Follow-Up", key: "latestFollowStatus", width: 20 },
+      { header: "Followups Count", key: "followupsCount", width: 16 },
+      { header: "Latest Follow-Up Message", key: "latestMessage", width: 50 },
+      { header: "All Follow-Ups (JSON)", key: "allFollowups", width: 60 },
+    ];
+
+    // Header styling
+    sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    sheet.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFC03A03" },
+    };
+    sheet.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+
+    // Rows
+    calls.forEach((call) => {
+      const followups = call.followups || [];
+      let latestMessage = "";
+      if (followups.length > 0) {
+        const latest = followups.reduce((a, b) =>
+          new Date(b.updatedDate) > new Date(a.updatedDate) ? b : a
+        );
+        latestMessage = latest?.followupMessage || "";
+      }
+
+      sheet.addRow({
+        sid: call.Sid || "",
+        from: call.From || "",
+        to: call.To || "",
+        direction: call.Direction || "",
+        status: call.Status || "",
+        duration: call.Duration ?? "",
+        dateCreated: call.DateCreated
+          ? new Date(call.DateCreated).toLocaleString()
+          : "",
+        latestFollowStatus: call.latestFollowStatus || "N/A",
+        followupsCount: followups.length,
+        latestMessage,
+        allFollowups: JSON.stringify(followups),
+      });
+    });
+
+    // 3. Build filename from active filters
+    const parts = ["calls"];
+    if (fromDate) parts.push(String(fromDate).split("T")[0]);
+    if (toDate) parts.push(String(toDate).split("T")[0]);
+    if (followStatus) parts.push(followStatus);
+    if (status) parts.push(status);
+    if (direction) parts.push(direction);
+    if (phoneNumber) parts.push(phoneNumber);
+    const fileName = `${parts.join("_")}.xlsx`;
+
+    // 4. Stream to client
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${fileName}"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error(
+      "downloadCallsExcel Error:",
+      error.response?.data || error.message
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate Excel",
+      error: error.message,
+    });
+  }
+};
+
+export const appendCallFollowup = async (req, res) => {
+  try {
+    const { callSid } = req.params;
+    const { followup } = req.body;
+
+    if (!callSid) {
+      return res.status(400).json({
+        success: false,
+        message: "callSid is required",
+      });
+    }
+
+    if (!followup || typeof followup !== "object") {
+      return res.status(400).json({
+        success: false,
+        message: "followup object is required",
+      });
+    }
+
+    const entry = {
+      followStatus: followup.followStatus || "Pending",
+      followupMessage: followup.followupMessage || "",
+      updatedDate: followup.updatedDate || new Date().toISOString(),
+    };
+
+    const metadata = await CallMetadata.findOneAndUpdate(
+      { callSid },
+      {
+        $push: { followups: entry },
+        $setOnInsert: { callSid },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Followup added",
+      data: metadata,
+    });
+  } catch (error) {
+    console.error("appendCallFollowup Error:", error);
+
+    // Handle race condition on first insert
+    if (error.code === 11000) {
+      const existing = await CallMetadata.findOne({
+        callSid: req.params.callSid,
+      });
+      return res.status(200).json({
+        success: true,
+        data: existing,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to add followup",
+      error: error.message,
+    });
+  }
+};
+
+// --------------------------------------------------
+// REPLACE ALL FOLLOWUPS FOR A CALL (bulk overwrite)
+// --------------------------------------------------
+export const upsertCallFollowups = async (req, res) => {
+  try {
+    const { callSid } = req.params;
+    const { followups } = req.body;
+
+    if (!callSid) {
+      return res.status(400).json({
+        success: false,
+        message: "callSid is required",
+      });
+    }
+
+    if (!Array.isArray(followups)) {
+      return res.status(400).json({
+        success: false,
+        message: "followups must be an array",
+      });
+    }
+
+    const metadata = await CallMetadata.findOneAndUpdate(
+      { callSid },
+      {
+        $set: { followups },
+        $setOnInsert: { callSid },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Followups saved",
+      data: metadata,
+    });
+  } catch (error) {
+    console.error("upsertCallFollowups Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save followups",
+      error: error.message,
+    });
+  }
+};
+
+// --------------------------------------------------
+// FETCH ALL FILTERED CALLS (used by Excel download)
+// --------------------------------------------------
+async function fetchAllFilteredCalls({
+  fromDate,
+  toDate,
+  status,
+  direction,
+  phoneNumber,
+  sid,
+  sortBy,
+  search,
+  followStatus,
+}) {
+  const baseParams = {
+    PageSize: 100,
+    SortBy: sortBy || "DateCreated:desc",
+  };
+
+  // Date range
+if (fromDate || toDate) {
+  if (!fromDate || !toDate) {
+    return res.status(400).json({
+      success: false,
+      message: "Both fromDate and toDate are required when using date range",
+    });
+  }
+
+  const from = toExotelDate(fromDate, false);
+  const to = toExotelDate(toDate, true);
+
+  baseParams.DateCreated = `gte:${from};lte:${to}`;
+}
+
+  if (sid) baseParams.Sid = sid;
+  if (phoneNumber) baseParams.PhoneNumber = phoneNumber;
+
+  const allowedStatuses = [
+    "completed", "busy", "failed", "no-answer", "canceled",
+    "from_leg_unanswered", "to_leg_unanswered",
+    "from_leg_cancelled", "to_leg_no_dial", "from_leg_no_dial",
+  ];
+  if (status) {
+    if (!allowedStatuses.includes(status)) {
+      throw new Error("Invalid status");
+    }
+    baseParams.Status = status;
+  }
+
+  const allowedDirections = ["inbound", "outbound"];
+  if (direction) {
+    if (!allowedDirections.includes(direction)) {
+      throw new Error("Invalid direction");
+    }
+    baseParams.Direction = direction;
+  }
+
+  const WANT_FOLLOW_FILTER = !!followStatus;
+  const MAX_PAGES = WANT_FOLLOW_FILTER ? 50 : 100;
+
+  const allEnriched = [];
+  let currentAfter = null;
+  let pagesFetched = 0;
+
+  while (pagesFetched < MAX_PAGES) {
+    pagesFetched++;
+
+    const params = { ...baseParams };
+    if (currentAfter) params.After = currentAfter;
+
+    const data = await fetchExotelPage(params);
+    let pageCalls = Array.isArray(data.Calls) ? data.Calls : [];
+
+    // Local search filter
+    if (search) {
+      const searchText = String(search).trim().toLowerCase();
+      pageCalls = pageCalls.filter((call) => {
+        const values = [
+          call.Sid, call.From, call.To, call.PhoneNumber,
+          call.PhoneNumberSid, call.CallerName, call.CustomField,
+          call.Status, call.Direction,
+        ];
+        return values.some((v) =>
+          String(v || "").toLowerCase().includes(searchText)
+        );
+      });
+    }
+
+    // Merge followups
+    const sids = pageCalls.map((c) => c.Sid).filter(Boolean);
+    const metas = sids.length
+      ? await CallMetadata.find({ callSid: { $in: sids } }).lean()
+      : [];
+
+    const metaMap = metas.reduce((acc, m) => {
+      acc[m.callSid] = m;
+      return acc;
+    }, {});
+
+    let enriched = pageCalls.map((call) => {
+      const meta = metaMap[call.Sid];
+      const followups = meta?.followups || [];
+      return {
+        ...call,
+        followups,
+        latestFollowStatus: getLatestFollowStatus(followups),
+      };
+    });
+
+    if (WANT_FOLLOW_FILTER) {
+      enriched = enriched.filter(
+        (c) => c.latestFollowStatus === followStatus
+      );
+    }
+
+    allEnriched.push(...enriched);
+
+    const nextCursor = extractCursor(data?.Metadata?.NextPageUri, "After");
+    if (!nextCursor) break;
+    currentAfter = nextCursor;
+  }
+
+  return allEnriched;
+}
 
 
 

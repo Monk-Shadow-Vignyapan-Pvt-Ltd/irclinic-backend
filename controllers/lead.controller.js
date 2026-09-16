@@ -18,7 +18,11 @@ const buildLeadRecord = (type, leadId, payload = {}, leadDetails = null, normali
   normalizedLeadData,
   rawPayload: payload,
   receivedAt: new Date(),
-  followups:[]
+  followups:[{
+      followStatus: "Pending",
+      followupMessage: "Pending",
+      updatedDate: new Date(),
+    }]
 });
 
 const upsertLead = async (leadData) => {
@@ -280,7 +284,11 @@ export const receiveGoogleLeadWebhook = async (req, res) => {
       normalizedLeadData,
 
       rawPayload: payload,
-      followups:[],
+      followups:[{
+      followStatus: "Pending",
+      followupMessage: "Pending",
+      updatedDate: new Date(),
+    }],
 
       receivedAt: new Date(),
     });
@@ -302,31 +310,127 @@ export const receiveGoogleLeadWebhook = async (req, res) => {
 
 export const getLeads = async (req, res) => {
   try {
-    const { type, page = 1 ,limit=25} = req.query;
-    
-    const skip = (Number(page) - 1) * limit;
+    const {
+      type,
+      page = 1,
+      limit = 25,
+      status = "",
+      search = "",
+    } = req.query;
 
-    const filter = {};
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    const matchStage = {};
+
+    // Type filter
     if (type) {
-      filter.type = type;
+      matchStage.type = type;
     }
 
-    const [leads, total] = await Promise.all([
-      Lead.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-      Lead.countDocuments(filter),
+    // Search filter
+    if (search.trim()) {
+      const searchRegex = {
+        $regex: search.trim(),
+        $options: "i",
+      };
+
+      matchStage.$or = [
+        // Lead ID
+        {
+          leadId: searchRegex,
+        },
+
+        // Meta information
+        {
+          formId: searchRegex,
+        },
+        {
+          adId: searchRegex,
+        },
+        {
+          campaignId: searchRegex,
+        },
+
+        // Search field names
+        {
+          "leadDetails.field_data.name": searchRegex,
+        },
+
+        // Search field values
+        {
+          "leadDetails.field_data.values": searchRegex,
+        },
+      ];
+    }
+
+    const basePipeline = [
+      {
+        $match: matchStage,
+      },
+
+      // Get latest followup
+      ...(status
+        ? [
+            {
+              $addFields: {
+                lastFollowup: {
+                  $arrayElemAt: ["$followups", -1],
+                },
+              },
+            },
+            {
+              $match: {
+                "lastFollowup.followStatus": status,
+              },
+            },
+          ]
+        : []),
+    ];
+
+    // Fetch leads
+    const leads = await Lead.aggregate([
+      ...basePipeline,
+
+      {
+        $sort: {
+          createdAt: -1,
+        },
+      },
+
+      {
+        $skip: skip,
+      },
+
+      {
+        $limit: limitNumber,
+      },
     ]);
+
+    // Count total
+    const [totalResult] = await Lead.aggregate([
+      ...basePipeline,
+
+      {
+        $count: "total",
+      },
+    ]);
+
+    const total = totalResult?.total || 0;
 
     return res.status(200).json({
       success: true,
       leads,
       pagination: {
-        currentPage: Number(page),
-        totalPages: Math.ceil(total / limit),
+        currentPage: pageNumber,
+        totalPages: Math.ceil(total / limitNumber),
         totalLeads: total,
       },
     });
   } catch (error) {
     console.error("Error fetching leads:", error);
+
     return res.status(500).json({
       message: "Failed to fetch leads",
       success: false,
@@ -339,19 +443,26 @@ export const getLeads = async (req, res) => {
 
 export const downloadLeadsExcel = async (req, res) => {
   try {
-    const { startDate, endDate,type } = req.query;
+    const {
+      startDate,
+      endDate,
+      type,
+      status = "",
+      search = "",
+    } = req.query;
 
     const filter = {};
+
     if (type) {
       filter.type = type;
     }
 
-
     // Validate required date fields
     if (!startDate || !endDate) {
       return res.status(400).json({
-        message: 'Please provide startDate and endDate in query params (YYYY-MM-DD)',
-        success: false
+        message:
+          "Please provide startDate and endDate in query params (YYYY-MM-DD)",
+        success: false,
       });
     }
 
@@ -359,37 +470,94 @@ export const downloadLeadsExcel = async (req, res) => {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999); // Include end of the day
 
-    filter.createdAt= { $gte: start, $lte: end }
+    filter.createdAt = { $gte: start, $lte: end };
 
-    // Fetch contacts within the date range
-    const leads = await Lead.find(filter).sort({ createdAt: -1 });
+    // --------------------------------------------------
+    // Search filter (same as getLeads)
+    // --------------------------------------------------
+    if (search && search.trim()) {
+      const searchRegex = {
+        $regex: search.trim(),
+        $options: "i",
+      };
 
-    if (leads.length === 0) {
-      return res.status(404).json({ message: 'No leads found in this date range', success: false });
+      filter.$or = [
+        { leadId: searchRegex },
+        { formId: searchRegex },
+        { adId: searchRegex },
+        { campaignId: searchRegex },
+        { "leadDetails.field_data.name": searchRegex },
+        { "leadDetails.field_data.values": searchRegex },
+      ];
     }
 
-    // Create Excel workbook
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Leads');
+    // --------------------------------------------------
+    // Status filter (based on latest followup)
+    // Uses aggregation so we can filter on the last element
+    // of the followups array.
+    // --------------------------------------------------
+    let leads;
 
-    // Add header row
+    if (status && status.trim()) {
+      const pipeline = [
+        { $match: filter },
+
+        // Compute last followup
+        {
+          $addFields: {
+            lastFollowup: { $arrayElemAt: ["$followups", -1] },
+          },
+        },
+
+        // Filter by last followup status
+        {
+          $match: {
+            "lastFollowup.followStatus": status,
+          },
+        },
+
+        // Sort latest first
+        { $sort: { createdAt: -1 } },
+      ];
+
+      leads = await Lead.aggregate(pipeline);
+    } else {
+      leads = await Lead.find(filter).sort({ createdAt: -1 }).lean();
+    }
+
+    if (leads.length === 0) {
+      return res.status(404).json({
+        message: "No leads found for the selected filters",
+        success: false,
+      });
+    }
+
+    // --------------------------------------------------
+    // Build Excel
+    // --------------------------------------------------
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Leads");
+
     worksheet.columns = [
-      { header: 'Name', key: 'name', width: 20 },
-      { header: 'Phone', key: 'phone', width: 15 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Status', key: 'status', width: 25 },
-      { header: 'Created At', key: 'createdAt', width: 20 }
+      { header: "Name", key: "name", width: 20 },
+      { header: "Phone", key: "phone", width: 15 },
+      { header: "Email", key: "email", width: 25 },
+      { header: "Status", key: "status", width: 25 },
+      { header: "Created At", key: "createdAt", width: 20 },
     ];
 
-    // Add data rows
-    leads.forEach(lead => {
+    // Optional header styling
+    worksheet.getRow(1).font = { bold: true };
 
+    // Add data rows
+    leads.forEach((lead) => {
       const fieldData = lead.leadDetails?.field_data || [];
 
       const getFieldValue = (name) => {
-  const field = fieldData.find(f => f.name === name);
-  return field?.values?.[0] || "N/A";
-};
+        const field = fieldData.find((f) => f.name === name);
+        return field?.values?.[0] || "N/A";
+      };
+
       worksheet.addRow({
         name: getFieldValue("full_name"),
         phone: getFieldValue("phone_number"),
@@ -398,20 +566,32 @@ export const downloadLeadsExcel = async (req, res) => {
           lead.followups?.length > 0
             ? lead.followups[lead.followups.length - 1].followStatus
             : "N/A",
-        createdAt: lead.createdAt.toISOString().split('T')[0]
+        createdAt: lead.createdAt
+          ? new Date(lead.createdAt).toISOString().split("T")[0]
+          : "",
       });
     });
 
-    // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=leads_${startDate}_to_${endDate}.xlsx`);
+    // --------------------------------------------------
+    // Response headers
+    // --------------------------------------------------
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=leads_${startDate}_to_${endDate}.xlsx`
+    );
 
-    // Write to response stream
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error generating Excel:', error);
-    res.status(500).json({ message: 'Failed to generate Excel', success: false });
+    console.error("Error generating Excel:", error);
+    res.status(500).json({
+      message: "Failed to generate Excel",
+      success: false,
+    });
   }
 };
 

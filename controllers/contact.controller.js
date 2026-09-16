@@ -48,7 +48,17 @@ export const addContact = async (req, res) => {
     //   });
     // }
 
-    // Create a new contact document if no existing contact is found
+    const defaultFollowup = {
+      followStatus: "Pending",
+      followupMessage: "Pending",
+      updatedDate: new Date(),
+    };
+
+    const finalFollowups = [defaultFollowup];
+
+    // --------------------------------------------------
+    // Create new contact
+    // --------------------------------------------------
     const newContact = new Contact({
       name,
       phone,
@@ -57,7 +67,7 @@ export const addContact = async (req, res) => {
       message,
       isContactClose,
       userId,
-      followups,
+      followups: finalFollowups,   // <-- always populated
     });
 
     // Save the new contact to the database
@@ -77,119 +87,232 @@ export const addContact = async (req, res) => {
   }
 };
 
-// Get all contacts
+
+
+// --------------------------------------------------
+// GET CONTACTS (with status filter on latest followup)
+// --------------------------------------------------
 export const getContacts = async (req, res) => {
   try {
-    const { page = 1, search = "",limit=25 } = req.query;
+    const {
+      page = 1,
+      search = "",
+      limit = 25,
+      status = "",   // NEW: follow-up status filter
+    } = req.query;
 
-    const skip = (page - 1) * limit;
+    const pageNumber = Number(page);
+    const limitNumber = Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
 
-    // Create a search filter
+    // --------------------------------------------------
+    // Build search filter
+    // --------------------------------------------------
     const searchFilter = {};
 
-    // Apply search filter
-    if (search) {
+    if (search && search.trim()) {
       searchFilter.$or = [
-        { name: { $regex: search, $options: "i" } },
-         { email: { $regex: search, $options: "i" } },
-         { subject: { $regex: search, $options: "i" } },
-          { message: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-       
+        { name: { $regex: search.trim(), $options: "i" } },
+        { email: { $regex: search.trim(), $options: "i" } },
+        { subject: { $regex: search.trim(), $options: "i" } },
+        { message: { $regex: search.trim(), $options: "i" } },
+        { phone: { $regex: search.trim(), $options: "i" } },
       ];
     }
 
-    // Fetch all matching products (without pagination)
-    const allContacts = await Contact.find(searchFilter);
+    // --------------------------------------------------
+    // Base pipeline
+    // --------------------------------------------------
+    const basePipeline = [{ $match: searchFilter }];
 
-    // Apply pagination
-    const paginatedContacts = await Contact.find(searchFilter)
-      .sort({ _id: -1 }) // Sort newest first
-      .skip(skip)
-      .limit(limit);
+    // If status filter is set, match the LAST element
+    // of the followups array
+    if (status && status.trim()) {
+      basePipeline.push(
+        {
+          $addFields: {
+            lastFollowup: { $arrayElemAt: ["$followups", -1] },
+          },
+        },
+        {
+          $match: {
+            "lastFollowup.followStatus": status,
+          },
+        }
+      );
+    }
 
-    res.status(200).json({
-      contacts: paginatedContacts,
+    // --------------------------------------------------
+    // Fetch paginated contacts
+    // --------------------------------------------------
+    const contacts = await Contact.aggregate([
+      ...basePipeline,
+      { $sort: { _id: -1 } },
+      { $skip: skip },
+      { $limit: limitNumber },
+    ]);
+
+    // --------------------------------------------------
+    // Count total
+    // --------------------------------------------------
+    const [totalResult] = await Contact.aggregate([
+      ...basePipeline,
+      { $count: "total" },
+    ]);
+
+    const total = totalResult?.total || 0;
+
+    return res.status(200).json({
+      contacts,
       success: true,
       pagination: {
-        currentPage: Number(page),
-        totalPages: Math.ceil(allContacts.length / limit),
-        totalContacts: allContacts.length,
+        currentPage: pageNumber,
+        totalPages: Math.ceil(total / limitNumber),
+        totalContacts: total,
       },
     });
   } catch (error) {
     console.error("Error fetching contacts:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to fetch contacts", success: false });
+    return res.status(500).json({
+      message: "Failed to fetch contacts",
+      success: false,
+    });
   }
 };
 
+// --------------------------------------------------
+// DOWNLOAD CONTACTS EXCEL (with status + search)
+// --------------------------------------------------
 export const downloadContactsExcel = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const {
+      startDate,
+      endDate,
+      status = "",   // NEW
+      search = "",   // NEW
+    } = req.query;
 
     // Validate required date fields
     if (!startDate || !endDate) {
       return res.status(400).json({
-        message: 'Please provide startDate and endDate in query params (YYYY-MM-DD)',
-        success: false
+        message:
+          "Please provide startDate and endDate in query params (YYYY-MM-DD)",
+        success: false,
       });
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // Include end of the day
+    end.setHours(23, 59, 59, 999);
 
-    // Fetch contacts within the date range
-    const contacts = await Contact.find({
-      createdAt: { $gte: start, $lte: end }
-    }).sort({ createdAt: -1 });
+    // --------------------------------------------------
+    // Base filter
+    // --------------------------------------------------
+    const matchStage = {
+      createdAt: { $gte: start, $lte: end },
+    };
 
-    if (contacts.length === 0) {
-      return res.status(404).json({ message: 'No contacts found in this date range', success: false });
+    // Search filter
+    if (search && search.trim()) {
+      matchStage.$or = [
+        { name: { $regex: search.trim(), $options: "i" } },
+        { email: { $regex: search.trim(), $options: "i" } },
+        { subject: { $regex: search.trim(), $options: "i" } },
+        { message: { $regex: search.trim(), $options: "i" } },
+        { phone: { $regex: search.trim(), $options: "i" } },
+      ];
     }
 
-    // Create Excel workbook
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Contacts');
+    // --------------------------------------------------
+    // Pipeline
+    // --------------------------------------------------
+    const pipeline = [{ $match: matchStage }];
 
-    // Add header row
+    if (status && status.trim()) {
+      pipeline.push(
+        {
+          $addFields: {
+            lastFollowup: { $arrayElemAt: ["$followups", -1] },
+          },
+        },
+        {
+          $match: {
+            "lastFollowup.followStatus": status,
+          },
+        }
+      );
+    }
+
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    const contacts = await Contact.aggregate(pipeline);
+
+    if (contacts.length === 0) {
+      return res.status(404).json({
+        message: "No contacts found for the selected filters",
+        success: false,
+      });
+    }
+
+    // --------------------------------------------------
+    // Build Excel
+    // --------------------------------------------------
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Contacts");
+
     worksheet.columns = [
-      { header: 'Name', key: 'name', width: 20 },
-      { header: 'Phone', key: 'phone', width: 15 },
-      { header: 'Email', key: 'email', width: 25 },
-      { header: 'Subject', key: 'subject', width: 25 },
-      { header: 'Message', key: 'message', width: 40 },
-      { header: 'Is Contact Closed', key: 'isContactClose', width: 18 },
-      { header: 'User ID', key: 'userId', width: 24 },
-      { header: 'Created At', key: 'createdAt', width: 20 }
+      { header: "Name", key: "name", width: 20 },
+      { header: "Phone", key: "phone", width: 15 },
+      { header: "Email", key: "email", width: 25 },
+      { header: "Subject", key: "subject", width: 25 },
+      { header: "Message", key: "message", width: 40 },
+      { header: "Status", key: "status", width: 25 }, // NEW
+      { header: "Is Contact Closed", key: "isContactClose", width: 18 },
+      { header: "User ID", key: "userId", width: 24 },
+      { header: "Created At", key: "createdAt", width: 20 },
     ];
 
-    // Add data rows
-    contacts.forEach(contact => {
+    worksheet.getRow(1).font = { bold: true };
+
+    contacts.forEach((contact) => {
       worksheet.addRow({
-        name: contact.name,
-        phone: contact.phone,
-        email: contact.email,
-        subject: contact.subject,
-        message: contact.message,
-        isContactClose: contact.isContactClose ? 'Yes' : 'No',
-        userId: contact.userId || '',
-        createdAt: contact.createdAt.toISOString().split('T')[0]
+        name: contact.name || "",
+        phone: contact.phone || "",
+        email: contact.email || "",
+        subject: contact.subject || "",
+        message: contact.message || "",
+        status:
+          contact.followups?.length > 0
+            ? contact.followups[contact.followups.length - 1].followStatus
+            : "N/A",
+        isContactClose: contact.isContactClose ? "Yes" : "No",
+        userId: contact.userId || "",
+        createdAt: contact.createdAt
+          ? new Date(contact.createdAt).toISOString().split("T")[0]
+          : "",
       });
     });
 
-    // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=contacts_${startDate}_to_${endDate}.xlsx`);
+    // --------------------------------------------------
+    // Response headers
+    // --------------------------------------------------
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=contacts_${startDate.split("T")[0]}_to_${endDate.split("T")[0]}.xlsx`
+    );
 
-    // Write to response stream
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error('Error generating Excel:', error);
-    res.status(500).json({ message: 'Failed to generate Excel', success: false });
+    console.error("Error generating Excel:", error);
+    res.status(500).json({
+      message: "Failed to generate Excel",
+      success: false,
+    });
   }
 };
 

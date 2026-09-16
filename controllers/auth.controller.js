@@ -694,7 +694,11 @@ if (fromDate || toDate) {
 
       let enriched = pageCalls.map((call) => {
         const meta = metaMap[call.Sid];
-        const followups = meta?.followups || [];
+        const followups = meta?.followups || [{
+            followStatus: "Pending",
+            followupMessage: "Pending",
+            updatedDate: new Date(),
+          }];
         return {
           ...call,
           followups,

@@ -1644,25 +1644,25 @@ const sendWhatsApp = async (payload) => {
       let procedureSection = '';
     let enrichedProcedures = [];
 
-    if (appt.reason && Array.isArray(appt.reason)) {
-        enrichedProcedures = await Promise.all(
-            appt.reason.map(async (rea) => {
-                const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
-                if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
-                    if (procedure ) {
-                        return {
-                            name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `procedures/${procedure.serviceUrl}` || ""
-                        };
-                    }
-                }
-                return null;
-            })
-        );
-        enrichedProcedures = enrichedProcedures.filter(p => p);
+    // if (appt.reason && Array.isArray(appt.reason)) {
+    //     enrichedProcedures = await Promise.all(
+    //         appt.reason.map(async (rea) => {
+    //             const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+    //             if (rea.value && isValidObjectId(rea.value)) {
+    //                 const procedure = await Service.findById(rea.value);
+    //                 if (procedure ) {
+    //                     return {
+    //                         name: procedure.serviceName || procedure.name || "Procedure",
+    //                         link: `procedures/${procedure.serviceUrl}` || ""
+    //                     };
+    //                 }
+    //             }
+    //             return null;
+    //         })
+    //     );
+    //     enrichedProcedures = enrichedProcedures.filter(p => p);
 
-    }
+    // }
 
     // if (enrichedProcedures.length > 0) {
     //     const procedureLines = enrichedProcedures.map(proc => {
@@ -1704,7 +1704,7 @@ const sendWhatsApp = async (payload) => {
               type: "template",
 
               template: {
-                name: "missed_appointment_reminder_irclinic",
+                name: "missed_reminder_irclinic",
 
                 language: {
                   policy: "deterministic",
@@ -1726,19 +1726,7 @@ const sendWhatsApp = async (payload) => {
                       }
                       
                     ]
-                  },
-                  {
-                type: "button",
-                sub_type: "url",
-                index: "0",
-
-                parameters: [
-                  {
-                    type: "text",
-                    text:enrichedProcedures.length>0 ? enrichedProcedures[0]?.link : "?t=1778583180000"
                   }
-                ]
-              }
                 ]
               }
             }

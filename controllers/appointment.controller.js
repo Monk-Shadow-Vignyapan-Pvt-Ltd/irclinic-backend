@@ -908,11 +908,12 @@ const formattedTime = appointmentDate.format('hh:mm A');
             appointment.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
+                    const procedure = await Service.findById(rea.value).select('serviceName serviceUrl');
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || "",
+                            url: rea.value
                         };
                     }
                 }
@@ -922,6 +923,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
         enrichedProcedures = enrichedProcedures.filter(p => p);
 
     }
+
 
     // if (enrichedProcedures.length > 0) {
     //     const procedureLines = enrichedProcedures.map(proc => {
@@ -970,7 +972,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
               type: "template",
 
               template: {
-                name: "appointment_confirmation_ir",
+                name: "new_appointment",
 
                 language: {
                   policy: "deterministic",
@@ -978,6 +980,12 @@ const formattedTime = appointmentDate.format('hh:mm A');
                 },
 
                 components: [
+                  {
+                    "type": "header",
+                    "parameters": [
+                      { "type": "image", "image": { "link": enrichedProcedures.length>0 ? `https://api.interventionalradiology.co.in/api/v1/services/getServiceImage/${enrichedProcedures[0]?.url}` : "https://irclinicindia.com/social-share-image.jpg" } }
+                    ]
+                  },
                   {
                     type: "body",
 
@@ -1042,6 +1050,9 @@ const response = await axios.post(url, payload, {
     "Accept": "application/json"
   },
 });
+
+// console.log("Exotel Status:", response.status);
+// console.log("Exotel Response:", JSON.stringify(response.data, null, 2));
     } catch (err) {
         console.error("WhatsApp API Error:", err.response?.data || err.message);
     }
@@ -1071,11 +1082,12 @@ const formattedTime = appointmentDate.format('hh:mm A');
             appointment.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                     const procedure = await Service.findById(rea.value);
+                     const procedure = await Service.findById(rea.value).select('serviceName serviceUrl');
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || "",
+                            url: rea.value
                         };
                     }
                 }
@@ -1133,7 +1145,7 @@ const formattedTime = appointmentDate.format('hh:mm A');
               type: "template",
 
               template: {
-                name: "followup_appointment_confirmation_irclinic",
+                name: "followup_apt",
 
                 language: {
                   policy: "deterministic",
@@ -1141,6 +1153,12 @@ const formattedTime = appointmentDate.format('hh:mm A');
                 },
 
                 components: [
+                  {
+                    "type": "header",
+                    "parameters": [
+                      { "type": "image", "image": { "link": enrichedProcedures.length>0 ? `https://api.interventionalradiology.co.in/api/v1/services/getServiceImage/${enrichedProcedures[0]?.url}` : "https://irclinicindia.com/social-share-image.jpg" } }
+                    ]
+                  },
                   {
                     type: "body",
 
@@ -1771,11 +1789,13 @@ const sendWhatsApp = async (payload) => {
             appt.reason.map(async (rea) => {
                 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
                 if (rea.value && isValidObjectId(rea.value)) {
-                    const procedure = await Service.findById(rea.value);
+                    const procedure = await Service.findById(rea.value).select('serviceName serviceUrl');
+                    
                     if (procedure ) {
                         return {
                             name: procedure.serviceName || procedure.name || "Procedure",
-                            link: `procedures/${procedure.serviceUrl}` || ""
+                            link: `procedures/${procedure.serviceUrl}` || "",
+                            url: rea.value
                         };
                     }
                 }
@@ -1829,7 +1849,7 @@ const sendWhatsApp = async (payload) => {
               type: "template",
 
               template: {
-                name: "followup_appointment_confirmation_irclinic",
+                name: "followup_apt",
 
                 language: {
                   policy: "deterministic",
@@ -1837,6 +1857,12 @@ const sendWhatsApp = async (payload) => {
                 },
 
                 components: [
+                  {
+                    "type": "header",
+                    "parameters": [
+                      { "type": "image", "image": { "link": enrichedProcedures.length>0 ? `https://api.interventionalradiology.co.in/api/v1/services/getServiceImage/${enrichedProcedures[0]?.url}` : "https://irclinicindia.com/social-share-image.jpg" } }
+                    ]
+                  },
                   {
                     type: "body",
 

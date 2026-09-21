@@ -854,22 +854,50 @@ export const getWithoutBasicServices = async (req, res) => {
 export const getServiceImage = async (req, res) => {
     try {
         const serviceId = req.params.id;
-        const service = await Service.findById(serviceId).select('serviceImage');
-        if (!service) return res.status(404).json({ message: "Service not found!", success: false });
-        const matches = service.serviceImage.match(/^data:(.+);base64,(.+)$/);
-            if (!matches) {
-            return res.status(400).send('Invalid image format');
-            }
 
-            const mimeType = matches[1];
-            const base64Data = matches[2];
-            const buffer = Buffer.from(base64Data, 'base64');
+        const service = await Service.findById(serviceId).select("serviceImage");
 
-            res.set('Content-Type', mimeType);
-            res.send(buffer);
+        if (!service) {
+            return res.status(404).json({
+                message: "Service not found!",
+                success: false
+            });
+        }
+
+        const matches = service.serviceImage.match(
+            /^data:(.+);base64,(.+)$/
+        );
+
+        if (!matches) {
+            return res.status(400).send("Invalid image format");
+        }
+
+        const base64Data = matches[2];
+
+        const buffer = Buffer.from(base64Data, "base64");
+
+        // Convert any input format (WebP, PNG, etc.) to JPEG
+        const jpegBuffer = await sharp(buffer)
+            .jpeg({
+                quality: 85
+            })
+            .toBuffer();
+
+        res.set({
+            "Content-Type": "image/jpeg",
+            "Content-Length": jpegBuffer.length,
+            "Cache-Control": "public, max-age=86400"
+        });
+
+        return res.send(jpegBuffer);
+
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ message: 'Failed to fetch service image', success: false });
+        console.error("getServiceImage error:", error);
+
+        return res.status(500).json({
+            message: "Failed to fetch service image",
+            success: false
+        });
     }
 };
 

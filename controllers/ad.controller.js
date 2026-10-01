@@ -48,6 +48,7 @@ export const addAd = async (req, res) => {
       patientEmail,
       patientPhone,
       centerId,
+      paymentStatus:"Pending"
     });
 
     await newAd.save();

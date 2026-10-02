@@ -15,8 +15,10 @@ router.get("/google", (req, res) => {
     access_type: "offline", // Required for refresh token
     prompt: "consent",      // Forces Google to return a refresh token
     scope: [
-      "https://www.googleapis.com/auth/calendar"
-    ],
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/meetings.space.created",
+    "https://www.googleapis.com/auth/drive",
+],
   });
 
   res.redirect(url);

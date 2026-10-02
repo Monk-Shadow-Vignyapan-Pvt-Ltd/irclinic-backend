@@ -18,6 +18,8 @@ router.get("/google", (req, res) => {
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/meetings.space.created",
     "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/meetings.space.settings",
+    "https://www.googleapis.com/auth/meetings.space.readonly"
 ],
   });
 

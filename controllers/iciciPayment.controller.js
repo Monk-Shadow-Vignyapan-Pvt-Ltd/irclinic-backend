@@ -190,6 +190,8 @@ export const checkIciciPaymentStatus = async (
   try {
     const { merchantTxnNo } = req.body;
 
+    let finalMeetingLink = null;
+
     if (!merchantTxnNo) {
       return res.status(400).json({
         success: false,
@@ -356,17 +358,7 @@ export const checkIciciPaymentStatus = async (
           return res.status(400).json({ message: "Invalid time selected", success: false });
         }
 
-        let finalMeetingLink = null;
-
-        if (isOnlineConsultation) {
-            const meet = await createGoogleMeet({
-                title,
-                start,
-                end,
-            });
-
-            finalMeetingLink = meet.meetingLink;
-        }
+        
 
           // Save in DB
           
@@ -380,13 +372,34 @@ export const checkIciciPaymentStatus = async (
             end,
             status: "Scheduled",
             isOnline: true,
-            isOnlineConsultation,meetingLink:finalMeetingLink,
+            isOnlineConsultation,
             paymentId:payment._id,
             paymentStatus:"Paid",
             paymentAmount:iciciData.amount,
             paymentMode:iciciData.paymentMode
           });
           await appointment.save();
+
+          
+          
+                   if (isOnlineConsultation) {
+                      const meetResult =
+                        await createGoogleMeet({
+                          appointmentId:
+                            appointment._id,
+          
+                          title:
+                            appointment.title,
+          
+                          start:
+                            appointment.start,
+          
+                          end:
+                            appointment.end,
+                        });
+          
+                      finalMeetingLink = meetResult.meetingLink;
+                  }
 
           appointmentData= appointment;
 
@@ -410,7 +423,8 @@ export const checkIciciPaymentStatus = async (
       success: true,
       paymentStatus: payment.status,
       iciciResponse: response.data,
-      appointment:appointmentData
+      appointment:appointmentData,
+      meetingLink: finalMeetingLink
     });
   } catch (err) {
     console.log(

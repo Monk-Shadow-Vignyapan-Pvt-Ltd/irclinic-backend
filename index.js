@@ -10,10 +10,14 @@ import routes from "./routes/index.js";
 import { startWhatsAppReminderCron } from "./controllers/appointment.controller.js";
 import { startInvoiceUpdateCron } from "./controllers/appointment.controller.js";
 import googleAuth from "./services/googleAuth.js";
+import googleMeetService from "./services/googleMeet.service.js";
+
 
 dotenv.config();
 // connect db
 connectDB();
+
+
 
 const PORT = process.env.PORT || 8080;
 const app = express();
@@ -65,6 +69,7 @@ app.use(
 
 // API Routes
 app.use("/auth", googleAuth);
+app.use("/auth", googleMeetService);
 app.use("/api/v1/auth", routes.authRoute);
 app.use("/api/v1/adminDoctors", routes.adminDoctorRoute);
 app.use("/api/v1/blogs", routes.blogRoute);

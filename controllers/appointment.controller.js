@@ -73,22 +73,15 @@ if (!admin.apps.length) {
 export const addAppointment = async (req, res) => {
     try {
         const { patientId, appointmentType, title, doctorId, centerId, start, end, reason, reports, procedurePlan, investigationReports, progressNotes, invoiceId, estimateId,quicknoteId, isCancelled, cancelby, cancelReason, userId, status, isFollowUp,isOnlineConsultation,meetingLink } = req.body;
-
+              
+        let finalMeetingLink = null;
         if (!patientId || !title || !start || !end) {
             return res.status(400).json({ message: 'Patient ID and time are required', success: false });
         }
 
-        let finalMeetingLink = null;
+        
 
-        if (isOnlineConsultation) {
-            const meet = await createGoogleMeet({
-                title,
-                start,
-                end,
-            });
-
-            finalMeetingLink = meet.meetingLink;
-        }
+       
 
 
         // Create a new appointment
@@ -107,8 +100,29 @@ export const addAppointment = async (req, res) => {
             status: status || "Scheduled",
             isFollowUp,
             isOnline:false,
-            isOnlineConsultation,meetingLink:finalMeetingLink
+            isOnlineConsultation
         });
+
+        
+
+         if (isOnlineConsultation) {
+            const meetResult =
+              await createGoogleMeet({
+                appointmentId:
+                  appointment._id,
+
+                title:
+                  appointment.title,
+
+                start:
+                  appointment.start,
+
+                end:
+                  appointment.end,
+              });
+
+            finalMeetingLink = meetResult.meetingLink;
+        }
 
         await appointment.save();
         io.emit("appointmentAddUpdate",  { success: true } );
@@ -232,7 +246,7 @@ export const addAppointment = async (req, res) => {
         }
        
 
-        res.status(201).json({ appointment, success: true });
+        res.status(201).json({ appointment,meetingLink: finalMeetingLink, success: true });
     } catch (error) {
         console.error('Error adding appointment:', error);
         res.status(500).json({ message: 'Failed to add appointment', success: false });
@@ -243,6 +257,9 @@ export const addOnlineAppointment = async (req, res) => {
     try {
         const { fullName, gender, center, age, appointmentDate, appointmentTime, patientPhoneNo,isOnlineConsultation,meetingLink } = req.body;
 
+
+
+        let finalMeetingLink = null;
         if (!fullName || !patientPhoneNo || !appointmentDate || !appointmentTime) {
             return res.status(400).json({ message: 'Required Fields are missing', success: false });
         }
@@ -304,17 +321,7 @@ export const addOnlineAppointment = async (req, res) => {
           return res.status(400).json({ message: "Invalid time selected", success: false });
         }
 
-        let finalMeetingLink = null;
-
-        if (isOnlineConsultation) {
-            const meet = await createGoogleMeet({
-                title,
-                start,
-                end,
-            });
-
-            finalMeetingLink = meet.meetingLink;
-        }
+       
 
           // Save in DB
           const appointment = new Appointment({
@@ -327,15 +334,36 @@ export const addOnlineAppointment = async (req, res) => {
             end,
             status: "Scheduled",
             isOnline: true,
-            isOnlineConsultation,meetingLink:finalMeetingLink
+            isOnlineConsultation,
           });
           await appointment.save();
+
+          
+
+         if (isOnlineConsultation) {
+            const meetResult =
+              await createGoogleMeet({
+                appointmentId:
+                  appointment._id,
+
+                title:
+                  appointment.title,
+
+                start:
+                  appointment.start,
+
+                end:
+                  appointment.end,
+              });
+
+            finalMeetingLink = meetResult.meetingLink;
+        }
 
         io.emit("appointmentAddUpdate", { success: true });
 
         await sendAppointmentConfirmation(appointment, patient, doctor, selectedCenter);
 
-        res.status(201).json({ appointment, success: true });
+        res.status(201).json({ appointment,meetingLink: finalMeetingLink, success: true });
     } catch (error) {
         console.error("Error adding appointment:", error);
         res.status(500).json({ message: "Failed to add appointment", success: false });

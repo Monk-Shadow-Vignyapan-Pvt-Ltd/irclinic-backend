@@ -98,6 +98,95 @@ const appointmentSchema = new mongoose.Schema(
         type: String,
         required: false,
     },
+    googleMeet: {
+  spaceName: {
+    type: String,
+    required: false,
+  },
+
+  meetingUri: {
+    type: String,
+    required: false,
+  },
+
+  calendarEventId: {
+    type: String,
+    required: false,
+  },
+
+  conferenceRecord: {
+    type: String,
+    required: false,
+  },
+
+  eventSubscription: {
+    name: {
+      type: String,
+      required: false,
+    },
+
+    expirationTime: {
+      type: Date,
+      required: false,
+    },
+  },
+
+  recording: {
+    status: {
+      type: String,
+
+      enum: [
+        "pending",
+        "recording",
+        "processing",
+        "ready",
+        "failed",
+      ],
+
+      default: "pending",
+    },
+
+    fileId: {
+      type: String,
+      required: false,
+    },
+
+    fileName: {
+      type: String,
+      required: false,
+    },
+
+    driveUrl: {
+      type: String,
+      required: false,
+    },
+
+    startTime: {
+      type: Date,
+      required: false,
+    },
+
+    endTime: {
+      type: Date,
+      required: false,
+    },
+
+    recordingName: {
+      type: String,
+      required: false,
+    },
+
+    processedAt: {
+      type: Date,
+      required: false,
+    },
+
+    error: {
+      type: String,
+      required: false,
+    },
+  },
+},
     consentImage: {
         type: String, // Store image as base64 or use a URL reference
         required: false,

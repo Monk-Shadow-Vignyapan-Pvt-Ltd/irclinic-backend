@@ -105,7 +105,11 @@ export const addAppointment = async (req, res) => {
 
         
 
-         if (isOnlineConsultation) {
+       
+
+        await appointment.save();
+
+          if (isOnlineConsultation) {
             const meetResult =
               await createGoogleMeet({
                 appointmentId:
@@ -123,8 +127,6 @@ export const addAppointment = async (req, res) => {
 
             finalMeetingLink = meetResult.meetingLink;
         }
-
-        await appointment.save();
         io.emit("appointmentAddUpdate",  { success: true } );
         // Fetch users who should receive notifications
         if(appointmentType === 'Outside'){
@@ -622,7 +624,7 @@ export const getLastAppointmentByPatientId = async (req, res) => {
 export const getAppointmentById = async (req, res) => {
     try {
         const { id } = req.params;
-        const appointment = await Appointment.findById(id);
+        const appointment = await Appointment.findById(id).populate('patientId');
         if (!appointment) {
             return res.status(404).json({ message: 'Appointment not found', success: false });
         }

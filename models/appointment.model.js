@@ -191,6 +191,7 @@ const appointmentSchema = new mongoose.Schema(
         type: String, // Store image as base64 or use a URL reference
         required: false,
     },
+    merchantTxnNo:String,
     paymentId: String,
     paymentStatus:String,
     paymentAmount:Number,

@@ -33,7 +33,7 @@ router.route("/checkIciciPaymentStatus").post( checkIciciPaymentStatus);
 router.post("/payment-callback", async (req, res) => {
   
   return res.redirect(
-    `https://irclinicindia.com/thank-you-booking-appointment?txn=${req.query.txn}`
+    `https://irclinicindia.com/thank-you-booking-appointment-payment?txn=${req.query.txn}`
   );
 });
 

@@ -32,6 +32,25 @@ export const initiateIciciPayment = async (req, res) => {
       });
     }
 
+     if (!appointmentData?._id) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment ID is required",
+      });
+    }
+
+    // CHECK APPOINTMENT
+    const appointment = await Appointment.findById(
+      appointmentData._id
+    );
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
     const ICICI_URL =
       "https://pgpay.icicibank.com/pg/api/v2/initiateSale";
 
@@ -50,6 +69,12 @@ export const initiateIciciPayment = async (req, res) => {
       String(now.getSeconds()).padStart(2, "0");
 
     const merchantTxnNo = Date.now().toString();
+
+     appointment.merchantTxnNo = merchantTxnNo;
+    appointment.paymentStatus = "PENDING";
+    appointment.paymentAmount = Number(amount);
+
+    await appointment.save();
 
     const payload = {
       merchantId: "100000000484660",
@@ -190,8 +215,6 @@ export const checkIciciPaymentStatus = async (
   try {
     const { merchantTxnNo } = req.body;
 
-    let finalMeetingLink = null;
-
     if (!merchantTxnNo) {
       return res.status(400).json({
         success: false,
@@ -206,6 +229,7 @@ export const checkIciciPaymentStatus = async (
       });
 
       let appointmentData = null;
+      let appointmentPaymentStatus = null;
 
 
 
@@ -282,149 +306,63 @@ export const checkIciciPaymentStatus = async (
 
       const iciciData = response.data;
 
-        if (
-        iciciData?.txnStatus === "SUC" ||
-        iciciData?.responseCode === "000" ||
-        iciciData?.txnResponseCode === "0000"
-        ) {
-        payment.status = "SUCCESS";
-        const alreadyCreated =
-      await Appointment.findOne({
-         paymentId: payment._id
-      });
+       if (
+  iciciData?.txnStatus === "SUC" ||
+  iciciData?.responseCode === "000" ||
+  iciciData?.txnResponseCode === "0000"
+) {
+  payment.status = "SUCCESS";
+  appointmentPaymentStatus = "SUCCESS";
+}
 
-      appointmentData = alreadyCreated;
+// PENDING
+else if (
+  iciciData?.txnStatus === "PENDING"
+) {
+  payment.status = "PENDING";
+  appointmentPaymentStatus = "PENDING";
+}
 
-   if (!alreadyCreated) {
-  const { fullName, gender, center, age, appointmentDate, appointmentTime, patientPhoneNo,paymentAmount,isOnlineConsultation } = payment.appointmentData;
-      if (!fullName || !patientPhoneNo || !appointmentDate || !appointmentTime) {
-            return res.status(400).json({ message: 'Required Fields are missing', success: false });
-        }
+// CANCELLED
+else if (
+  iciciData?.txnStatus === "CANCELLED" ||
+  iciciData?.txnStatus === "CANCEL" ||
+  iciciData?.responseCode === "999" // adjust if ICICI uses a specific cancel code
+) {
+  payment.status = "CANCELLED";
+  appointmentPaymentStatus = "CANCELLED";
+}
 
-        const selectedCenter = await Center.findById(center);
-        if (!selectedCenter) {
-            return res.status(404).json({ message: 'Center not found', success: false });
-        }
+// FAILED
+else {
+  payment.status = "FAILED";
+  appointmentPaymentStatus = "FAILED";
+}
 
-        // ✅ Check if patient already exists with same phoneNo in this center
-        let patient = await Patient.findOne({ phoneNo: patientPhoneNo, centerId: center });
+// Update payment first
+await payment.save();
 
-        if (!patient) {
-               let newcaseId;
-                try {
-                newcaseId = await generateCaseId(center, "OPD");
-                } catch (error) {
-                return res.status(400).json({ message: error.message, success: false });
-                }
-
-            // Create new patient
-            patient = new Patient({
-                patientName: fullName,
-                gender,
-                phoneNo: patientPhoneNo,
-                age,
-                patientType: "OPD",
-                centerId: center,
-                isOnline: true,
-                caseId: newcaseId,
-            });
-            await patient.save();
-        }
-
-        // ✅ Find doctors
-        const doctors = await Doctor.find({
-             centerId: center, isPartner: false 
-        });
-
-        let doctor = null;
-        if (doctors.length > 0) {
-            const randomIndex = Math.floor(Math.random() * doctors.length);
-            doctor = doctors[randomIndex];
-        }
-
-        if (!doctor) {
-            return res.status(400).json({ message: "No doctor available", success: false });
-        }
-
-        
-        const [year, month, day] = appointmentDate.split("-").map(Number);
-        const [hours, minutes] = appointmentTime.split(":").map(Number);
-
-        // ✅ Create directly (NO ISO conversion)
-        const start = new Date(Date.UTC(year, month - 1, day, hours - 5, minutes - 30));
-        const end = new Date(start.getTime() + 15 * 60000);
-
-        if (isNaN(start.getTime())) {
-          return res.status(400).json({ message: "Invalid time selected", success: false });
-        }
-
-        
-
-          // Save in DB
-          
-          const appointment = new Appointment({
-            patientId: patient._id,
-            appointmentType: "OPD",
-            title: fullName,
-            doctorId: doctor._id,
-            centerId: center || null,
-            start,   // UTC ISO string (e.g. 2025-09-06T04:30:00.000Z)
-            end,
-            status: "Scheduled",
-            isOnline: true,
-            isOnlineConsultation,
-            paymentId:payment._id,
-            paymentStatus:"Paid",
-            paymentAmount:iciciData.amount,
-            paymentMode:iciciData.paymentMode
-          });
-          await appointment.save();
-
-          
-          
-                   if (isOnlineConsultation) {
-                      const meetResult =
-                        await createGoogleMeet({
-                          appointmentId:
-                            appointment._id,
-          
-                          title:
-                            appointment.title,
-          
-                          start:
-                            appointment.start,
-          
-                          end:
-                            appointment.end,
-                        });
-          
-                      finalMeetingLink = meetResult.meetingLink;
-                  }
-
-          appointmentData= appointment;
-
-        io.emit("appointmentAddUpdate", { success: true });
-
-        await sendAppointmentConfirmation(appointment, patient, doctor, selectedCenter);
-   }
-        } else if (
-        iciciData?.txnStatus === "PENDING"
-        ) {
-        payment.status = "PENDING";
-        } else {
-        payment.status = "FAILED";
-        }
-
-    
-
-    await payment.save();
+// Update Appointment payment status
+if (payment.appointmentData?._id && appointmentPaymentStatus) {
+  appointmentData = await Appointment.findByIdAndUpdate(
+    payment.appointmentData._id,
+    {
+      $set: {
+        paymentStatus: appointmentPaymentStatus,
+        paymentId: payment._id,
+        paymentAmount: iciciData.amount,
+        paymentMode: iciciData.paymentMode,
+      },
+    },
+    { new: true }
+  );
+}
 
     return res.status(200).json({
       success: true,
       paymentStatus: payment.status,
       iciciResponse: response.data,
       appointment:appointmentData,
-      meetingLink: finalMeetingLink
     });
   } catch (err) {
     console.log(

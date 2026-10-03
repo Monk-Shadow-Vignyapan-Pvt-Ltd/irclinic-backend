@@ -344,19 +344,45 @@ await payment.save();
 
 // Update Appointment payment status
 if (payment.appointmentData?._id && appointmentPaymentStatus) {
-  appointmentData = await Appointment.findByIdAndUpdate(
-    payment.appointmentData._id,
-    {
-      $set: {
-        paymentStatus: appointmentPaymentStatus,
-        paymentId: payment._id,
-        paymentAmount: iciciData.amount,
-        paymentMode: iciciData.paymentMode,
-      },
-    },
-    { new: true }
-  );
+  appointmentData =
+        await Appointment.findByIdAndUpdate(
+          payment.appointmentData._id,
+          {
+            $set: {
+              paymentStatus: appointmentPaymentStatus,
+              paymentId: payment._id,
+              paymentAmount:
+                iciciData?.amount || payment.amount,
+              paymentMode:
+                iciciData?.paymentMode || null,
+            },
+          },
+          {
+            new: true,
+          }
+        ).populate("patientId");
+
 }
+
+if (appointmentData) {
+      appointmentData = {
+        ...appointmentData.toObject(),
+
+        title:
+          appointmentData.patientId?.patientName ||
+          "Unnamed Patient",
+
+        patientId:
+          appointmentData.patientId?._id,
+
+        patient:
+          appointmentData.patientId,
+
+        fromCamp:
+          appointmentData.patientId?.fromCamp ||
+          false,
+      };
+    }
 
     return res.status(200).json({
       success: true,

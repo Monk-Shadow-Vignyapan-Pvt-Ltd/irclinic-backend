@@ -2,7 +2,7 @@ import express from "express";
 import { addAppointment,addOnlineAppointment, getAppointments, getAppointmentById,getAppointmentsByPatientId,
     getLastAppointmentByPatientId, deleteAppointment, updateAppointment, 
     dashboardAppointments,getNonStockAppointments,saveAppointmentData,
-    updateConsentImage,getConsentImage,sendPatientInvoiceWhatsapp} from "../controllers/appointment.controller.js";
+    updateConsentImage,getConsentImage,sendPatientInvoiceWhatsapp,sendOnlineConsultPaymentWhatsapp} from "../controllers/appointment.controller.js";
 import isAuthenticated from "../auth/isAuthenticated.js";
 import { singleUpload } from "../middleware/multer.js";
 
@@ -22,5 +22,5 @@ router.route("/saveAppointmentData").post( saveAppointmentData);
 router.route("/updateConsentImage/:id").post( updateConsentImage);
 router.route("/getConsentImage/:id").get( getConsentImage);
 router.route("/sendPatientInvoiceWhatsapp").post( sendPatientInvoiceWhatsapp);
-
+router.route("/sendOnlineConsultPaymentWhatsapp").post( sendOnlineConsultPaymentWhatsapp);
 export default router;

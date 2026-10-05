@@ -2934,10 +2934,53 @@ export const getReportUrl = async (req, res) => {
     const center = await Center.findById(appointment.centerId);
     if (!center) return res.status(404).send('Center not found');
 
-
     // Get the specific report from appointment
     const report = appointment.reports?.[reportIndex];
     if (!report) return res.status(404).send('Report not found');
+
+    // Extract report data (handles both nested `data` object and flat structure)
+    const reportData = report.data || report;
+
+    // Get the report date - use report date or appointment updatedAt
+    const reportDate = report.date || appointment.updatedAt;
+
+    // Helper function to check if HTML content has actual text
+    const hasContent = (html) => {
+      if (!html) return false;
+      return html.replace(/<[^>]*>/g, "").trim().length > 0;
+    };
+
+    // Build report sections HTML
+    const descriptionHTML = hasContent(reportData?.description)
+      ? `<div class="report-section">${reportData.description}</div>`
+      : "";
+
+    const impressionHTML = hasContent(reportData?.impression)
+      ? `
+        <div class="report-section mt-4">
+          <h3 class="text-lg font-bold text-black">IMPRESSION:</h3>
+          <div>${reportData.impression}</div>
+        </div>
+      `
+      : "";
+
+    const adviceHTML = hasContent(reportData?.advice)
+      ? `
+        <div class="report-section mt-4">
+          <h3 class="text-lg font-bold text-black">ADVICE:</h3>
+          <div>${reportData.advice}</div>
+        </div>
+      `
+      : "";
+
+    const followupHTML = hasContent(reportData?.followup)
+      ? `
+        <div class="report-section mt-4">
+          <h3 class="text-lg font-bold text-black">Follow Up:</h3>
+          <div>${reportData.followup}</div>
+        </div>
+      `
+      : "";
 
     const reportHTML = `
 <!DOCTYPE html>
@@ -2978,6 +3021,27 @@ export const getReportUrl = async (req, res) => {
       width: 100%;
       padding-right: 40px;
     }
+    /* Match the React component's bg-gray-100 box style */
+    .report-box {
+      margin-top: 8px;
+      background-color: #ffffff;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #000;
+    }
+    .report-section h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 4px;
+    }
+    .report-section.mt-4 {
+      margin-top: 16px;
+    }
   </style>
 </head>
 <body>
@@ -3008,7 +3072,7 @@ export const getReportUrl = async (req, res) => {
         <p><strong>Patient Name:</strong> ${(patient.patientName || "").toUpperCase()}</p>
       </div>
       <div style="flex: 1; min-width: 250px;">
-        <p><strong>Date:</strong> ${moment(report.date || appointment.updatedAt).format("DD/MM/YYYY")}</p>
+        <p><strong>Date:</strong> ${moment(reportDate).format("DD/MM/YYYY")}</p>
       </div>
     </div>
 
@@ -3022,32 +3086,49 @@ export const getReportUrl = async (req, res) => {
     </div>
 
     <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-      ${patient.reference && patient.reference.label ? `
-        <div style="flex: 1; min-width: 400px;">
-          <p><strong>Reference By:</strong> ${patient.reference.label.toUpperCase()}</p>
-        </div>
-      ` : `
-        <div style="flex: 1; min-width: 400px;">
-          <p><strong>Address:</strong> ${patient.address || ""}</p>
-        </div>
-      `}
-      ${patient.reference && patient.reference.label ? `
-        <div style="flex: 1; min-width: 250px;">
-          <p><strong>Address:</strong> ${patient.address || ""}</p>
-        </div>
-      ` : ""}
+      ${
+        patient?.reference && patient?.reference?.label
+          ? `
+            <div style="flex: 1; min-width: 400px;">
+              <p><strong>Reference By:</strong> ${patient.reference.label.toUpperCase()}</p>
+            </div>
+          `
+          : `
+            <div style="flex: 1; min-width: 400px;">
+              <p><strong>Address:</strong> ${patient.address || ""}</p>
+            </div>
+          `
+      }
+      ${
+        patient?.reference && patient?.reference?.label
+          ? `
+            <div style="flex: 1; min-width: 250px;">
+              <p><strong>Address:</strong> ${patient.address || ""}</p>
+            </div>
+          `
+          : ""
+      }
     </div>
   </div>
 
-  <!-- Report Content -->
-  <div class="mt-6 mr-4 sun-editor-editable">
-    ${report.content || report.reportContent || ""}
+  <!-- Report Content - Structured sections like React component -->
+  <div class="mt-8 mr-4 sun-editor-editable">
+    <div class="report-box">
+      ${descriptionHTML}
+      ${impressionHTML}
+      ${adviceHTML}
+      ${followupHTML}
+    </div>
   </div>
 
   <!-- Signature Section -->
-  <div class="signature sun-editor-editable">
-    ${report.signature || appointment.leftSignature || ""}
-  </div>
+   <div style="margin-top: 30px !important;" class="flex flex-wrap gap-4 items-center text-center px-2 py-1.5 w-full bg-[#AAE1E6] border-[#2DAFBE] max-md:max-w-full">
+                            <section class="flex flex-col justify-center items-end py-1 px-10 mt-4 w-full text-xs font-bold text-center max-md:max-w-full">
+                            <div>For IR CLINIC</div>
+                            <div class="flex mt-2 bg-zinc-50 min-h-[80px] w-[90px]" />
+                            <div class="mt-6">Signature</div>
+                        </section>
+                        </div>
 
 </body>
 </html>

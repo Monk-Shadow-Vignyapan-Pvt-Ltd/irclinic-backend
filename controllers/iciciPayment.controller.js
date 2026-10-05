@@ -362,6 +362,10 @@ if (payment.appointmentData?._id && appointmentPaymentStatus) {
           }
         ).populate("patientId");
 
+        if(appointmentPaymentStatus === "SUCCESS") {
+          await sendOnlineConsultMeetingLink(appointmentData._id);
+        }
+
 }
 
 if (appointmentData) {
@@ -439,6 +443,113 @@ const generateCaseId = async (centerId, patientType) => {
   return patientType === "OPD"
     ? `${stateCode}-${cityCode}-${center.centerCode}-ON-${formattedDate}-${paddedSeq}`
     : `${stateCode}-${cityCode}-${center.centerCode}-O-${formattedDate}-${paddedSeq}`;
+};
+
+const sendOnlineConsultMeetingLink = async (appointmentId) => {
+  const appointment = await Appointment.findById(appointmentId);
+    const patient = await Patient.findById(appointment.patientId);
+    const doctor = await Doctor.findById(appointment.doctorId);
+    const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
+  
+    const formattedDate = appointmentDate.format('DD/MM/YYYY');
+    const formattedTime = appointmentDate.format('hh:mm A');
+    
+  
+    const payload = {
+        
+  
+        whatsapp: {
+          messages: [
+            {
+              from: `+919213009647`,
+  
+              to: `+91${patient.phoneNo}`,
+  
+              content: {
+                type: "template",
+  
+                template: {
+                  name: "online_consulatation_meeting_link",
+  
+                  language: {
+                    policy: "deterministic",
+                    code: "en"
+                  },
+  
+                  components: [
+                    {
+                      "type": "header",
+                      "parameters": [
+                        { "type": "image", "image": { "link": "https://irclinicindia.com/social-share-image.jpg" } }
+                      ]
+                    },
+                    {
+                      type: "body",
+  
+                      parameters: [
+                        {
+                          type: "text",
+                          text: patient.patientName
+                        },
+                        {
+                          type: "text",
+                          text: formattedDate
+                        },
+                        {
+                          type: "text",
+                          text: formattedTime
+                        },
+                        ,
+                        {
+                          type: "text",
+                          text: `${doctor.firstName} ${doctor.lastName}`
+                        },
+                        {
+                          type: "text",
+                          text: appointment.meetingLink || "https://meet.google.com/"
+                        }
+                      ]
+                    },
+                    {
+                  type: "button",
+                  sub_type: "url",
+                  index: "0",
+  
+                  parameters: [
+                    {
+                      type: "text",
+                      text: appointment.meetingLink || "https://meet.google.com/"
+                    }
+                  ]
+                }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      };
+
+    try {
+        //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+        //console.log("WhatsApp API Response:", data);
+
+        const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+
+// console.log("Exotel Status:", response.status);
+// console.log("Exotel Response:", JSON.stringify(response.data, null, 2));
+    } catch (err) {
+        console.error("WhatsApp API Error:", err.response?.data || err.message);
+    }
 };
 
 const sendAppointmentConfirmation = async (appointment, patient, doctor, center) => {

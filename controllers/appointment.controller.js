@@ -21,6 +21,7 @@ import { Stockout } from '../models/stockout.model.js';
 import sharp from 'sharp';
 import { CaseCounter } from '../models/caseCounter.model.js';
 import { createGoogleMeet } from '../services/googleMeet.service.js';
+import { chromium } from 'playwright';
 
 dotenv.config();
 
@@ -795,6 +796,9 @@ export const updateAppointment = async (req, res) => {
               
              
             }
+            if(reportsChanged && appointment.isOnlineConsultation){
+              await sendOnlineConsultationReport(patient,reports,appointment);
+            }
             const newInvoiceIds = Array.isArray(invoiceId) ? invoiceId : (invoiceId ? [invoiceId] : []);
             const existingInvoiceIds = Array.isArray(existingAppointment.invoiceId) ? existingAppointment.invoiceId : (existingAppointment.invoiceId ? [existingAppointment.invoiceId] : []);
 
@@ -1521,6 +1525,80 @@ const response = await axios.post(url, payload, {
     console.error("WhatsApp API Error:", err.response?.data || err.message);
   }
 };
+
+const sendOnlineConsultationReport = async (patient,reports,appointment) => {
+
+  const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "patent_report_online_consultation",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                      "type": "header",
+                      "parameters": [
+                        {
+                          "type": "document",
+                          "document": {
+                            "link": `https://api.interventionalradiology.co.in/api/v1/appointments/getReportUrl/${appointment._id}/${reports.length - 1}?v=${Date.now()}`,
+                            "filename": `Report_${appointment._id}_${reports.length - 1}_${Date.now()}.pdf`
+                          }
+                        }
+                      ]
+                    },
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
+
+  try {
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+       const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+      res.status(201).json({ data:response.data, success: true });
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
+};
+
 
 
 const sendPatientInvoice = async (patient, invoiceId,center) => {
@@ -2733,5 +2811,345 @@ const response = await axios.post(url, payload, {
       console.error("WhatsApp API Error:", err.response?.data || err.message);
   }
 };
+
+export const sendOnlineConsultMeetingLink = async (req, res) => {
+  const { appointmentId,  } = req.body;
+  const appointment = await Appointment.findById(appointmentId);
+  const patient = await Patient.findById(appointment.patientId);
+  const doctor = await Doctor.findById(appointment.doctorId);
+  const appointmentDate = moment.utc(appointment.start).add(5, 'hours').add(30, 'minutes');
+
+  const formattedDate = appointmentDate.format('DD/MM/YYYY');
+  const formattedTime = appointmentDate.format('hh:mm A');
+  
+
+  const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "online_consulatation_meeting_link",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                    "type": "header",
+                    "parameters": [
+                      { "type": "image", "image": { "link": "https://irclinicindia.com/social-share-image.jpg" } }
+                    ]
+                  },
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      },
+                      {
+                        type: "text",
+                        text: formattedDate
+                      },
+                      {
+                        type: "text",
+                        text: formattedTime
+                      },
+                      ,
+                      {
+                        type: "text",
+                        text: `${doctor.firstName} ${doctor.lastName}`
+                      },
+                      {
+                        type: "text",
+                        text: appointment.meetingLink || "https://meet.google.com/"
+                      }
+                    ]
+                  },
+                  {
+                type: "button",
+                sub_type: "url",
+                index: "0",
+
+                parameters: [
+                  {
+                    type: "text",
+                    text: appointment.meetingLink || "https://meet.google.com/"
+                  }
+                ]
+              }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
+
+  try {
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+       const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+      res.status(201).json({ data:response.data, success: true });
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
+};
+
+
+
+export const getReportUrl = async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+    const reportIndex = req.params.index;
+
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) return res.status(404).send('Appointment not found');
+
+    const patient = await Patient.findById(appointment.patientId);
+    if (!patient) return res.status(404).send('Patient not found');
+
+    // Get center from appointment (not from invoice)
+    const center = await Center.findById(appointment.centerId);
+    if (!center) return res.status(404).send('Center not found');
+
+
+    // Get the specific report from appointment
+    const report = appointment.reports?.[reportIndex];
+    if (!report) return res.status(404).send('Report not found');
+
+    const reportHTML = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IR Clinic Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/suneditor/dist/css/suneditor.min.css">
+  <style>
+    @page { 
+      margin: 0; 
+      size: A4; 
+      padding-top: 6mm !important;
+      padding-left: 20mm !important;
+      padding-right: 4.7mm !important;
+      padding-bottom: 6mm !important;
+    }
+    body { 
+      padding: 30px; 
+      font-family: sans-serif; 
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+    }
+    .content {
+      margin-top: 40px !important;
+    }
+    .sun-editor-editable table,
+    .sun-editor-editable table * {
+      border: none !important;
+      border-collapse: collapse;
+    }
+    .signature {
+      margin-top: 100px;
+      width: 100%;
+      padding-right: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header with Logo and Clinic Info -->
+  <header class="flex justify-between items-center px-2 py-4 w-full border-b-2 border-teal-500 max-md:flex-col max-md:px-5 max-md:gap-4">
+    <div class="flex-shrink-0">
+      <img
+        src="https://cdn.builder.io/api/v1/image/assets/TEMP/57b030fed4d07d3a5a5d9e2e444d3f8ecd2d777e?placeholderIfAbsent=true&apiKey=d61af76f4a4e4364a538e6cc74c81ea9"
+        alt="IR Clinic Logo"
+        class="object-contain max-w-full"
+        style="width: 300px !important; height:120px !important"
+      />
+    </div>
+    <div class="text-right min-w-[200px] max-w-sm">
+      <h1 class="text-lg font-bold">IR CLINIC</h1>
+      <address class="text-xs font-medium not-italic leading-relaxed" style="width: 300px !important;">
+        ${center.centerAddress}<br />
+        PH: +91 ${center.adminPhoneNo}
+      </address>
+    </div>
+  </header>
+
+  <!-- Patient Details Section -->
+  <div class="content text-sm">
+    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+      <div style="flex: 1; min-width: 400px;">
+        <p><strong>Patient Name:</strong> ${(patient.patientName || "").toUpperCase()}</p>
+      </div>
+      <div style="flex: 1; min-width: 250px;">
+        <p><strong>Date:</strong> ${moment(report.date || appointment.updatedAt).format("DD/MM/YYYY")}</p>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+      <div style="flex: 1; min-width: 400px;">
+        <p><strong>Patient ID:</strong> ${patient.caseId || ""}</p>
+      </div>
+      <div style="flex: 1; min-width: 250px;">
+        <p><strong>Age/Gender:</strong> ${patient.age || ""}/${(patient.gender || "").toUpperCase()}</p>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+      ${patient.reference && patient.reference.label ? `
+        <div style="flex: 1; min-width: 400px;">
+          <p><strong>Reference By:</strong> ${patient.reference.label.toUpperCase()}</p>
+        </div>
+      ` : `
+        <div style="flex: 1; min-width: 400px;">
+          <p><strong>Address:</strong> ${patient.address || ""}</p>
+        </div>
+      `}
+      ${patient.reference && patient.reference.label ? `
+        <div style="flex: 1; min-width: 250px;">
+          <p><strong>Address:</strong> ${patient.address || ""}</p>
+        </div>
+      ` : ""}
+    </div>
+  </div>
+
+  <!-- Report Content -->
+  <div class="mt-6 mr-4 sun-editor-editable">
+    ${report.content || report.reportContent || ""}
+  </div>
+
+  <!-- Signature Section -->
+  <div class="signature sun-editor-editable">
+    ${report.signature || appointment.leftSignature || ""}
+  </div>
+
+</body>
+</html>
+`;
+
+    const browser = await chromium.launch();
+    const page = await browser.newPage();
+    await page.setContent(reportHTML, { waitUntil: 'networkidle' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
+    });
+
+    await browser.close();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename=report_${appointmentId}_${reportIndex}.pdf`);
+    res.send(pdfBuffer);
+
+  } catch (err) {
+    console.error('Playwright PDF generation error:', err);
+    res.status(500).send('Failed to generate report PDF');
+  }
+};
+
+export const sendPatientReportWhatsapp = async (req, res) => {
+  const { patientId,appointmentId ,reportIndex } = req.body;
+  const patient = await Patient.findById(patientId);
+
+  const payload = {
+      
+
+      whatsapp: {
+        messages: [
+          {
+            from: `+919213009647`,
+
+            to: `+91${patient.phoneNo}`,
+
+            content: {
+              type: "template",
+
+              template: {
+                name: "patent_report_online_consultation",
+
+                language: {
+                  policy: "deterministic",
+                  code: "en"
+                },
+
+                components: [
+                  {
+                      "type": "header",
+                      "parameters": [
+                        {
+                          "type": "document",
+                          "document": {
+                            "link": `https://api.interventionalradiology.co.in/api/v1/appointments/getReportUrl/${appointmentId}/${reportIndex}?v=${Date.now()}`,
+                            "filename": `Report_${appointmentId}_${reportIndex}_${Date.now()}.pdf`
+                          }
+                        }
+                      ]
+                    },
+                  {
+                    type: "body",
+
+                    parameters: [
+                      {
+                        type: "text",
+                        text: patient.patientName
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    };
+
+  try {
+      //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+      //console.log("WhatsApp API Response:", data);
+       const url =
+  `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+  `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+const response = await axios.post(url, payload, {
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+});
+      res.status(201).json({ data:response.data, success: true });
+  } catch (err) {
+      console.error("WhatsApp API Error:", err.response?.data || err.message);
+  }
+};
+
+
 
 

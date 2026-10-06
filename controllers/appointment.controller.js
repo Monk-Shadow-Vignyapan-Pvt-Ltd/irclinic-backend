@@ -233,9 +233,14 @@ export const addAppointment = async (req, res) => {
             const doctor = await Doctor.findById(doctorId);
             const center = await Center.findById(centerId);
             if(isFollowUp){
-              await sendFollowupAppointmentConfirmation(appointment,patient, doctor, center);
+              if(!isOnlineConsultation){
+                await sendFollowupAppointmentConfirmation(appointment,patient, doctor, center);
+              }
+              
             }else{
+            if(!isOnlineConsultation){
               await sendAppointmentConfirmation(appointment,patient, doctor, center);
+            }
             }
             
             if (patient.reference) {
@@ -1593,7 +1598,7 @@ const response = await axios.post(url, payload, {
     "Accept": "application/json"
   },
 });
-      res.status(201).json({ data:response.data, success: true });
+     
   } catch (err) {
       console.error("WhatsApp API Error:", err.response?.data || err.message);
   }

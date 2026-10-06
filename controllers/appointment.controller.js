@@ -2750,7 +2750,7 @@ export const sendOnlineConsultPaymentWhatsapp = async (req, res) => {
               type: "template",
 
               template: {
-                name: "online_consulation_payment_link",
+                name: "online_consulation_payment_link_send",
 
                 language: {
                   policy: "deterministic",

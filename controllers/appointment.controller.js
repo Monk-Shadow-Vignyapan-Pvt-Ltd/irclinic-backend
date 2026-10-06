@@ -2774,6 +2774,10 @@ export const sendOnlineConsultPaymentWhatsapp = async (req, res) => {
                       },
                       {
                         type: "text",
+                        text: "1500"
+                      },
+                      {
+                        type: "text",
                         text: formattedDate
                       }
                     ]

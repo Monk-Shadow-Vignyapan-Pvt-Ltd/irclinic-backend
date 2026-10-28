@@ -290,7 +290,7 @@ export const addOnlineAppointment = async (req, res) => {
 
             // Create new patient
             patient = new Patient({
-                patientName: fullName,
+                patientName: String(fullName || "").toUpperCase(),
                 gender,
                 phoneNo: patientPhoneNo,
                 age,
@@ -335,7 +335,7 @@ export const addOnlineAppointment = async (req, res) => {
           const appointment = new Appointment({
             patientId: patient._id,
             appointmentType: "OPD",
-            title: fullName,
+            title: String(fullName || "").toUpperCase(),
             doctorId: doctor._id,
             centerId: center || null,
             start,   // UTC ISO string (e.g. 2025-09-06T04:30:00.000Z)

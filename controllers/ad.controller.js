@@ -44,7 +44,7 @@ export const addAd = async (req, res) => {
 
     // Create new ad
     const newAd = new Ad({
-      patientName,
+      patientName: String(patientName || "").toUpperCase(),
       patientEmail,
       patientPhone,
       centerId,
@@ -259,7 +259,7 @@ export const updateAd = async (req, res) => {
 
     // Build updated data
     const updatedData = {
-      ...(patientName && { patientName }),
+      ...(patientName && { patientName: String(patientName || "").toUpperCase(), }),
       ...(patientEmail && { patientEmail }),
       ...(patientPhone && { patientPhone }),
       ...(centerId && { centerId }),

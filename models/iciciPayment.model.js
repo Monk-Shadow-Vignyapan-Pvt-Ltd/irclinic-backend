@@ -55,7 +55,11 @@ const iciciPaymentSchema = new mongoose.Schema(
     },
     adData:{
       type: Object,
-    }
+    },
+    paymentSuccessWasent: {
+      type: Boolean,
+      default:false
+    },
   },
   {
     timestamps: true,

@@ -150,6 +150,7 @@ export const initiateIciciPayment = async (req, res) => {
       hashText,
       requestPayload: payload,
       status: "INITIATED",
+      paymentSuccessWasent:false
     });
 
     try {
@@ -313,6 +314,112 @@ export const checkIciciPaymentStatus = async (
 ) {
   payment.status = "SUCCESS";
   appointmentPaymentStatus = "SUCCESS";
+  if (!payment.paymentSuccessWasent) {
+  // Atomically claim permission to send the message.
+  const claimedPayment = await IciciPayment.findOneAndUpdate(
+    {
+      _id: payment._id,
+      paymentSuccessWasent: false,
+    },
+    {
+      $set: {
+        paymentSuccessWasent: true,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (claimedPayment) {
+    const recipientPhone = String(
+      payment.customerMobileNo || iciciData.customerMobileNo || ""
+    ).replace(/\D/g, "");
+
+    const formattedPhone = recipientPhone.startsWith("91")
+      ? `+${recipientPhone}`
+      : `+91${recipientPhone}`;
+
+    const whatsappPayload = {
+      whatsapp: {
+        messages: [
+          {
+            from: "+919213009647",
+            to: formattedPhone,
+            content: {
+              type: "template",
+              template: {
+                name: "payment_thank_you_ir_clinic",
+                language: {
+                  policy: "deterministic",
+                  code: "en",
+                },
+                components: [
+                  {
+                    type: "body",
+                    parameters: [
+                      {
+                        type: "text",
+                        text: String(
+                          payment.customerName || iciciData.customerName || ""
+                        ),
+                      },
+                      {
+                        type: "text",
+                        text: String(payment.amount ?? iciciData.amount ?? ""),
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    const url =
+      `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+      `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+    try {
+      const whatsappResponse = await axios.post(
+        url,
+        whatsappPayload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      console.log("Payment success WhatsApp sent:", whatsappResponse.status);
+    } catch (err) {
+      console.error(
+        "WhatsApp API Error:",
+        err.response?.data || err.message
+      );
+
+      // Optional: reset the flag to allow a retry after a failed request.
+      // Only do this if you have a retry strategy to prevent duplicate sends
+      // when Exotel accepted the message but the response was lost.
+      await IciciPayment.updateOne(
+        {
+          _id: payment._id,
+          paymentSuccessWasent: true,
+        },
+        {
+          $set: {
+            paymentSuccessWasent: false,
+          },
+        }
+      );
+    }
+  }
+}
+  
+  
 }
 
 // PENDING
@@ -742,6 +849,7 @@ export const initiateAdPayment = async (req, res) => {
       hashText,
       requestPayload: payload,
       status: "INITIATED",
+      paymentSuccessWasent:false
     });
 
     try {
@@ -916,6 +1024,111 @@ export const checkAdPaymentStatus = async (
           paymentAmount:iciciData.amount,
           paymentMode:iciciData.paymentMode
         });
+
+        if (!payment.paymentSuccessWasent) {
+  // Atomically claim permission to send the message.
+  const claimedPayment = await IciciPayment.findOneAndUpdate(
+    {
+      _id: payment._id,
+      paymentSuccessWasent: false,
+    },
+    {
+      $set: {
+        paymentSuccessWasent: true,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (claimedPayment) {
+    const recipientPhone = String(
+      payment.customerMobileNo || iciciData.customerMobileNo || ""
+    ).replace(/\D/g, "");
+
+    const formattedPhone = recipientPhone.startsWith("91")
+      ? `+${recipientPhone}`
+      : `+91${recipientPhone}`;
+
+    const whatsappPayload = {
+      whatsapp: {
+        messages: [
+          {
+            from: "+919213009647",
+            to: formattedPhone,
+            content: {
+              type: "template",
+              template: {
+                name: "payment_thank_you_ir_clinic",
+                language: {
+                  policy: "deterministic",
+                  code: "en",
+                },
+                components: [
+                  {
+                    type: "body",
+                    parameters: [
+                      {
+                        type: "text",
+                        text: String(
+                          payment.customerName || iciciData.customerName || ""
+                        ),
+                      },
+                      {
+                        type: "text",
+                        text: String(payment.amount ?? iciciData.amount ?? ""),
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    };
+
+    const url =
+      `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+      `@api.exotel.com/v2/accounts/irclinic1/messages`;
+
+    try {
+      const whatsappResponse = await axios.post(
+        url,
+        whatsappPayload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        }
+      );
+
+      console.log("Payment success WhatsApp sent:", whatsappResponse.status);
+    } catch (err) {
+      console.error(
+        "WhatsApp API Error:",
+        err.response?.data || err.message
+      );
+
+      // Optional: reset the flag to allow a retry after a failed request.
+      // Only do this if you have a retry strategy to prevent duplicate sends
+      // when Exotel accepted the message but the response was lost.
+      await IciciPayment.updateOne(
+        {
+          _id: payment._id,
+          paymentSuccessWasent: true,
+        },
+        {
+          $set: {
+            paymentSuccessWasent: false,
+          },
+        }
+      );
+    }
+  }
+}
     
         } else if (
         iciciData?.txnStatus === "PENDING"

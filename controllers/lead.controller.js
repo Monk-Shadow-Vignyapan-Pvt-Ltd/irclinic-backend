@@ -115,6 +115,12 @@ export const verifyMetaWebhook = (req, res) => {
   });
 };
 
+const getFieldValue = (fieldData, name) => {
+    if (!fieldData || !Array.isArray(fieldData)) return "N/A";
+    const field = fieldData.find((f) => f.name === name);
+    return field?.values?.[0] || "N/A";
+  };
+
 export const receiveMetaLeadWebhook = async (req, res) => {
   try {
     const { body } = req;
@@ -157,6 +163,83 @@ export const receiveMetaLeadWebhook = async (req, res) => {
         const savedLead = await upsertLead(
           buildLeadRecord("meta", change.value.leadgen_id, metaPayload, leadDetails, normalizedLeadData)
         );
+        const fieldData = leadDetails?.field_data || [];
+        const name = getFieldValue(fieldData, "full_name") || "N/A";
+        const phone = getFieldValue(fieldData, "phone_number") || "N/A";
+
+const formattedPhone = phone.startsWith("91")
+  ?  `+${phone}`
+  : phone.startsWith("+91")
+  ? phone 
+  : `+91${phone}`;
+
+    const payload = {
+          
+    
+          whatsapp: {
+            messages: [
+              {
+                from: `+919213009647`,
+    
+                to: formattedPhone,
+    
+                content: {
+                  type: "template",
+    
+                  template: {
+                    name: "irclinic_lead_welcome",
+    
+                    language: {
+                      policy: "deterministic",
+                      code: "en"
+                    },
+    
+                    components: [
+                      {
+                        "type": "header",
+                        "parameters": [
+                          { "type": "image", "image": { "link": "https://irclinicindia.com/social-share-image.jpg" } }
+                        ]
+                      },
+                      {
+                        type: "body",
+    
+                        parameters: [
+                          {
+                            type: "text",
+                            text: name
+                          }
+                         
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        };
+    
+        try {
+            //const { data } = await axios.post("https://backend.aisensy.com/campaign/t1/api/v2", payload);
+            //console.log("WhatsApp API Response:", data);
+    
+            const url =
+      `https://${process.env.EXOTEL_API_KEY}:${process.env.EXOTEL_API_TOKEN}` +
+      `@api.exotel.com/v2/accounts/irclinic1/messages`;
+    
+    const response = await axios.post(url, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+    });
+    
+    // console.log("Exotel Status:", response.status);
+    // console.log("Exotel Response:", JSON.stringify(response.data, null, 2));
+        } catch (err) {
+            console.error("WhatsApp API Error:", err.response?.data || err.message);
+        }
 
         storedLeads.push(savedLead);
       }
